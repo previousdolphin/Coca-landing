@@ -31,6 +31,9 @@
             justify-content: center;
             letter-spacing: 0.05em;
             position: relative;
+            /* Allow scrolling when form appears */
+            overflow-y: auto; 
+            overflow-x: hidden;
         }
 
         /* Noise Filter */
@@ -46,7 +49,7 @@
         .container {
             width: 90%;
             max-width: 420px;
-            padding: 2rem 1rem;
+            padding: 3rem 1rem;
             text-align: center;
             opacity: 0;
             animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -63,7 +66,8 @@
             width: 130px;
             height: 130px;
             background-color: var(--dim-color);
-            background-image: url('coca.png'); 
+            /* Placeholder SVG for CoCA since local image is missing */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 130 130'%3E%3Crect width='130' height='130' fill='%231a1a1a'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-weight='bold' font-size='30' fill='%23ffffff'%3ECOCA%3C/text%3E%3C/svg%3E");
             background-size: cover;
             background-position: center;
             border-radius: 50%; 
@@ -132,7 +136,8 @@
             background: rgba(0,0,0,0.3);
             z-index: 1;
             cursor: pointer;
-            user-select: none; /* Prevents text highlighting on quick clicks */
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* Hover Fill Effect */
@@ -151,7 +156,7 @@
         }
         .link-btn:hover::before { width: 100%; }
 
-        /* --- STATE MODIFIERS (Activated via JS) --- */
+        /* --- STATE MODIFIERS --- */
         
         /* LOCKED STATE (Bible) */
         .link-btn.locked {
@@ -188,7 +193,35 @@
             color: var(--record-color);
             cursor: default;
         }
-        .link-btn.recording::before { width: 0% !important; } /* Disable fill on recording */
+        .link-btn.recording::before { width: 0% !important; }
+
+        /* --- THE CONFESSION BOOTH (Google Form Embed) --- */
+        .confession-booth {
+            display: none;
+            width: 100%;
+            margin-top: 2rem;
+            border-top: 1px dashed var(--dim-color);
+            padding-top: 2rem;
+            opacity: 0;
+            transition: opacity 1s ease;
+            /* Ensure it stays within bounds */
+            max-width: 100%; 
+        }
+
+        .confession-booth.active {
+            display: block;
+            animation: ritualFadeIn 1s forwards;
+        }
+
+        /* INVERT FILTER: Makes the white form dark */
+        .confession-booth iframe {
+            width: 100%;
+            /* Inverts colors + Rotates Hue to keep blues/purples somewhat natural */
+            filter: invert(1) hue-rotate(180deg); 
+            border: none;
+            mix-blend-mode: screen; 
+            display: block; /* Removes inline gap */
+        }
 
         /* --- FOOTER --- */
         .footer {
@@ -216,7 +249,6 @@
             100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); }
         }
 
-        /* Mobile tweaks */
         @media (max-height: 700px) {
             .container { padding-top: 1rem; }
             .profile-pic { width: 100px; height: 100px; }
@@ -261,6 +293,24 @@
 
         </div>
 
+        <!-- HIDDEN FORM CONTAINER -->
+        <div class="confession-booth" id="google-form-container">
+            <!-- 
+                NOTE: I am using your forms.gle link below. 
+                If it does not load in the preview window (grey screen/refused to connect), 
+                you MUST replace it with the full "https://docs.google.com/forms/d/e/..../viewform?embedded=true" link.
+            -->
+            <iframe 
+                src="https://forms.gle/vYXKewzxCNaefPMz5" 
+                width="100%" 
+                height="1100" 
+                frameborder="0" 
+                marginheight="0" 
+                marginwidth="0">
+                Loading…
+            </iframe>
+        </div>
+
         <div class="footer">
             © 2025 CoCA. Structural Immunity.
         </div>
@@ -276,18 +326,15 @@
         // 1. THE BIBLE (Paywall/Locked)
         const bibleBtn = document.getElementById('btn-bible');
         bibleBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Stop link
+            e.preventDefault(); 
             
-            // Save original state
-            if(bibleBtn.classList.contains('locked')) return; // Prevent double click
+            if(bibleBtn.classList.contains('locked')) return; 
 
             const originalText = bibleBtn.innerText;
             
-            // Apply visual change
             bibleBtn.classList.add('locked');
             bibleBtn.innerText = "ACCESS DENIED // TIER 1 REQUIRED";
             
-            // Revert after 3 seconds
             setTimeout(() => {
                 bibleBtn.classList.remove('locked');
                 bibleBtn.innerText = originalText;
@@ -312,15 +359,28 @@
             }, 3000);
         });
 
-        // 3. CONFESSION (Permanent Surveillance)
+        // 3. CONFESSION (The Portal)
         const confBtn = document.getElementById('btn-confession');
+        const formContainer = document.getElementById('google-form-container');
+
         confBtn.addEventListener('click', (e) => {
             e.preventDefault();
             
-            // This one does not revert. It stays active.
+            // If already open, do nothing
+            if(confBtn.classList.contains('recording')) return;
+
+            // Visual State Update
             confBtn.classList.add('recording');
-            confBtn.innerText = "● MICROPHONE ACTIVE. WE ARE JUDGING YOU.";
+            confBtn.innerText = "● MICROPHONE ACTIVE. WE ARE LISTENING.";
             
+            // Reveal the Form
+            formContainer.classList.add('active');
+            
+            // Smooth scroll to the form
+            setTimeout(() => {
+                formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+
             console.log("Audio Input: Open. Storage: Infinite.");
         });
 
