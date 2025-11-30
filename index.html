@@ -13,7 +13,7 @@
             --accent-color: #ffffff; /* Pure White */
             --dim-color: #4a4a4a; /* Concrete Grey */
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            --transition-speed: 0.4s;
+            --transition-speed: 0.3s;
         }
 
         * {
@@ -26,30 +26,31 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
-            height: 100vh;
+            min-height: 100vh; /* Changed to min-height for scrolling on small phones */
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden; /* Prevent scrolling if not needed */
             letter-spacing: 0.05em;
+            position: relative;
         }
 
-        /* Background Noise Effect (The Static) */
+        /* FIXED: Background Noise Effect */
         body::before {
             content: "";
-            position: absolute;
+            position: fixed; /* Fixed so it doesn't scroll away */
             top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url("url viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            /* A cleaner SVG noise data URI */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
             pointer-events: none;
             z-index: -1;
         }
 
         .container {
-            width: 100%;
-            max-width: 400px;
-            padding: 2rem;
+            width: 90%; /* Better for mobile */
+            max-width: 420px;
+            padding: 2rem 1rem;
             text-align: center;
-            opacity: 0; /* Starts hidden for animation */
+            opacity: 0;
             animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
@@ -61,105 +62,145 @@
         }
 
         .profile-pic {
-            width: 120px;
-            height: 120px;
-            background-color: var(--dim-color); /* Placeholder color */
+            width: 130px;
+            height: 130px;
+            background-color: var(--dim-color);
+            /* FIXED: Image Reference */
             background-image: url('coca.png'); 
             background-size: cover;
             background-position: center;
+            /* FIXED: Made it round */
+            border-radius: 50%; 
             border: 1px solid var(--dim-color);
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
+            transition: transform 0.5s ease;
+        }
+
+        .profile-container:hover .profile-pic {
+            transform: scale(1.05);
+            border-color: var(--accent-color);
         }
 
         /* --- THE SCRIPTURE (Bio) --- */
         .handle {
-            font-size: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .handle a {
+            font-size: 0.85rem;
             text-transform: uppercase;
             color: var(--dim-color);
-            margin-bottom: 1.5rem;
+            text-decoration: none;
             letter-spacing: 0.2em;
+            transition: color 0.3s;
+            display: inline-block; /* Keeps glitch contained */
+        }
+
+        .handle a:hover {
+            color: var(--accent-color);
         }
 
         .bio {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             line-height: 1.6;
             margin-bottom: 2.5rem;
             font-weight: 300;
+            color: #ccc;
         }
 
         .bio p {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.6rem;
         }
 
         .bio-highlight {
             color: var(--accent-color);
             font-weight: 500;
             border-bottom: 1px solid var(--dim-color);
-            padding-bottom: 2px;
         }
 
         .arrow {
             display: block;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
+            font-size: 1.2rem;
             animation: pulsate 2s infinite;
+            color: var(--dim-color);
         }
 
-        /* --- THE DOORS (Links) --- */
+        /* --- THE DOORS (Dynamic Buttons) --- */
         .links-wrapper {
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            width: 100%;
         }
 
         .link-btn {
+            position: relative; /* Needed for the fill effect */
             display: block;
             text-decoration: none;
             color: var(--text-color);
             border: 1px solid var(--dim-color);
-            padding: 1rem;
+            padding: 1.1rem;
             text-transform: uppercase;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             letter-spacing: 0.15em;
-            transition: all var(--transition-speed) ease;
-            position: relative;
-            overflow: hidden;
-            background: transparent;
+            transition: color var(--transition-speed) ease;
+            overflow: hidden; /* Keeps the slide-in contained */
+            background: rgba(0,0,0,0.3);
+            z-index: 1; /* Puts text above the slide-in background */
         }
 
-        /* The Hover Ritual */
-        .link-btn:hover {
-            border-color: var(--accent-color);
+        /* The Slide-In Effect */
+        .link-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 100%;
             background-color: var(--accent-color);
-            color: var(--bg-color);
-            transform: scale(1.02);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            transition: width var(--transition-speed) ease;
+            z-index: -1; /* Puts background behind text */
+        }
+
+        .link-btn:hover {
+            color: var(--bg-color); /* Text turns black on hover */
+            border-color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+        }
+
+        .link-btn:hover::before {
+            width: 100%; /* Fills the button */
         }
 
         /* --- FOOTER --- */
         .footer {
-            margin-top: 3rem;
+            margin-top: 3.5rem;
             font-size: 0.6rem;
             color: var(--dim-color);
             text-transform: uppercase;
             letter-spacing: 0.1em;
+            opacity: 0.7;
         }
 
         /* --- ANIMATIONS --- */
         @keyframes ritualFadeIn {
-            0% { opacity: 0; transform: translateY(20px); }
+            0% { opacity: 0; transform: translateY(30px); }
             100% { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes pulsate {
-            0% { opacity: 0.3; }
-            50% { opacity: 1; }
-            100% { opacity: 0.3; }
+            0% { opacity: 0.3; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(5px); }
+            100% { opacity: 0.3; transform: translateY(0); }
         }
 
-        /* Mobile Optimization */
-        @media (max-width: 480px) {
-            .container { padding: 1.5rem; }
+        /* Responsive Adjustments */
+        @media (max-height: 700px) {
+            /* If the screen is short (landscape mobile), decrease padding */
+            .container { padding-top: 1rem; }
             .profile-pic { width: 100px; height: 100px; }
+            .bio { font-size: 0.85rem; margin-bottom: 1.5rem; }
         }
     </style>
 </head>
@@ -172,7 +213,9 @@
                 <div class="profile-pic"></div>
             </div>
             
-            <div class="handle"><a href='https://www.instagram.com/churchofconceptualart'>@ChurchOfConceptualArt</a></div>
+            <div class="handle">
+                <a href='https://www.instagram.com/churchofconceptualart' target="_blank" id="glitch-target">@ChurchOfConceptualArt</a>
+            </div>
             
             <div class="bio">
                 <p>The Church of _______.</p>
@@ -207,18 +250,15 @@
     <script>
         // --- PHASE III: THE ALGORITHM (JS) ---
         
-        // Console Indoctrination
         console.log("%c THE SEAT IS OPEN.", "color: #000; background: #fff; font-size: 20px; padding: 10px;");
-        console.log("We are waiting for you in the archive.");
 
-        // Simple tracker simulation (Replace with actual analytics)
         function logVisit(destination) {
             console.log(`Initiate moved to: ${destination}`);
-            // Add your Google Analytics or Pixel event here
         }
 
-        // Subtle Glitch Effect on Title every 5-10 seconds
-        const handle2 = document.querySelector('.handle2');
+        // FIXED: Targeting the link text specifically
+        // This ensures the HREF stays broken/working as intended, only text changes
+        const glitchElement = document.getElementById('glitch-target');
         
         function triggerGlitch() {
             const originalText = "@ChurchOfConceptualArt";
@@ -226,29 +266,29 @@
             
             let iterations = 0;
             const interval = setInterval(() => {
-                handle2.innerText = handle2.innerText
+                glitchElement.innerText = originalText
                     .split("")
                     .map((letter, index) => {
                         if(index < iterations) {
                             return originalText[index];
                         }
-                        return glitchChars[Math.floor(Math.random() * 26)];
+                        return glitchChars[Math.floor(Math.random() * glitchChars.length)];
                     })
                     .join("");
                 
                 if(iterations >= originalText.length) { 
                     clearInterval(interval);
-                    handle2.innerText = originalText;
+                    glitchElement.innerText = originalText;
                 }
                 
                 iterations += 1 / 3;
             }, 30);
         }
 
-        // Randomly trigger glitch between 5s and 15s
+        // Randomly trigger glitch between 5s and 10s
         setInterval(() => {
-            if(Math.random() > 0.7) triggerGlitch();
-        }, 9800);
+            if(Math.random() > 0.6) triggerGlitch();
+        }, 5000);
 
     </script>
 </body>
