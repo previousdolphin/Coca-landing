@@ -219,7 +219,7 @@
         }
 
         // Subtle Glitch Effect on Title every 5-10 seconds
-        const handle = document.querySelector('.handle');
+        const handle2 = document.querySelector('.handle2');
         
         function triggerGlitch() {
             const originalText = "@ChurchOfConceptualArt";
@@ -227,7 +227,7 @@
             
             let iterations = 0;
             const interval = setInterval(() => {
-                handle.innerText = handle.innerText
+                handle2.innerText = handle2.innerText
                     .split("")
                     .map((letter, index) => {
                         if(index < iterations) {
@@ -239,7 +239,7 @@
                 
                 if(iterations >= originalText.length) { 
                     clearInterval(interval);
-                    handle.innerText = originalText;
+                    handle2.innerText = originalText;
                 }
                 
                 iterations += 1 / 3;
