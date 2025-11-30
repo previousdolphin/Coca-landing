@@ -206,6 +206,17 @@
             transition: opacity 1s ease;
             /* Ensure it stays within bounds */
             max-width: 100%; 
+            
+            /* --- CROP TECHNIQUE --- */
+            /* We set a fixed height that fits YOUR form exactly */
+            height: 480px; 
+            
+            /* overflow:hidden chops off the Google Footer and the empty space below */
+            overflow: hidden; 
+            position: relative;
+            
+            /* Remove scrollbars to look like a native part of the page */
+            scrollbar-width: none;
         }
 
         .confession-booth.active {
@@ -220,7 +231,10 @@
             filter: invert(1) hue-rotate(180deg); 
             border: none;
             mix-blend-mode: screen; 
-            display: block; /* Removes inline gap */
+            display: block; 
+            
+            /* Pull the form UP slightly to hide top padding if needed */
+            margin-top: -10px;
         }
 
         /* --- FOOTER --- */
@@ -301,9 +315,9 @@
                 you MUST replace it with the full "https://docs.google.com/forms/d/e/..../viewform?embedded=true" link.
             -->
             <iframe 
-                src="https://forms.gle/vYXKewzxCNaefPMz5" 
+                src="https://docs.google.com/forms/d/e/1FAIpQLScWDMDTkez7kspaRGLXRTKsMNOWv8tze2RlmI8TNtk4XhLgyQ/viewform" 
                 width="100%" 
-                height="1100" 
+                height="550" 
                 frameborder="0" 
                 marginheight="0" 
                 marginwidth="0">
