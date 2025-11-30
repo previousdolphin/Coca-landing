@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoCA | The Church of Conceptual Art</title>
+    <style>
+        /* --- THE ARCHITECTURE (CSS) --- */
+        
+        :root {
+            --bg-color: #050505; /* Void Black */
+            --text-color: #e0e0e0; /* Off-White */
+            --accent-color: #ffffff; /* Pure White */
+            --dim-color: #4a4a4a; /* Concrete Grey */
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --transition-speed: 0.4s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* Prevent scrolling if not needed */
+            letter-spacing: 0.05em;
+        }
+
+        /* Background Noise Effect (The Static) */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            text-align: center;
+            opacity: 0; /* Starts hidden for animation */
+            animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* --- THE ALTAR (Profile Pic) --- */
+        .profile-container {
+            margin-bottom: 2rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-pic {
+            width: 120px;
+            height: 120px;
+            background-color: var(--dim-color); /* Placeholder color */
+            /* REPLACE 'YOUR_IMAGE_URL_HERE' with your actual image path */
+            background-image: url('YOUR_IMAGE_URL_HERE'); 
+            background-size: cover;
+            background-position: center;
+            border: 1px solid var(--dim-color);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+        }
+
+        /* --- THE SCRIPTURE (Bio) --- */
+        .handle {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--dim-color);
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.2em;
+        }
+
+        .bio {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+            font-weight: 300;
+        }
+
+        .bio p {
+            margin-bottom: 0.5rem;
+        }
+
+        .bio-highlight {
+            color: var(--accent-color);
+            font-weight: 500;
+            border-bottom: 1px solid var(--dim-color);
+            padding-bottom: 2px;
+        }
+
+        .arrow {
+            display: block;
+            margin-top: 1rem;
+            animation: pulsate 2s infinite;
+        }
+
+        /* --- THE DOORS (Links) --- */
+        .links-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .link-btn {
+            display: block;
+            text-decoration: none;
+            color: var(--text-color);
+            border: 1px solid var(--dim-color);
+            padding: 1rem;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            transition: all var(--transition-speed) ease;
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        /* The Hover Ritual */
+        .link-btn:hover {
+            border-color: var(--accent-color);
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        /* --- FOOTER --- */
+        .footer {
+            margin-top: 3rem;
+            font-size: 0.6rem;
+            color: var(--dim-color);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes ritualFadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulsate {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 480px) {
+            .container { padding: 1.5rem; }
+            .profile-pic { width: 100px; height: 100px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="profile-section">
+            <div class="profile-container">
+                <div class="profile-pic"></div>
+            </div>
+            
+            <div class="handle">@ChurchOfConceptualArt</div>
+            
+            <div class="bio">
+                <p>The Conceptual Financial Art Cloister.</p>
+                <p>The Market is Dead. <span class="bio-highlight">We own the Deed.</span></p>
+                <p>501(c)(3) Entity.</p>
+                <span class="arrow">↓</span>
+            </div>
+        </div>
+
+        <div class="links-wrapper">
+            
+            <a href="#" class="link-btn" onclick="logVisit('Bible')">
+                The Bible [PDF]
+            </a>
+
+            <a href="#" class="link-btn" onclick="logVisit('Tithe')">
+                Tithe [Secure Portal]
+            </a>
+
+            <a href="#" class="link-btn" onclick="logVisit('Confession')">
+                Confession [Intake]
+            </a>
+
+        </div>
+
+        <div class="footer">
+            © 2025 CoCA. Structural Immunity.
+        </div>
+
+    </div>
+
+    <script>
+        // --- PHASE III: THE ALGORITHM (JS) ---
+        
+        // Console Indoctrination
+        console.log("%c THE SEAT IS OPEN.", "color: #000; background: #fff; font-size: 20px; padding: 10px;");
+        console.log("We are waiting for you in the archive.");
+
+        // Simple tracker simulation (Replace with actual analytics)
+        function logVisit(destination) {
+            console.log(`Initiate moved to: ${destination}`);
+            // Add your Google Analytics or Pixel event here
+        }
+
+        // Subtle Glitch Effect on Title every 5-10 seconds
+        const handle = document.querySelector('.handle');
+        
+        function triggerGlitch() {
+            const originalText = "@ChurchOfConceptualArt";
+            const glitchChars = "!@#$%^&*()_+-=[]{}|;':,./<>?";
+            
+            let iterations = 0;
+            const interval = setInterval(() => {
+                handle.innerText = handle.innerText
+                    .split("")
+                    .map((letter, index) => {
+                        if(index < iterations) {
+                            return originalText[index];
+                        }
+                        return glitchChars[Math.floor(Math.random() * 26)];
+                    })
+                    .join("");
+                
+                if(iterations >= originalText.length) { 
+                    clearInterval(interval);
+                    handle.innerText = originalText;
+                }
+                
+                iterations += 1 / 3;
+            }, 30);
+        }
+
+        // Randomly trigger glitch between 5s and 15s
+        setInterval(() => {
+            if(Math.random() > 0.7) triggerGlitch();
+        }, 5000);
+
+    </script>
+</body>
+</html>
