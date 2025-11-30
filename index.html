@@ -8,25 +8,24 @@
         /* --- THE ARCHITECTURE (CSS) --- */
         
         :root {
-            --bg-color: #050505; /* Void Black */
-            --text-color: #e0e0e0; /* Off-White */
-            --accent-color: #ffffff; /* Pure White */
-            --dim-color: #4a4a4a; /* Concrete Grey */
+            --bg-color: #050505;
+            --text-color: #e0e0e0;
+            --accent-color: #ffffff;
+            --dim-color: #4a4a4a;
+            --error-color: #ff3b3b;   /* Red for Denied */
+            --alert-color: #ffcc00;   /* Gold for Tithe */
+            --record-color: #00ff41;  /* Green for Recording */
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --transition-speed: 0.3s;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
-            min-height: 100vh; /* Changed to min-height for scrolling on small phones */
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -34,19 +33,18 @@
             position: relative;
         }
 
-        /* FIXED: Background Noise Effect */
+        /* Noise Filter */
         body::before {
             content: "";
-            position: fixed; /* Fixed so it doesn't scroll away */
+            position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            /* A cleaner SVG noise data URI */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
             pointer-events: none;
             z-index: -1;
         }
 
         .container {
-            width: 90%; /* Better for mobile */
+            width: 90%;
             max-width: 420px;
             padding: 2rem 1rem;
             text-align: center;
@@ -54,7 +52,7 @@
             animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* --- THE ALTAR (Profile Pic) --- */
+        /* --- THE ALTAR --- */
         .profile-container {
             margin-bottom: 2rem;
             position: relative;
@@ -65,11 +63,9 @@
             width: 130px;
             height: 130px;
             background-color: var(--dim-color);
-            /* FIXED: Image Reference */
             background-image: url('coca.png'); 
             background-size: cover;
             background-position: center;
-            /* FIXED: Made it round */
             border-radius: 50%; 
             border: 1px solid var(--dim-color);
             box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
@@ -81,11 +77,7 @@
             border-color: var(--accent-color);
         }
 
-        /* --- THE SCRIPTURE (Bio) --- */
-        .handle {
-            margin-bottom: 1.5rem;
-        }
-
+        .handle { margin-bottom: 1.5rem; }
         .handle a {
             font-size: 0.85rem;
             text-transform: uppercase;
@@ -93,12 +85,9 @@
             text-decoration: none;
             letter-spacing: 0.2em;
             transition: color 0.3s;
-            display: inline-block; /* Keeps glitch contained */
+            display: inline-block;
         }
-
-        .handle a:hover {
-            color: var(--accent-color);
-        }
+        .handle a:hover { color: var(--accent-color); }
 
         .bio {
             font-size: 0.95rem;
@@ -107,17 +96,11 @@
             font-weight: 300;
             color: #ccc;
         }
-
-        .bio p {
-            margin-bottom: 0.6rem;
-        }
-
         .bio-highlight {
             color: var(--accent-color);
             font-weight: 500;
             border-bottom: 1px solid var(--dim-color);
         }
-
         .arrow {
             display: block;
             margin-top: 1.5rem;
@@ -126,7 +109,7 @@
             color: var(--dim-color);
         }
 
-        /* --- THE DOORS (Dynamic Buttons) --- */
+        /* --- THE DOORS (Buttons) --- */
         .links-wrapper {
             display: flex;
             flex-direction: column;
@@ -135,7 +118,7 @@
         }
 
         .link-btn {
-            position: relative; /* Needed for the fill effect */
+            position: relative;
             display: block;
             text-decoration: none;
             color: var(--text-color);
@@ -144,34 +127,68 @@
             text-transform: uppercase;
             font-size: 0.8rem;
             letter-spacing: 0.15em;
-            transition: color var(--transition-speed) ease;
-            overflow: hidden; /* Keeps the slide-in contained */
+            transition: all var(--transition-speed) ease;
+            overflow: hidden;
             background: rgba(0,0,0,0.3);
-            z-index: 1; /* Puts text above the slide-in background */
+            z-index: 1;
+            cursor: pointer;
+            user-select: none; /* Prevents text highlighting on quick clicks */
         }
 
-        /* The Slide-In Effect */
+        /* Hover Fill Effect */
         .link-btn::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 0%;
-            height: 100%;
+            top: 0; left: 0; width: 0%; height: 100%;
             background-color: var(--accent-color);
             transition: width var(--transition-speed) ease;
-            z-index: -1; /* Puts background behind text */
+            z-index: -1;
         }
 
         .link-btn:hover {
-            color: var(--bg-color); /* Text turns black on hover */
+            color: var(--bg-color);
             border-color: var(--accent-color);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
         }
+        .link-btn:hover::before { width: 100%; }
 
-        .link-btn:hover::before {
-            width: 100%; /* Fills the button */
+        /* --- STATE MODIFIERS (Activated via JS) --- */
+        
+        /* LOCKED STATE (Bible) */
+        .link-btn.locked {
+            border-color: var(--error-color);
+            color: var(--error-color);
+            background: rgba(255, 59, 59, 0.05);
         }
+        .link-btn.locked:hover {
+            background: var(--error-color);
+            color: #000;
+        }
+        .link-btn.locked::before { background-color: var(--error-color); }
+
+        /* WAIT STATE (Tithe) */
+        .link-btn.wait {
+            border-color: var(--alert-color);
+            color: var(--alert-color);
+            background: rgba(255, 204, 0, 0.05);
+        }
+        .link-btn.wait:hover {
+            background: var(--alert-color);
+            color: #000;
+        }
+        .link-btn.wait::before { background-color: var(--alert-color); }
+
+        /* RECORDING STATE (Confession) */
+        .link-btn.recording {
+            border-color: var(--record-color);
+            color: var(--record-color);
+            animation: borderPulse 2s infinite;
+        }
+        .link-btn.recording:hover {
+            background: transparent;
+            color: var(--record-color);
+            cursor: default;
+        }
+        .link-btn.recording::before { width: 0% !important; } /* Disable fill on recording */
 
         /* --- FOOTER --- */
         .footer {
@@ -188,16 +205,19 @@
             0% { opacity: 0; transform: translateY(30px); }
             100% { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes pulsate {
             0% { opacity: 0.3; transform: translateY(0); }
             50% { opacity: 1; transform: translateY(5px); }
             100% { opacity: 0.3; transform: translateY(0); }
         }
+        @keyframes borderPulse {
+            0% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); }
+            50% { box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
+            100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); }
+        }
 
-        /* Responsive Adjustments */
+        /* Mobile tweaks */
         @media (max-height: 700px) {
-            /* If the screen is short (landscape mobile), decrease padding */
             .container { padding-top: 1rem; }
             .profile-pic { width: 100px; height: 100px; }
             .bio { font-size: 0.85rem; margin-bottom: 1.5rem; }
@@ -227,15 +247,15 @@
 
         <div class="links-wrapper">
             
-            <a href="#" class="link-btn" onclick="logVisit('Bible')">
+            <a href="#" class="link-btn" id="btn-bible">
                 The Bible [PDF]
             </a>
 
-            <a href="#" class="link-btn" onclick="logVisit('Tithe')">
+            <a href="#" class="link-btn" id="btn-tithe">
                 Tithe [Secure Portal]
             </a>
 
-            <a href="#" class="link-btn" onclick="logVisit('Confession')">
+            <a href="#" class="link-btn" id="btn-confession">
                 Confession [Intake]
             </a>
 
@@ -249,46 +269,84 @@
 
     <script>
         // --- PHASE III: THE ALGORITHM (JS) ---
-        
         console.log("%c THE SEAT IS OPEN.", "color: #000; background: #fff; font-size: 20px; padding: 10px;");
 
-        function logVisit(destination) {
-            console.log(`Initiate moved to: ${destination}`);
-        }
+        // --- BUTTON LOGIC ---
 
-        // FIXED: Targeting the link text specifically
-        // This ensures the HREF stays broken/working as intended, only text changes
+        // 1. THE BIBLE (Paywall/Locked)
+        const bibleBtn = document.getElementById('btn-bible');
+        bibleBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Stop link
+            
+            // Save original state
+            if(bibleBtn.classList.contains('locked')) return; // Prevent double click
+
+            const originalText = bibleBtn.innerText;
+            
+            // Apply visual change
+            bibleBtn.classList.add('locked');
+            bibleBtn.innerText = "ACCESS DENIED // TIER 1 REQUIRED";
+            
+            // Revert after 3 seconds
+            setTimeout(() => {
+                bibleBtn.classList.remove('locked');
+                bibleBtn.innerText = originalText;
+            }, 3000);
+        });
+
+        // 2. TITHE (Not ready)
+        const titheBtn = document.getElementById('btn-tithe');
+        titheBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            if(titheBtn.classList.contains('wait')) return;
+
+            const originalText = titheBtn.innerText;
+            
+            titheBtn.classList.add('wait');
+            titheBtn.innerText = "LEDGER OFFLINE. KEEP YOUR CURRENCY.";
+            
+            setTimeout(() => {
+                titheBtn.classList.remove('wait');
+                titheBtn.innerText = originalText;
+            }, 3000);
+        });
+
+        // 3. CONFESSION (Permanent Surveillance)
+        const confBtn = document.getElementById('btn-confession');
+        confBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // This one does not revert. It stays active.
+            confBtn.classList.add('recording');
+            confBtn.innerText = "● MICROPHONE ACTIVE. WE ARE JUDGING YOU.";
+            
+            console.log("Audio Input: Open. Storage: Infinite.");
+        });
+
+
+        // --- GLITCH EFFECT (Visuals) ---
         const glitchElement = document.getElementById('glitch-target');
-        
         function triggerGlitch() {
             const originalText = "@ChurchOfConceptualArt";
             const glitchChars = "!@#$%^&*()_+-=[]{}|;':,./<>?";
-            
             let iterations = 0;
             const interval = setInterval(() => {
                 glitchElement.innerText = originalText
                     .split("")
                     .map((letter, index) => {
-                        if(index < iterations) {
-                            return originalText[index];
-                        }
+                        if(index < iterations) return originalText[index];
                         return glitchChars[Math.floor(Math.random() * glitchChars.length)];
                     })
                     .join("");
-                
                 if(iterations >= originalText.length) { 
                     clearInterval(interval);
                     glitchElement.innerText = originalText;
                 }
-                
                 iterations += 1 / 3;
             }, 30);
         }
-
-        // Randomly trigger glitch between 5s and 10s
-        setInterval(() => {
-            if(Math.random() > 0.6) triggerGlitch();
-        }, 5000);
+        setInterval(() => { if(Math.random() > 0.6) triggerGlitch(); }, 5000);
 
     </script>
 </body>
