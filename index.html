@@ -16,6 +16,7 @@
             --alert-color: #ffcc00;   /* Gold for Tithe */
             --record-color: #00ff41;  /* Green for Recording */
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace; /* Added for inputs */
             --transition-speed: 0.3s;
         }
 
@@ -31,7 +32,6 @@
             justify-content: center;
             letter-spacing: 0.05em;
             position: relative;
-            /* Allow scrolling when form appears */
             overflow-y: auto; 
             overflow-x: hidden;
         }
@@ -66,7 +66,6 @@
             width: 130px;
             height: 130px;
             background-color: var(--dim-color);
-            /* Placeholder SVG for CoCA since local image is missing */
             background-image: url("coca.png");
             background-size: cover;
             background-position: center;
@@ -140,7 +139,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Hover Fill Effect */
         .link-btn::before {
             content: '';
             position: absolute;
@@ -157,8 +155,6 @@
         .link-btn:hover::before { width: 100%; }
 
         /* --- STATE MODIFIERS --- */
-        
-        /* LOCKED STATE (Bible) */
         .link-btn.locked {
             border-color: var(--error-color);
             color: var(--error-color);
@@ -170,7 +166,6 @@
         }
         .link-btn.locked::before { background-color: var(--error-color); }
 
-        /* WAIT STATE (Tithe) */
         .link-btn.wait {
             border-color: var(--alert-color);
             color: var(--alert-color);
@@ -182,7 +177,6 @@
         }
         .link-btn.wait::before { background-color: var(--alert-color); }
 
-        /* RECORDING STATE (Confession) */
         .link-btn.recording {
             border-color: var(--record-color);
             color: var(--record-color);
@@ -195,7 +189,7 @@
         }
         .link-btn.recording::before { width: 0% !important; }
 
-        /* --- THE CONFESSION BOOTH (Google Form Embed) --- */
+        /* --- THE CONFESSION BOOTH (Formspree) --- */
         .confession-booth {
             display: none;
             width: 100%;
@@ -204,19 +198,7 @@
             padding-top: 2rem;
             opacity: 0;
             transition: opacity 1s ease;
-            /* Ensure it stays within bounds */
-            max-width: 100%; 
-            
-            /* --- CROP TECHNIQUE --- */
-            /* We set a fixed height that fits YOUR form exactly */
-            height: 480px; 
-            
-            /* overflow:hidden chops off the Google Footer and the empty space below */
-            overflow: hidden; 
-            position: relative;
-            
-            /* Remove scrollbars to look like a native part of the page */
-            scrollbar-width: none;
+            text-align: left; /* Align form text left */
         }
 
         .confession-booth.active {
@@ -224,17 +206,57 @@
             animation: ritualFadeIn 1s forwards;
         }
 
-        /* INVERT FILTER: Makes the white form dark */
-        .confession-booth iframe {
+        /* Form Inputs Styling */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--dim-color);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.1em;
+        }
+
+        .form-input, .form-textarea {
             width: 100%;
-            /* Inverts colors + Rotates Hue to keep blues/purples somewhat natural */
-            filter: invert(1) hue-rotate(180deg); 
+            background: transparent;
+            border: 1px solid var(--dim-color);
+            color: var(--accent-color);
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s;
+            border-radius: 0; /* Brutalist sharp edges */
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            border-color: var(--record-color);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--dim-color);
+            color: var(--bg-color);
             border: none;
-            mix-blend-mode: screen; 
-            display: block; 
-            
-            /* Pull the form UP slightly to hide top padding if needed */
-            margin-top: -10px;
+            font-family: var(--font-main);
+            text-transform: uppercase;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: var(--record-color);
         }
 
         /* --- FOOTER --- */
@@ -307,22 +329,26 @@
 
         </div>
 
-        <!-- HIDDEN FORM CONTAINER -->
-        <div class="confession-booth" id="google-form-container">
-            <!-- 
-                NOTE: I am using your forms.gle link below. 
-                If it does not load in the preview window (grey screen/refused to connect), 
-                you MUST replace it with the full "https://docs.google.com/forms/d/e/..../viewform?embedded=true" link.
-            -->
-            <iframe 
-                src="https://docs.google.com/forms/d/e/1FAIpQLScWDMDTkez7kspaRGLXRTKsMNOWv8tze2RlmI8TNtk4XhLgyQ/viewform" 
-                width="100%" 
-                height="550" 
-                frameborder="0" 
-                marginheight="0" 
-                marginwidth="0">
-                Loading…
-            </iframe>
+        <div class="confession-booth" id="form-container">
+            <form action="https://formspree.io/f/xpwvrybv" method="POST">
+                
+                <div class="form-group">
+                    <label class="form-label">Identity (Optional)</label>
+                    <input type="text" name="name" class="form-input" placeholder="ENTER ALIAS">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Contact Frequency (Email)</label>
+                    <input type="email" name="email" class="form-input" placeholder="ENTER EMAIL" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confession / Inquiry</label>
+                    <textarea name="message" class="form-textarea" placeholder="SPEAK..."></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">TRANSMIT</button>
+            </form>
         </div>
 
         <div class="footer">
@@ -375,7 +401,7 @@
 
         // 3. CONFESSION (The Portal)
         const confBtn = document.getElementById('btn-confession');
-        const formContainer = document.getElementById('google-form-container');
+        const formContainer = document.getElementById('form-container');
 
         confBtn.addEventListener('click', (e) => {
             e.preventDefault();
