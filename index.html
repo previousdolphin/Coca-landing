@@ -381,21 +381,42 @@
             }, 3000);
         });
 
-        // 2. TITHE (Not ready)
+        // 2. TITHE (Hidden Interaction)
         const titheBtn = document.getElementById('btn-tithe');
+        let titheClicks = 0; // Initialize Counter
+
         titheBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            
-            if(titheBtn.classList.contains('wait')) return;
+            titheClicks++;
 
-            const originalText = titheBtn.innerText;
+            // STATE 3: The Redirect (Click 6+)
+            if (titheClicks > 5) {
+                window.location.href = "https://www.nameofmy.com";
+                return;
+            }
+
+            // STATE 2: The Warning (Click 5)
+            if (titheClicks === 5) {
+                titheBtn.classList.remove('wait'); // Clear wait state
+                titheBtn.classList.add('locked');  // Use Red/Locked style for danger
+                titheBtn.innerText = "ARE YOU SURE???";
+                return;
+            }
+
+            // STATE 1: The Denial (Clicks 1-4)
+            if(titheBtn.classList.contains('wait')) return; // Prevent animation overlap
+
+            const originalText = "Tithe [Secure Donation Portal]"; 
             
             titheBtn.classList.add('wait');
             titheBtn.innerText = "KEEP YOUR MONEY... FOR NOW.";
             
             setTimeout(() => {
-                titheBtn.classList.remove('wait');
-                titheBtn.innerText = originalText;
+                // Only revert if we haven't reached the secret stage (5 clicks)
+                if (titheClicks < 5) {
+                    titheBtn.classList.remove('wait');
+                    titheBtn.innerText = originalText;
+                }
             }, 3000);
         });
 
