@@ -15,8 +15,9 @@
             --error-color: #ff3b3b;   /* Red for Denied */
             --alert-color: #ffcc00;   /* Gold for Tithe */
             --record-color: #00ff41;  /* Green for Recording */
+            --logo-red: #ff0000;      /* Pure Red for Logo */
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            --font-mono: 'Courier New', Courier, monospace; /* Added for inputs */
+            --font-mono: 'Courier New', Courier, monospace; 
             --transition-speed: 0.3s;
         }
 
@@ -55,7 +56,7 @@
             animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* --- THE ALTAR --- */
+        /* --- THE ALTAR (Updated for SVG Colorization) --- */
         .profile-container {
             margin-bottom: 2rem;
             position: relative;
@@ -65,19 +66,36 @@
         .profile-pic {
             width: 130px;
             height: 130px;
-            background-color: var(--dim-color);
-            background-image: url("coca.png");
-            background-size: cover;
-            background-position: center;
-            border-radius: 50%; 
-            border: 1px solid var(--dim-color);
-            box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
-            transition: transform 0.5s ease;
+            
+            /* 1. Define the Color (Red) */
+            background-color: var(--logo-red);
+            
+            /* 2. Use the SVG as a Mask */
+            -webkit-mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
+            mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
+            
+            /* 3. Positioning the Mask */
+            -webkit-mask-size: contain;
+            mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-position: center;
+
+            /* 4. Remove old image styling */
+            background-image: none;
+            border-radius: 0; 
+            border: none;
+            
+            /* 5. Add Red Glow */
+            filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.6));
+            
+            transition: transform 0.5s ease, filter 0.5s ease;
         }
 
         .profile-container:hover .profile-pic {
             transform: scale(1.05);
-            border-color: var(--accent-color);
+            filter: drop-shadow(0 0 25px rgba(255, 0, 0, 1));
         }
 
         .handle { margin-bottom: 1.5rem; }
