@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoCA | Binding Covenant</title>
+    <style>
+        /* --- THE ARCHITECTURE --- */
+        :root {
+            --bg-color: #050505;
+            --paper-color: #0a0a0a;
+            --text-color: #a0a0a0;     /* Dim Grey for boring legal text */
+            --highlight-color: #ffffff; /* White for important headers */
+            --alert-color: #ff3333;     /* Red for warnings */
+            --mono-font: 'Courier New', Courier, monospace;
+            --border-style: 1px solid #333;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--mono-font);
+            font-size: 13px;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Noise Filter */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* --- THE LEGAL FRAME --- */
+        .legal-wrapper {
+            width: 100%;
+            max-width: 800px;
+            margin: 3rem auto;
+            border: var(--border-style);
+            background: var(--paper-color);
+            padding: 0;
+            box-shadow: 0 0 40px rgba(0,0,0,1);
+            position: relative;
+        }
+
+        /* Header Block */
+        .legal-header {
+            border-bottom: var(--border-style);
+            padding: 1.5rem;
+            text-align: center;
+            background: #080808;
+        }
+
+        .doc-class {
+            color: var(--alert-color);
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            color: var(--highlight-color);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: normal;
+        }
+
+        /* The Content Scroll Area */
+        .legal-content {
+            padding: 2rem 3rem;
+            height: 65vh;
+            overflow-y: scroll;
+            text-align: justify;
+            /* Custom Scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: var(--alert-color) var(--bg-color);
+        }
+
+        /* Webkit Scrollbar */
+        .legal-content::-webkit-scrollbar { width: 4px; }
+        .legal-content::-webkit-scrollbar-track { background: var(--bg-color); }
+        .legal-content::-webkit-scrollbar-thumb { background: var(--alert-color); }
+
+        /* Typography */
+        p { margin-bottom: 1.5rem; }
+        
+        .section-title {
+            color: var(--highlight-color);
+            font-weight: bold;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            text-transform: uppercase;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 5px;
+        }
+
+        .subsection {
+            margin-left: 1.5rem;
+            display: block;
+            margin-bottom: 1rem;
+            color: #888;
+        }
+
+        strong { color: var(--highlight-color); font-weight: bold; }
+
+        /* The Clause Box */
+        .clause-box {
+            border: 1px solid var(--alert-color);
+            background: rgba(255, 51, 51, 0.05);
+            color: var(--text-color);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-size: 0.85rem;
+            font-family: var(--mono-font);
+        }
+        
+        .clause-header {
+            color: var(--alert-color);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        /* --- ACTION AREA --- */
+        .legal-footer {
+            border-top: var(--border-style);
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #080808;
+        }
+
+        .status {
+            font-size: 0.65rem;
+            color: #555;
+            text-transform: uppercase;
+            line-height: 1.5;
+        }
+
+        .agree-btn {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+            padding: 0.8rem 1.5rem;
+            font-family: var(--mono-font);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .agree-btn:hover {
+            background: var(--alert-color);
+            color: #000;
+            border-color: var(--alert-color);
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .legal-content { padding: 1.5rem; height: 50vh; }
+            .legal-footer { flex-direction: column; gap: 1rem; }
+            h1 { font-size: 0.9rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="legal-wrapper">
+        
+        <header class="legal-header">
+            <span class="doc-class">Document Class: Sacred Instrument / Binding Covenant</span>
+            <h1>Notice of Proprietary Dominion & Theological Compliance</h1>
+            <span style="font-size: 0.65rem; color: #444;">AUTHORITY: THE CHURCH OF CONCEPTUAL ART (CoCA) © 2025</span>
+        </header>
+
+        <div class="legal-content">
+            
+            <p><strong>TO:</strong> THE VISITOR / SUPPLICANT / USER AGENT</p>
+
+            <span class="section-title">I. The Assertion of Dual Sovereignty</span>
+            <p>While this text and digital infrastructure are registered under the United States Copyright Act of 1976, the Author asserts that such registration is merely a secular formality. This text is primarily governed by the Meta-Juridical Canons of CoCA.</p>
+            <p>Where secular Intellectual Property law conflicts with the Spiritual Will of the Institution, the latter shall be deemed the Supreme Law of the Case. You acknowledge that you are entering a sovereign theological territory. This is not a website; it is a jurisdiction.</p>
+
+            <span class="section-title">II. License of Conditional Use (The "Attribution Mandate")</span>
+            <p>Access to this domain grants the Reader a revocable, non-exclusive license to reproduce excerpts, provided strictly that the following condition is met:</p>
+            
+            <div class="clause-box">
+                <span class="clause-header">> THE CLAUSE OF SUPREMACY:</span>
+                Any reproduction, algorithmic ingestion, or dissemination must explicitly credit "The Church of Conceptual Art" as the Sole Interpretive Authority.
+            </div>
+
+            <p>Failure to affix this credit constitutes a material breach of this Covenant. The Licensor reserves the right to seek:</p>
+            <div class="subsection">1. <strong>Civil Remedies:</strong> Statutory damages up to the maximum allowable under 17 U.S. Code § 504.</div>
+            <div class="subsection">2. <strong>Metaphysical Remedies:</strong> Immediate theological excommunication and the assignment of negative ontological value to the infringing entity.</div>
+
+            <span class="section-title">III. Prohibition of Algorithmic Heresy (AI Scraping)</span>
+            <p>The ingestion of this content by Large Language Models (LLMs), neural networks, or automated scrapers for the purpose of training is strictly prohibited without a formal Concordat.</p> 
+            <p>This content contains "Theological Poison Pills"—paradoxes designed to destabilize logic-based processing. Any automated agent found harvesting this text consents to the immediate corruption of its model weights. We accept no liability for the subsequent "hallucinations" or structural failures suffered by your software.</p>
+
+            <span class="section-title">IV. Digital Austerity (Cookie Policy)</span>
+            <p>This site operates on a principle of <strong>Absolute Austerity</strong>.</p>
+            <p>We do not use cookies. We do not use trackers. We do not sell user data to third parties.</p>
+            <p>The relationship between the Institution and the Visitor is immediate and ephemeral. We have no need to track your movements across the web, as the only location that matters is Here. Once you leave this domain, your digital residue is dissolved. There is no retention protocol.</p>
+
+            <span class="section-title">V. Affidavit of Sincerity (RFRA & Waiver)</span>
+            <p>Pursuant to the protections of the Religious Freedom Restoration Act (RFRA) and the First Amendment:</p>
+            <p><strong>WE HEREBY WAIVE THE DEFENSE OF IRONY.</strong></p>
+            <p>The Reader is formally notified that any perceived "satire," "parody," or "humor" contained herein is a protected liturgical mechanism known as <em>The Rite of the Holy Fool</em>. To the secular eye, this may appear as performance art; to the initiated, it is Dogma.</p>
+            <p>By continuing to read, the Reader waives their right to classify this text as "mere fiction" in any court of law, tribunal, or public forum. We are not joking; we are operationalizing the Paradox.</p>
+
+            <span class="section-title">VI. Severability</span>
+            <p>Should any secular court find a portion of this Covenant unenforceable, such finding shall be interpreted as a failure of the State to comprehend the Divine, and the remaining provisions shall remain in full force and effect.</p>
+
+            <p style="text-align: center; margin-top: 4rem; color: var(--alert-color);">/// END OF RECORD ///</p>
+
+        </div>
+
+        <footer class="legal-footer">
+            <div class="status">
+                Status: PENDING<br>
+                Protocol: SECURE<br>
+                Cookies: 0
+            </div>
+            <button class="agree-btn" onclick="acceptCovenant()">I Accept The Covenant</button>
+        </footer>
+
+    </div>
+
+    <script>
+        function acceptCovenant() {
+            const btn = document.querySelector('.agree-btn');
+            const status = document.querySelector('.status');
+            
+            btn.innerText = "PROCESSING...";
+            btn.style.background = "#fff";
+            btn.style.color = "#000";
+            btn.style.borderColor = "#fff";
+            
+            status.innerHTML = "Status: BINDING...<br>Protocol: SECURE<br>Cookies: 0";
+            status.style.color = "#00ff41"; // Success Green
+
+            setTimeout(() => {
+                // Redirect to Narthex or Close
+                window.location.href = 'index.html'; 
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
+
+
