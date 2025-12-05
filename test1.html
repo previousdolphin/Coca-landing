@@ -9,11 +9,12 @@
         :root {
             --bg-color: #050505;
             --paper-color: #0a0a0a;
-            --text-color: #b0b0b0; /* Slightly lighter for better contrast on dark */
+            --text-color: #b0b0b0;
             --header-color: #ffffff;
             --accent-color: #F40009; /* CoCA RED */
             --terminal-green: #00ff41;
-            --alert-color: #ffcc00;
+            --alert-color: #ffcc00;  /* Gold/Warning */
+            --error-color: #ff3b3b;  /* Red for Denied */
             --border-style: 1px solid #333;
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
@@ -32,7 +33,7 @@
             justify-content: center;
             letter-spacing: 0.02em;
             position: relative;
-            overflow: hidden; 
+            overflow-x: hidden; 
         }
 
         /* Noise Filter Background */
@@ -45,7 +46,7 @@
             z-index: -1;
         }
 
-        /* --- LINKTREE CONTAINER (THE LOBBY) --- */
+        /* --- LOBBY (LINKTREE) --- */
         .lobby-container {
             width: 90%;
             max-width: 420px;
@@ -54,6 +55,8 @@
             opacity: 0;
             animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             transition: filter 0.5s ease, opacity 0.5s ease;
+            position: relative;
+            z-index: 1;
         }
 
         .lobby-container.blur-out {
@@ -111,103 +114,111 @@
         .link-btn:hover { color: var(--bg-color); border-color: var(--header-color); }
         .link-btn:hover::before { width: 100%; }
 
+        /* Button States (Restored from Linktree) */
+        .link-btn.locked {
+            border-color: var(--error-color); color: var(--error-color); background: rgba(255, 59, 59, 0.05);
+        }
+        .link-btn.locked:hover { background: var(--error-color); color: #000; }
+        .link-btn.locked::before { background-color: var(--error-color); }
+
+        .link-btn.wait {
+            border-color: var(--alert-color); color: var(--alert-color); background: rgba(255, 204, 0, 0.05);
+        }
+        .link-btn.wait:hover { background: var(--alert-color); color: #000; }
+        .link-btn.wait::before { background-color: var(--alert-color); }
+
+        .link-btn.recording {
+            border-color: var(--terminal-green); color: var(--terminal-green); animation: borderPulse 2s infinite;
+        }
+        .link-btn.recording:hover { background: transparent; color: var(--terminal-green); cursor: default; }
+        .link-btn.recording::before { width: 0% !important; }
+
         /* Special Styling for Bible Button */
-        #btn-bible {
-            border-color: var(--accent-color);
-            color: var(--accent-color);
+        #btn-bible-trigger {
+            border-color: var(--accent-color); color: var(--accent-color);
             box-shadow: 0 0 10px rgba(244, 0, 9, 0.1);
         }
-        #btn-bible:hover {
-            background: var(--accent-color);
-            color: #000;
+        #btn-bible-trigger:hover {
+            background: var(--accent-color); color: #000;
             box-shadow: 0 0 20px rgba(244, 0, 9, 0.4);
         }
-        #btn-bible::before { background-color: var(--accent-color); }
-
-        /* Button Status States */
+        #btn-bible-trigger::before { background-color: var(--accent-color); }
         .link-btn.processing {
             background: repeating-linear-gradient(45deg, #111, #111 10px, #222 10px, #222 20px);
             color: #fff; border-color: #fff; cursor: wait;
         }
 
+        /* --- FORM / CONFESSION BOOTH --- */
+        .confession-booth {
+            display: none; width: 100%; margin-top: 2rem;
+            border-top: 1px dashed var(--dim-color); padding-top: 2rem;
+            opacity: 0; transition: opacity 1s ease; text-align: left;
+        }
+        .confession-booth.active { display: block; animation: ritualFadeIn 1s forwards; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label {
+            display: block; font-size: 0.7rem; color: #666;
+            text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.1em;
+        }
+        .form-input, .form-textarea {
+            width: 100%; background: transparent; border: 1px solid #444;
+            color: var(--header-color); padding: 10px; font-family: var(--font-mono);
+            font-size: 0.9rem; outline: none; transition: border-color 0.3s;
+            border-radius: 0;
+        }
+        .form-input:focus, .form-textarea:focus { border-color: var(--terminal-green); }
+        .form-textarea { resize: vertical; min-height: 100px; }
+        .submit-btn {
+            width: 100%; padding: 1rem; background: #333; color: var(--bg-color);
+            border: none; font-family: var(--font-main); text-transform: uppercase;
+            font-weight: bold; cursor: pointer; transition: background 0.3s;
+        }
+        .submit-btn:hover { background: var(--terminal-green); color: #000; }
+
+
         /* --- THE BIBLE OVERLAY (MODAL) --- */
         .bible-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.92); /* Slightly transparent for depth */
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(0.98);
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.92); backdrop-filter: blur(5px);
+            z-index: 1000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transform: scale(0.98);
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
+        .bible-overlay.active { opacity: 1; pointer-events: all; transform: scale(1); }
 
-        .bible-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-            transform: scale(1);
-        }
-
-        /* The "Paper" inside the Overlay */
         .bible-container {
             width: 95%; height: 95%; max-width: 1200px;
-            background: var(--paper-color);
-            border: var(--border-style);
+            background: var(--paper-color); border: var(--border-style);
             box-shadow: 0 0 80px rgba(0,0,0,1);
-            display: grid;
-            grid-template-columns: 260px 1fr;
-            grid-template-rows: auto 1fr;
-            overflow: hidden;
-            position: relative;
+            display: grid; grid-template-columns: 260px 1fr;
+            grid-template-rows: auto 1fr; overflow: hidden; position: relative;
         }
 
         /* Marquee in Overlay */
         .bible-marquee {
-            grid-column: 1 / -1;
-            background: #111;
-            border-bottom: var(--border-style);
-            color: var(--accent-color);
-            padding: 8px 0;
-            font-family: var(--font-mono);
-            font-size: 10px;
-            white-space: nowrap;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
+            grid-column: 1 / -1; background: #111; border-bottom: var(--border-style);
+            color: var(--accent-color); padding: 8px 0; font-family: var(--font-mono);
+            font-size: 10px; white-space: nowrap; overflow: hidden; display: flex; align-items: center;
         }
         .marquee-content { display: inline-block; animation: scroll 40s linear infinite; }
 
         /* Close Button */
         .close-btn {
-            position: absolute; top: 0; right: 0;
-            width: 40px; height: 32px;
-            background: var(--accent-color);
-            color: #000;
-            border: none;
-            font-family: var(--font-mono);
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 2000;
-            display: flex; align-items: center; justify-content: center;
+            position: absolute; top: 0; right: 0; width: 40px; height: 32px;
+            background: var(--accent-color); color: #000; border: none;
+            font-family: var(--font-mono); font-weight: bold; cursor: pointer;
+            z-index: 2000; display: flex; align-items: center; justify-content: center;
             transition: background 0.2s;
         }
         .close-btn:hover { background: #fff; }
 
         /* Overlay Sidebar */
         .bible-sidebar {
-            background: #080808;
-            border-right: var(--border-style);
-            padding: 40px 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow-y: auto;
+            background: #080808; border-right: var(--border-style);
+            padding: 40px 30px; display: flex; flex-direction: column;
+            justify-content: space-between; overflow-y: auto;
         }
-
         .bible-nav-link {
             display: block; color: #555; text-decoration: none;
             font-family: var(--font-mono); font-size: 11px;
@@ -220,13 +231,9 @@
         /* Overlay Content */
         .bible-content {
             padding: 80px 100px; /* Generous Whitespace */
-            overflow-y: scroll;
-            font-family: var(--font-mono);
-            font-size: 14px;
+            overflow-y: scroll; font-family: var(--font-mono); font-size: 14px;
             color: var(--text-color);
-            /* Custom Scrollbar */
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent-color) var(--bg-color);
+            scrollbar-width: thin; scrollbar-color: var(--accent-color) var(--bg-color);
         }
         .bible-content::-webkit-scrollbar { width: 6px; }
         .bible-content::-webkit-scrollbar-track { background: var(--bg-color); }
@@ -234,67 +241,42 @@
 
         /* --- TYPOGRAPHY UPGRADE --- */
         .bible-content h1 { 
-            font-family: var(--font-main); 
-            font-weight: 900; 
-            font-size: 4.5rem; /* Massive Title */
-            color: #fff; 
-            margin-bottom: 40px; 
-            line-height: 0.85; 
-            letter-spacing: -0.04em;
+            font-family: var(--font-main); font-weight: 900; 
+            font-size: 5rem; /* Massive Title */
+            color: #fff; margin-bottom: 40px; 
+            line-height: 0.85; letter-spacing: -0.04em;
             text-transform: uppercase;
         }
-        
         .bible-content h2 { 
-            font-family: var(--font-main); 
-            font-size: 1.5rem; 
-            color: #fff; 
-            border-bottom: 2px solid #222; 
-            margin-top: 100px; /* Deep spacing between sections */
-            padding-bottom: 15px; 
-            margin-bottom: 40px;
-            letter-spacing: -0.02em;
+            font-family: var(--font-main); font-size: 1.5rem; color: #fff; 
+            border-bottom: 2px solid #222; margin-top: 100px; 
+            padding-bottom: 15px; margin-bottom: 40px; letter-spacing: -0.02em;
         }
-
         .bible-content h3 { 
-            font-size: 1rem; 
-            color: var(--accent-color); 
-            margin-top: 50px; 
-            margin-bottom: 20px;
-            font-weight: bold;
-            letter-spacing: 0.05em;
+            font-size: 1rem; color: var(--accent-color); 
+            margin-top: 50px; margin-bottom: 20px; 
+            font-weight: bold; letter-spacing: 0.05em;
         }
-
         .bible-content p { 
-            margin-bottom: 30px; 
-            line-height: 1.8; /* Airy reading experience */
-            text-align: justify; 
-            max-width: 68ch; /* Optimal Line Length */
+            margin-bottom: 30px; line-height: 1.8; text-align: justify; max-width: 68ch; 
         }
         
         .bible-subtitle {
-            font-family: var(--font-mono);
-            font-size: 0.9rem;
-            color: #666;
-            border-left: 3px solid var(--accent-color);
-            padding-left: 20px;
-            margin-bottom: 80px;
-            max-width: 600px;
+            font-family: var(--font-mono); font-size: 0.9rem; color: #666;
+            border-left: 3px solid var(--accent-color); padding-left: 20px;
+            margin-bottom: 80px; max-width: 600px;
         }
 
         .fragment-break { text-align: center; color: #333; margin: 60px 0; letter-spacing: 8px; font-size: 10px; }
         .citation { color: var(--terminal-green); font-size: 9px; vertical-align: super; opacity: 0.6; }
         
         .warning-box { 
-            border: 1px solid var(--accent-color); 
-            color: var(--accent-color); 
-            padding: 20px; 
-            font-size: 11px; 
-            margin-bottom: 60px; 
-            letter-spacing: 0.05em;
-            max-width: 600px;
+            border: 1px solid var(--accent-color); color: var(--accent-color); 
+            padding: 20px; font-size: 11px; margin-bottom: 60px; 
+            letter-spacing: 0.05em; max-width: 600px;
         }
 
-        /* Mobile Adjustments for Overlay */
+        /* Mobile Adjustments */
         @media (max-width: 768px) {
             .bible-container { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
             .bible-sidebar { display: none; } 
@@ -307,6 +289,7 @@
         @keyframes ritualFadeIn { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
         @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes pulsate { 0% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(5px); } 100% { opacity: 0.3; transform: translateY(0); } }
+        @keyframes borderPulse { 0% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); } 50% { box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); } 100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); } }
 
     </style>
 </head>
@@ -336,13 +319,31 @@
                 The Bible [Expand Data]
             </a>
 
-            <a href="https://tithe.cocausa.org/" class="link-btn" target="_blank">
+            <a href="https://tithe.cocausa.org/" class="link-btn" id="btn-tithe" target="_blank">
                 Tithe [Secure Donation Portal]
             </a>
 
-            <a href="mailto:confess@cocausa.org" class="link-btn">
+            <a href="#" class="link-btn" id="btn-confession">
                 Confession [Interest Intake]
             </a>
+        </div>
+
+        <div class="confession-booth" id="form-container">
+            <form action="https://formspree.io/f/xpwvrybv" method="POST">
+                <div class="form-group">
+                    <label class="form-label">Identity (Optional)</label>
+                    <input type="text" name="name" class="form-input" placeholder="ENTER ALIAS">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contact Frequency (Email)</label>
+                    <input type="email" name="email" class="form-input" placeholder="ENTER EMAIL" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confession / Inquiry</label>
+                    <textarea name="message" class="form-textarea" placeholder="SPEAK..."></textarea>
+                </div>
+                <button type="submit" class="submit-btn">TRANSMIT</button>
+            </form>
         </div>
 
         <div style="margin-top: 3rem; font-size: 0.6rem; color: #444; text-transform: uppercase;">
@@ -379,7 +380,6 @@
             </aside>
 
             <main class="bible-content">
-                
                 <div class="warning-box">
                     <strong>/// SYSTEM WARNING: SEMANTIC INSTABILITY DETECTED ///</strong><br><br>
                     The following text consists of disconnected excerpts and paraphrased fragments from the "Art Bible." 
@@ -389,125 +389,141 @@
                 <header>
                     <h1>The (Art) Bible<br>Of COCA</h1>
                     <div class="bible-subtitle">
-                        [cite_start]A manual for the inner life, built on the foundations of outer structures. <span class="citation">[cite: 47]</span>
+                        A manual for the inner life, built on the foundations of outer structures. <span class="citation"></span>
                     </div>
                 </header>
 
                 <section id="immunity">
                     <h2>I. The Declaration of Immunity</h2>
-                    
                     <h3>1.1.1 The Primacy of the Idea</h3>
-                    <p>
-                        ...The world is everything that is the case. Every object is bound by matter. The matter is finite and subject to decay. But every object carries a Symbol. [cite_start]The Symbol is a concept made visible... <span class="citation">[cite: 185-187]</span>
-                    </p>
-                    <p>
-                        When we see the Mark, we know the Promise. We know the Cost. We know the vast, coordinated global thought-form. [cite_start]<span class="citation">[cite: 189-190]</span>
-                    </p>
+                    <p>...The world is everything that is the case. Every object is bound by matter. The matter is finite and subject to decay. But every object carries a Symbol. [cite_start]The Symbol is a concept made visible... <span class="citation">[cite: 185-187]</span></p>
+                    <p>When we see the Mark, we know the Promise. We know the Cost. We know the vast, coordinated global thought-form. [cite_start]<span class="citation">[cite: 189-190]</span></p>
                     <div style="background: #111; padding: 25px; border-left: 4px solid var(--accent-color); margin: 40px 0; font-style: italic; color: #ddd;">
-                        "The Idea cannot be taxed. The Concept has no owner... This is the first and final lesson: The Concept is the Divine Act." [cite_start]<span class="citation">[cite: 200, 202]</span>
+                        "The Idea cannot be taxed. The Concept has no owner... This is the first and final lesson: The Concept is the Divine Act." <span class="citation"></span>
                     </div>
-
                     <div class="fragment-break">// // //</div>
-
                     <h3>1.1.3 Psychic Real Estate</h3>
-                    <p>
-                        ...This is the Intolerable Claim: We own the psychic space you already inhabit. This is the sound of absolute ownership. [cite_start]<span class="citation">[cite: 249-250]</span>
-                    </p>
+                    <p>...This is the Intolerable Claim: We own the psychic space you already inhabit. This is the sound of absolute ownership. [cite_start]<span class="citation">[cite: 249-250]</span></p>
                 </section>
 
                 <section id="liturgy">
                     <h2>II. Liturgy & Practice</h2>
                     <h3>2.1.1 The Middle Mind</h3>
-                    <p>
-                        ...To Überthink is to believe you must transcend the human condition. To Underthink is to surrender your human agency. [cite_start]COCA refuses both errors... <span class="citation">[cite: 673-675]</span>
-                    </p>
+                    <p>...To Überthink is to believe you must transcend the human condition. To Underthink is to surrender your human agency. [cite_start]COCA refuses both errors... <span class="citation">[cite: 673-675]</span></p>
                     <h3>2.3.4 The Geometry of Care</h3>
-                    <p>
-                        Care is not an emotion. Care is a structural specification. It is the cold, rigorous attention to detail that prevents the collapse of the object. [cite_start]<span class="citation">[cite: 1363-1364]</span>
-                    </p>
+                    <p>Care is not an emotion. Care is a structural specification. It is the cold, rigorous attention to detail that prevents the collapse of the object. [cite_start]<span class="citation">[cite: 1363-1364]</span></p>
                 </section>
 
                 <section id="lexicon">
                     <h2>III. The Lexicon & The Void</h2>
                     <p style="color: #666; font-size: 12px; margin-bottom: 40px;"><em>(Codified Appropriation of Financial Terminology for the Spiritual Act)</em></p>
-                    
                     <h3>Sunk Cost Fallacy</h3>
-                    <p>Every identity demands payment in arrears... Release this. Do not mortgage your future to avoid embarrassment over your past. [cite_start]<span class="citation">[cite: 2107]</span></p>
-                    
+                    <p>Every identity demands payment in arrears... Release this. Do not mortgage your future to avoid embarrassment over your past. <span class="citation"></span></p>
                     <div class="fragment-break">// // //</div>
-
                     <h3>The Stone Island Doctrine</h3>
-                    <p>
-                        ...We revere the "Ice Jacket," which changes color when the temperature drops... The satisfaction comes from knowing that if the world ended, you would be warm. [cite_start]<span class="citation">[cite: 2053]</span>
-                    </p>
-                    <p><strong>This is the Veneration of Potential Utility.</strong> [cite_start]<span class="citation">[cite: 2058]</span></p>
+                    <p>...We revere the "Ice Jacket," which changes color when the temperature drops... The satisfaction comes from knowing that if the world ended, you would be warm. <span class="citation"></span></p>
+                    <p><strong>This is the Veneration of Potential Utility.</strong> <span class="citation"></span></p>
                 </section>
 
                 <section id="vow">
                     <h2>IV. The Final Vow</h2>
-                    <p>
-                        ...To "Bring the Magic to Every Meeting" is to recognize the meeting... as the highest operational chamber. It is where attention is crystallized. [cite_start]<span class="citation">[cite: 2355-2356]</span>
-                    </p>
+                    <p>...To "Bring the Magic to Every Meeting" is to recognize the meeting... as the highest operational chamber. It is where attention is crystallized. [cite_start]<span class="citation">[cite: 2355-2356]</span></p>
                     <br>
                     <div style="text-align: center; border: 1px solid #fff; padding: 40px; margin-top: 40px;">
                         <p style="font-size: 1.2rem; font-weight: bold; color: #fff; margin-bottom: 0;">
                             "The revolution is the quality of your presence.<br>
                             Go now, and Be the Binding Agent."
                         </p>
-                        [cite_start]<span class="citation">[cite: 2362]</span>
+                        <span class="citation"></span>
                     </div>
                     <br><br><br>
                 </section>
-
             </main>
         </div>
     </div>
 
     <script>
         /* --- LOGIC CORE --- */
-        
         const lobby = document.getElementById('lobby');
         const overlay = document.getElementById('bible-overlay');
         const triggerBtn = document.getElementById('btn-bible-trigger');
         const closeBtn = document.getElementById('close-bible');
 
-        // Dynamic Hint on Hover
+        // Bible Trigger Animation
         triggerBtn.addEventListener('mouseover', () => {
-            if(!triggerBtn.classList.contains('processing')) {
-                triggerBtn.innerText = ">> INITIALIZE UPLINK <<";
-            }
+            if(!triggerBtn.classList.contains('processing')) triggerBtn.innerText = ">> INITIALIZE UPLINK <<";
         });
-
         triggerBtn.addEventListener('mouseout', () => {
-            if(!triggerBtn.classList.contains('processing')) {
-                triggerBtn.innerText = "The Bible [Expand Data]";
-            }
+            if(!triggerBtn.classList.contains('processing')) triggerBtn.innerText = "The Bible [Expand Data]";
         });
-
-        // Open Sequence
         triggerBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            
-            // 1. Processing State
             triggerBtn.classList.add('processing');
             triggerBtn.innerText = "AUTHENTICATING...";
-
-            // 2. Delay for Effect
             setTimeout(() => {
                 triggerBtn.classList.remove('processing');
                 triggerBtn.innerText = "ACCESS GRANTED";
-                
-                // 3. Blur Background / Show Overlay
                 lobby.classList.add('blur-out');
                 overlay.classList.add('active');
             }, 800);
         });
-
-        // Close Sequence
         closeBtn.addEventListener('click', () => {
             overlay.classList.remove('active');
             lobby.classList.remove('blur-out');
             triggerBtn.innerText = "The Bible [Expand Data]";
+        });
+
+        // --- TITHE BUTTON LOGIC (Restored) ---
+        const titheBtn = document.getElementById('btn-tithe');
+        let titheClicks = 0; 
+
+        titheBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            titheClicks++;
+
+            // STATE 3: The Redirect (Click 6+)
+            if (titheClicks > 5) {
+                window.location.href = "https://www.nameofmy.com";
+                return;
+            }
+
+            // STATE 2: The Warning (Click 5)
+            if (titheClicks === 5) {
+                titheBtn.classList.remove('wait'); 
+                titheBtn.classList.add('locked');
+                titheBtn.innerText = "ARE YOU SURE???";
+                return;
+            }
+
+            // STATE 1: The Denial (Clicks 1-4)
+            if(titheBtn.classList.contains('wait')) return; 
+
+            const originalText = "Tithe [Secure Donation Portal]";
+            titheBtn.classList.add('wait');
+            titheBtn.innerText = "KEEP YOUR MONEY... FOR NOW.";
+
+            setTimeout(() => {
+                if (titheClicks < 5) {
+                    titheBtn.classList.remove('wait');
+                    titheBtn.innerText = originalText;
+                }
+            }, 3000);
+        });
+
+        // --- CONFESSION BUTTON LOGIC (Restored) ---
+        const confBtn = document.getElementById('btn-confession');
+        const formContainer = document.getElementById('form-container');
+
+        confBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if(confBtn.classList.contains('recording')) return;
+
+            confBtn.classList.add('recording');
+            confBtn.innerText = "● MICROPHONE ACTIVE. WE ARE LISTENING.";
+            formContainer.classList.add('active');
+            setTimeout(() => {
+                formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
         });
 
         // Glitch Logic for Handle
