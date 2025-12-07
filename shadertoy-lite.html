@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRUTALIST_SHADER_FORGE_V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* BRUTALIST CORE STYLES */
+        :root {
+            --bg: #000000;
+            --fg: #00ff00; /* Terminal Green */
+            --border: #00ff00;
+            --err: #ff0000;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: var(--bg); border-left: 1px solid var(--border); }
+        ::-webkit-scrollbar-thumb { background: var(--border); }
+        ::-webkit-scrollbar-thumb:hover { background: #fff; }
+
+        .brut-border { border: 1px solid var(--border); }
+        .brut-border-b { border-bottom: 1px solid var(--border); }
+        .brut-border-r { border-right: 1px solid var(--border); }
+        .brut-border-t { border-top: 1px solid var(--border); }
+
+        .brut-input {
+            background: black;
+            color: var(--fg);
+            border: 1px solid var(--border);
+            padding: 8px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .brut-select {
+            appearance: none;
+            background: black;
+            color: var(--fg);
+            border: 1px solid var(--border);
+            padding: 8px 32px 8px 12px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300ff00%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+        }
+        .brut-select:hover {
+            background-color: #0a220a;
+        }
+
+        .brut-btn {
+            background: var(--bg);
+            color: var(--fg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            padding: 10px 20px;
+            transition: 0s;
+        }
+        .brut-btn:hover {
+            background: var(--fg);
+            color: var(--bg);
+        }
+        .brut-btn:active {
+            transform: translate(2px, 2px);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 10px;
+            background: var(--fg);
+            cursor: pointer;
+            margin-top: -8px;
+            border: 1px solid black;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #333;
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen w-screen">
+
+    <!-- LEFT PANEL: VISUALIZATION -->
+    <div class="relative w-full md:w-1/2 h-1/2 md:h-full brut-border-r flex flex-col">
+        <div class="p-2 brut-border-b font-bold flex justify-between items-center bg-black z-10 text-xs md:text-base">
+            <span>// VIEWPORT_RENDER</span>
+            <span id="fpsCounter">FPS: 00</span>
+        </div>
+        <div class="flex-grow relative bg-gray-900 overflow-hidden">
+            <canvas id="glCanvas" class="absolute inset-0 w-full h-full"></canvas>
+            
+            <div id="errorLog" class="hidden absolute bottom-0 left-0 right-0 bg-red-900/90 text-white p-4 font-mono text-xs whitespace-pre-wrap border-t-4 border-red-500 max-h-40 overflow-auto"></div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: CONTROLS -->
+    <div class="w-full md:w-1/2 h-1/2 md:h-full flex flex-col bg-black">
+        
+        <!-- HEADER -->
+        <div class="p-4 brut-border-b flex flex-wrap gap-4 justify-between items-center bg-[#050505]">
+            <div class="flex items-center gap-4">
+                <h1 class="text-lg font-bold tracking-tighter hidden md:block">SHADER_FORGE_V2</h1>
+                <select id="presetSelect" class="brut-select text-xs md:text-sm">
+                    <option value="" disabled selected>-- LOAD PRESET --</option>
+                    <!-- Options injected by JS -->
+                </select>
+            </div>
+            <button id="compileBtn" class="brut-btn text-xs md:text-sm animate-pulse">
+                [ RUN ]
+            </button>
+        </div>
+
+        <!-- EDITOR AREA -->
+        <div class="flex-grow flex flex-col min-h-0 relative">
+            <div class="absolute top-0 right-0 p-2 text-[10px] text-gray-500 pointer-events-none text-right opacity-50">
+                VAR MAP:<br>x, y, t, w, h
+            </div>
+            <textarea id="codeEditor" class="flex-grow w-full bg-black text-[#00ff00] p-4 font-mono text-xs md:text-sm resize-none focus:outline-none leading-relaxed" spellcheck="false"></textarea>
+        </div>
+
+        <!-- PARAMETERS AREA -->
+        <div class="h-1/3 min-h-[250px] brut-border-t flex flex-col bg-[#050505]">
+            <div class="p-2 brut-border-b bg-[#111] flex justify-between items-center">
+                <span class="font-bold text-sm">// DYNAMIC PARAMETERS</span>
+                <button id="addParamBtn" class="text-xs bg-gray-800 hover:bg-white hover:text-black px-2 py-1 border border-white">
+                    + ADD VAR
+                </button>
+            </div>
+            
+            <!-- Params List -->
+            <div id="paramsList" class="overflow-y-auto p-4 space-y-4">
+                <!-- Parameters injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Template -->
+    <script type="x-shader/x-vertex" id="vertexShader">
+        attribute vec2 position;
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    </script>
+
+    <script type="x-shader/x-fragment" id="fragmentShaderTemplate">
+        precision mediump float;
+        uniform vec2 u_res;
+        uniform float u_time;
+        // DYNAMIC UNIFORMS HERE
+
+        void main() {
+            // Setup coordinates -1 to 1
+            vec2 uv = gl_FragCoord.xy / u_res.xy;
+            uv = (uv - 0.5) * 2.0;
+            uv.x *= u_res.x / u_res.y;
+
+            float x = uv.x;
+            float y = uv.y;
+            float t = u_time;
+            float w = u_res.x;
+            float h = u_res.y;
+
+            vec3 col = vec3(0.0);
+
+            // USER CODE HERE
+
+            gl_FragColor = vec4(col, 1.0);
+        }
+    </script>
+
+    <script>
+        // --- PRESETS DATABASE ---
+        const PRESETS = [
+            {
+                name: "1. ORGANIC PULSE (ORIGINAL)",
+                code: `// The classic interference pattern
+float dist = sqrt(x*x + y*y);
+
+// Combine distance field with angular field
+float val = sin(dist * P1 - t) * cos((x - y) * P2 + t * 0.5);
+
+// Contrast curve
+float bright = pow(0.5 + 0.5 * val, contrast);
+
+col = vec3(bright);`,
+                params: [
+                    { name: 'P1', val: 5.0, min: 1.0, max: 20.0 },
+                    { name: 'P2', val: 3.0, min: 0.0, max: 10.0 },
+                    { name: 'contrast', val: 1.0, min: 0.1, max: 5.0 }
+                ]
+            },
+            {
+                name: "2. CYBER GRID (RETROWAVE)",
+                code: `// Create a moving perspective grid
+// Perspective projection trick
+float horizon = 0.2;
+float fov = 1.0 / abs(y + horizon); 
+float zoom = 1.0;
+
+// Grid lines
+float gridX = fract((x * fov + t * speedX) * zoom);
+float gridY = fract((y * fov + t * speedY) * zoom);
+
+// Threshold to make sharp lines
+float line = step(0.95, gridX) + step(0.95, gridY);
+
+// Fade into distance
+float fade = smoothstep(0.0, 1.0, abs(y + horizon));
+
+col = vec3(line * fade * glow);
+// Add a purple tint
+col.rb *= 2.0;`,
+                params: [
+                    { name: 'speedX', val: 0.2, min: -2.0, max: 2.0 },
+                    { name: 'speedY', val: 0.5, min: -2.0, max: 2.0 },
+                    { name: 'glow', val: 1.5, min: 0.5, max: 3.0 }
+                ]
+            },
+            {
+                name: "3. PLASMA WEAVE (PSYCHEDELIC)",
+                code: `// Sum of sines for plasma effect
+float v = 0.0;
+vec2 c = vec2(x, y);
+
+v += sin((c.x + t * speed) * frequency);
+v += sin((c.y + t * speed) * frequency);
+v += sin(sqrt(c.x*c.x + c.y*c.y + 1.0) * frequency + t);
+
+// Map to color channels
+v = v / 3.0; // Normalize
+
+float r = sin(v * 3.14 + t);
+float g = sin(v * 3.14 + t + 2.0);
+float b = sin(v * 3.14 + t + 4.0);
+
+col = vec3(r, g, b) * brightness;`,
+                params: [
+                    { name: 'speed', val: 1.0, min: 0.1, max: 5.0 },
+                    { name: 'frequency', val: 10.0, min: 1.0, max: 30.0 },
+                    { name: 'brightness', val: 1.0, min: 0.0, max: 2.0 }
+                ]
+            },
+            {
+                name: "4. HYPNOTIC SPIRAL",
+                code: `// Convert to polar coordinates
+float r = length(vec2(x,y));
+float a = atan(y, x);
+
+// Spiral calculation
+// Add angle to radius to create twist
+float spiral = sin(r * rings - a * arms + t * speed);
+
+// Hard cutoff for black/white bands
+float bands = step(0.0, spiral);
+
+// Invert color based on center
+col = vec3(bands);`,
+                params: [
+                    { name: 'rings', val: 20.0, min: 1.0, max: 50.0 },
+                    { name: 'arms', val: 3.0, min: 1.0, max: 10.0 },
+                    { name: 'speed', val: 5.0, min: -10.0, max: 10.0 }
+                ]
+            }
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            params: [],
+            time: 0,
+            compiled: false
+        };
+
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl');
+        const errorLog = document.getElementById('errorLog');
+        const fpsCounter = document.getElementById('fpsCounter');
+        let program = null;
+
+        const codeEditor = document.getElementById('codeEditor');
+        const paramsList = document.getElementById('paramsList');
+        const compileBtn = document.getElementById('compileBtn');
+        const addParamBtn = document.getElementById('addParamBtn');
+        const presetSelect = document.getElementById('presetSelect');
+
+        // --- INITIALIZATION ---
+        function init() {
+            if (!gl) { alert("WebGL Failed."); return; }
+            
+            // Populate Presets
+            PRESETS.forEach((p, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.text = p.name;
+                presetSelect.appendChild(opt);
+            });
+
+            // Load Default
+            loadPreset(0);
+
+            requestAnimationFrame(loop);
+            
+            codeEditor.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    compileShader();
+                }
+            });
+
+            presetSelect.addEventListener('change', (e) => {
+                loadPreset(e.target.value);
+            });
+        }
+
+        function loadPreset(idx) {
+            const p = PRESETS[idx];
+            codeEditor.value = p.code;
+            // Deep copy params to avoid modifying the original preset objects by ref
+            state.params = JSON.parse(JSON.stringify(p.params));
+            renderParams();
+            compileShader();
+        }
+
+        // --- PARAMETER SYSTEM ---
+        function renderParams() {
+            paramsList.innerHTML = '';
+            state.params.forEach((p, index) => {
+                const row = document.createElement('div');
+                row.className = "flex flex-col space-y-1";
+                
+                const header = document.createElement('div');
+                header.className = "flex justify-between text-xs font-mono";
+                header.innerHTML = `
+                    <span class="text-green-400 font-bold">${p.name}</span>
+                    <span>${p.val.toFixed(2)}</span>
+                `;
+
+                const slider = document.createElement('input');
+                slider.type = "range";
+                slider.min = p.min;
+                slider.max = p.max;
+                slider.step = 0.01;
+                slider.value = p.val;
+                
+                slider.oninput = (e) => {
+                    p.val = parseFloat(e.target.value);
+                    header.children[1].innerText = p.val.toFixed(2);
+                };
+
+                const controls = document.createElement('div');
+                controls.className = "flex justify-end gap-2 text-[10px] opacity-50 hover:opacity-100 transition-opacity";
+                controls.innerHTML = `
+                    <button class="hover:text-white" onclick="editParam(${index})">EDIT</button>
+                    <button class="hover:text-red-500" onclick="deleteParam(${index})">DEL</button>
+                `;
+
+                row.appendChild(header);
+                row.appendChild(slider);
+                row.appendChild(controls);
+                paramsList.appendChild(row);
+            });
+        }
+
+        window.deleteParam = (idx) => {
+            if(confirm(`Delete parameter ${state.params[idx].name}?`)) {
+                state.params.splice(idx, 1);
+                renderParams();
+                compileShader(); 
+            }
+        };
+
+        window.editParam = (idx) => {
+            const p = state.params[idx];
+            const newName = prompt("Name:", p.name);
+            const newMin = prompt("Min:", p.min);
+            const newMax = prompt("Max:", p.max);
+            
+            if (newName) {
+                p.name = newName.replace(/[^a-zA-Z0-9_]/g, ''); 
+                p.min = parseFloat(newMin) || 0;
+                p.max = parseFloat(newMax) || 10;
+                renderParams();
+                compileShader();
+            }
+        };
+
+        addParamBtn.onclick = () => {
+            const name = prompt("Variable Name (e.g. 'speed'):", "myVar");
+            if (name) {
+                const cleanName = name.replace(/[^a-zA-Z0-9_]/g, '');
+                state.params.push({ name: cleanName, val: 1.0, min: 0.0, max: 10.0 });
+                renderParams();
+                compileShader();
+            }
+        };
+
+        // --- SHADER COMPILER ---
+        function compileShader() {
+            errorLog.classList.add('hidden');
+            errorLog.innerText = '';
+            
+            const vertSrc = document.getElementById('vertexShader').text;
+            let fragSrc = document.getElementById('fragmentShaderTemplate').text;
+
+            // 1. Inject Uniforms
+            let uniformsStr = "";
+            state.params.forEach(p => {
+                uniformsStr += `uniform float ${p.name};\n`;
+            });
+            fragSrc = fragSrc.replace('// DYNAMIC UNIFORMS HERE', uniformsStr);
+
+            // 2. Inject User Code
+            const userCode = codeEditor.value;
+            fragSrc = fragSrc.replace('// USER CODE HERE', userCode);
+
+            const vs = createShader(gl, gl.VERTEX_SHADER, vertSrc);
+            const fs = createShader(gl, gl.FRAGMENT_SHADER, fragSrc);
+
+            if (!vs || !fs) return;
+
+            const prog = gl.createProgram();
+            gl.attachShader(prog, vs);
+            gl.attachShader(prog, fs);
+            gl.linkProgram(prog);
+
+            if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+                showError("Link Error: " + gl.getProgramInfoLog(prog));
+                return;
+            }
+
+            if (program) gl.deleteProgram(program);
+            program = prog;
+            state.compiled = true;
+            
+            const posBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1, 1,1, -1,-1, 1,-1]), gl.STATIC_DRAW);
+            const posLoc = gl.getAttribLocation(program, "position");
+            gl.enableVertexAttribArray(posLoc);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+            compileBtn.style.backgroundColor = '#00ff00';
+            compileBtn.style.color = 'black';
+            setTimeout(() => {
+                compileBtn.style.backgroundColor = '';
+                compileBtn.style.color = '';
+            }, 200);
+        }
+
+        function createShader(gl, type, source) {
+            const s = gl.createShader(type);
+            gl.shaderSource(s, source);
+            gl.compileShader(s);
+            if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+                showError(gl.getShaderInfoLog(s));
+                gl.deleteShader(s);
+                return null;
+            }
+            return s;
+        }
+
+        function showError(msg) {
+            errorLog.innerText = ">> ERR_COMPILATION_FAIL\n" + msg;
+            errorLog.classList.remove('hidden');
+        }
+
+        compileBtn.onclick = compileShader;
+
+        // --- RENDER LOOP ---
+        let lastTime = 0;
+        function loop(now) {
+            now *= 0.001;
+            const dt = now - lastTime;
+            lastTime = now;
+            fpsCounter.innerText = "FPS: " + Math.round(1/dt);
+
+            if (state.compiled && program) {
+                state.time += dt;
+
+                if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+                    canvas.width = canvas.clientWidth;
+                    canvas.height = canvas.clientHeight;
+                    gl.viewport(0, 0, canvas.width, canvas.height);
+                }
+
+                gl.useProgram(program);
+
+                gl.uniform2f(gl.getUniformLocation(program, "u_res"), canvas.width, canvas.height);
+                gl.uniform1f(gl.getUniformLocation(program, "u_time"), state.time);
+
+                state.params.forEach(p => {
+                    const loc = gl.getUniformLocation(program, p.name);
+                    if (loc) gl.uniform1f(loc, p.val);
+                });
+
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            }
+            
+            requestAnimationFrame(loop);
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
+
