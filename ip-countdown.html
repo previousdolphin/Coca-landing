@@ -19,15 +19,25 @@
             --border: #333333;
         }
 
-        html, body {
-            margin: 0;
-            padding: 0;
+        html {
+            height: 100%;
             background-color: var(--void);
+            /* Prevent elastic scrolling/bounce on Safari */
+            overscroll-behavior-y: none;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            background-color: transparent; /* Let canvas show through */
             color: var(--text);
             font-family: 'Space Mono', monospace;
-            width: 100%;
-            min-height: 100vh;
-            overscroll-behavior: none; /* Prevents rubber-banding/peel effect */
+            /* Use 100% to avoid scrollbar width issues causing horizontal wiggle */
+            width: 100%; 
+            /* Use dynamic viewport height for mobile browsers */
+            min-height: 100dvh; 
+            overflow-x: hidden;
+            position: relative;
+            margin: 0;
         }
 
         /* The Serif Headline Font - Upright and Bold */
@@ -39,39 +49,47 @@
             letter-spacing: -0.04em;
         }
 
-        /* Scanline Overlay - Fixed to Viewport */
+        /* Scanline Overlay */
         .scanlines {
             background: repeating-linear-gradient(
                 to bottom,
                 transparent 0%,
-                rgba(255, 255, 255, 0.03) 0.5%,
+                rgba(255, 255, 255, 0.02) 0.5%,
                 transparent 1%
             );
             background-size: 100% 4px;
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
+            inset: 0;
             pointer-events: none;
-            z-index: 2; /* Above canvas, below content */
+            z-index: 40;
+            /* Ensure it stays fixed even if content scrolls */
+            height: 100vh;
+            width: 100vw;
         }
 
-        /* WebGL Canvas - Fixed to Viewport */
+        /* WebGL Canvas - Strictly Fixed */
         #canvas-container {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 0; /* Deepest layer */
-            opacity: 0.6; /* Increased visibility */
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            opacity: 0.3;
+            pointer-events: none; /* Pass touches through to content */
         }
 
-        /* Blur Overlay - Fixed to Viewport */
+        /* Blur Overlay */
         .glass-overlay {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            backdrop-filter: blur(8px) grayscale(100%);
+            inset: 0;
+            backdrop-filter: blur(12px) grayscale(100%);
+            -webkit-backdrop-filter: blur(12px) grayscale(100%); /* Safari support */
             z-index: 1;
             pointer-events: none;
         }
 
-        /* Content Layer - Scrolls normally */
+        /* Content Layer */
         .content-layer {
             position: relative;
             z-index: 50;
@@ -103,18 +121,19 @@
 
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col">
 
-    <!-- BACKGROUND SYSTEM (Fixed Position) -->
+    <!-- BACKGROUND SYSTEM -->
     <div id="canvas-container"></div>
     <div class="glass-overlay"></div>
     <div class="scanlines"></div>
 
-    <!-- MAIN SCROLLABLE WRAPPER -->
-    <div class="content-layer w-full max-w-screen-xl mx-auto flex flex-col justify-between min-h-screen p-6 md:p-8 gap-8">
+    <!-- MAIN WRAPPER -->
+    <!-- Added min-h-[100dvh] to ensure full height on mobile with address bars -->
+    <div class="content-layer w-full max-w-screen-xl mx-auto flex flex-col justify-between min-h-[100dvh] p-6 md:p-8 gap-8">
 
         <!-- HEADER -->
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
             <!-- Logo Section -->
             <div class="w-20 md:w-32 logo-crop h-12 md:h-16 relative">
                 <img 
@@ -134,7 +153,7 @@
         </header>
 
         <!-- CENTER CONTENT -->
-        <main class="flex-grow flex flex-col items-center justify-center text-center w-full relative z-50 py-4">
+        <main class="flex-grow flex flex-col items-center justify-center text-center w-full relative z-50 py-4 shrink-0">
             
             <!-- Intro text -->
             <p class="text-[10px] md:text-xs tracking-[0.3em] text-gray-500 mb-6 uppercase font-mono">
@@ -189,7 +208,7 @@
         </main>
 
         <!-- FOOTER -->
-        <footer class="flex flex-col md:flex-row justify-between items-end md:items-end border-t border-[#333] pt-4 md:border-t-0 md:pt-0 gap-4">
+        <footer class="flex flex-col md:flex-row justify-between items-end md:items-end border-t border-[#333] pt-4 md:border-t-0 md:pt-0 gap-4 shrink-0">
             <div class="text-[10px] text-gray-600 max-w-[250px] leading-relaxed text-left">
                 Please refrain from sending flowers.<br>Send data instead.
             </div>
@@ -228,9 +247,10 @@
         const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         
+        // Strict sizing to window only - ignoring scroll height
         function resize() {
             const width = window.innerWidth;
-            const height = window.innerHeight; // Always fit viewport for fixed background
+            const height = window.innerHeight; // Do NOT use scrollHeight here
             renderer.setSize(width, height);
             if(uniforms) uniforms.u_resolution.value.set(width, height);
         }
@@ -252,24 +272,19 @@
                     vec2 st = gl_FragCoord.xy / u_resolution.xy;
                     st.x *= u_resolution.x / u_resolution.y;
 
-                    // Moiré Pattern Logic (INTENSIFIED)
-                    float scale = 80.0; // Much tighter lines
+                    // Moiré Pattern Logic
+                    float scale = 25.0; 
                     
-                    // Layer 1
-                    float pattern1 = sin(st.x * scale + u_time * 0.2) + cos(st.y * scale);
+                    float pattern1 = sin(st.x * scale + u_time * 0.15) + cos(st.y * scale);
                     
-                    // Layer 2 (Rotated slightly more)
-                    float angle = 0.1;
+                    float angle = 0.15;
                     vec2 rotSt = vec2(st.x * cos(angle) - st.y * sin(angle), st.x * sin(angle) + st.y * cos(angle));
-                    float pattern2 = sin(rotSt.x * (scale + 3.0) - u_time * 0.15) + cos(rotSt.y * (scale + 3.0));
+                    float pattern2 = sin(rotSt.x * (scale + 2.0) - u_time * 0.1) + cos(rotSt.y * (scale + 2.0));
 
                     float interference = pattern1 * pattern2;
                     
-                    // Sharper contrast for visibility
-                    float intensity = smoothstep(0.3, 0.7, interference);
-                    
-                    // Slightly brighter output to punch through the dark overlay
-                    vec3 color = vec3(intensity * 0.25); 
+                    float intensity = smoothstep(0.2, 0.8, interference);
+                    vec3 color = vec3(intensity * 0.12);
 
                     gl_FragColor = vec4(color, 1.0);
                 }
@@ -285,11 +300,11 @@
         scene.add(plane);
 
         window.addEventListener('resize', resize);
-        resize(); 
+        resize(); // Call once on load
 
         function animate(time) {
             requestAnimationFrame(animate);
-            uniforms.u_time.value = time * 0.0005; // Slightly faster time for more "buzz"
+            uniforms.u_time.value = time * 0.001;
             renderer.render(scene, camera);
         }
         animate(0);
