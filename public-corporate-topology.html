@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoCA | Live Topology V4</title>
+    
+    <!-- Import Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* --- CORE SYSTEM --- */
+        :root {
+            /* DEFAULT: DARK (THE VOID) */
+            --bg-color: #0a0a0a;
+            --panel-bg: #111111;
+            --grid-line: #2a2a2a;
+            --text-primary: #e6e6e6;
+            --text-secondary: #666;
+            --accent: #ff3333; /* CoCA Red */
+            --indicator: #00ff41; /* Terminal Green */
+            
+            --font-mono: 'Courier Prime', 'Menlo', 'Monaco', monospace;
+            --font-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            
+            --border: 1px solid var(--grid-line);
+        }
+
+        /* LIGHT MODE (THE LAB) */
+        [data-theme="light"] {
+            --bg-color: #f0f0f0;
+            --panel-bg: #ffffff;
+            --grid-line: #d0d0d0;
+            --text-primary: #111;
+            --text-secondary: #888;
+            --accent: #cc0000;
+            --indicator: #0000ff;
+        }
+
+        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+        body {
+            margin: 0; padding: 0;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* App-like feel */
+            transition: background 0.3s ease;
+        }
+
+        /* --- THE GRID LAYOUT --- */
+        .app-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr; /* Fixed Sidebar | Fluid Map */
+            height: 100%;
+            width: 100%;
+        }
+
+        /* --- SIDEBAR: THE LEDGER --- */
+        .ledger-panel {
+            background: var(--panel-bg);
+            border-right: var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .ledger-header {
+            padding: 24px;
+            border-bottom: var(--border);
+        }
+
+        h1 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 0 0 8px 0;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 2px 6px;
+            border: 1px solid var(--grid-line);
+            color: var(--text-secondary);
+        }
+
+        /* SCROLLABLE DATA AREA */
+        .ledger-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .entity-card {
+            padding: 24px;
+            border-bottom: var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .entity-card:hover { background: rgba(128,128,128,0.05); }
+        .entity-card.active { background: rgba(128,128,128,0.1); }
+        .entity-card.active::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 4px; background: var(--accent);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .card-type {
+            font-size: 9px;
+            text-transform: uppercase;
+            border: 1px solid var(--text-secondary);
+            padding: 1px 4px;
+            color: var(--text-secondary);
+            border-radius: 2px;
+        }
+
+        .card-body {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .data-table {
+            width: 100%;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-secondary);
+            border-top: 1px dotted var(--grid-line);
+            margin-top: 12px;
+            padding-top: 8px;
+        }
+        
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .data-label { opacity: 0.6; }
+
+        /* --- MAIN VIEW: 3D MAP --- */
+        .map-panel {
+            position: relative;
+            background: var(--bg-color);
+            overflow: hidden;
+        }
+
+        /* UI OVERLAYS FOR MAP */
+        .map-overlay-top {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between;
+            pointer-events: none;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-secondary);
+            z-index: 5;
+        }
+
+        .reticle {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 60px; height: 60px;
+            transform: translate(-50%, -50%);
+            border: 1px dashed var(--grid-line);
+            pointer-events: none;
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+        
+        /* Corner brackets for reticle feel */
+        .reticle::before, .reticle::after {
+            content: ''; position: absolute; width: 10px; height: 10px;
+            border-color: var(--text-primary); border-style: solid; opacity: 0.5;
+        }
+        .reticle::before { top: -5px; left: -5px; border-width: 1px 0 0 1px; }
+        .reticle::after { bottom: -5px; right: -5px; border-width: 0 1px 1px 0; }
+
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.02) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        #webgl-canvas { width: 100%; height: 100%; outline: none; }
+
+        /* --- THEME TOGGLE --- */
+        .toggle-btn {
+            position: absolute; bottom: 20px; right: 20px;
+            background: var(--bg-color);
+            border: 1px solid var(--text-primary);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        .toggle-btn:hover { background: var(--text-primary); color: var(--bg-color); }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            .app-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: 45vh 1fr; /* Map gets 45%, Data gets rest */
+            }
+
+            .ledger-panel {
+                border-right: none;
+                border-top: var(--border);
+                overflow-y: auto;
+            }
+
+            .map-panel {
+                order: -1; 
+            }
+            
+            .card-title { font-size: 14px; }
+            .card-body { font-size: 11px; }
+            
+            /* Hide status badge on small screens to save header space */
+            .status-badge { display: none; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-grid">
+        
+        <!-- DATA LEDGER -->
+        <aside class="ledger-panel">
+            <header class="ledger-header">
+                <h1>CoCA Topology</h1>
+                <span class="status-badge">LIVE FEED: ROTATING</span>
+            </header>
+
+            <div class="ledger-content">
+                
+                <!-- COCA -->
+                <div class="entity-card" id="card-coca" onmouseenter="focusNode('coca')" onmouseleave="resetFocus()">
+                    <div class="card-header">
+                        <span class="card-title">01. CoCA</span>
+                        <span class="card-type">501(c)(3)</span>
+                    </div>
+                    <div class="card-body">
+                        The Parent Entity. "The Church." Holds all conceptual IP. Provides brand and ideology to subsidiaries.
+                    </div>
+                    <div class="data-table">
+                        <div class="data-row"><span class="data-label">ROLE:</span> <span>FULL AUTHORITY</span></div>
+                        <div class="data-row"><span class="data-label">TAX:</span> <span>EXEMPT</span></div>
+                        <div class="data-row"><span class="data-label">ASSETS:</span> <span>BRAND / IP</span></div>
+                    </div>
+                </div>
+
+                <!-- FACTORY -->
+                <div class="entity-card" id="card-factory" onmouseenter="focusNode('factory')" onmouseleave="resetFocus()">
+                    <div class="card-header">
+                        <span class="card-title">02. Name of My</span>
+                        <span class="card-type">C-CORP</span>
+                    </div>
+                    <div class="card-body">
+                        "The Factory." Manufacturing arm. Generates profit, pays tax, donates remainder to parent.
+                    </div>
+                    <div class="data-table">
+                        <div class="data-row"><span class="data-label">VENDOR:</span> <span>REDACTED EMBROIDERY</span></div>
+                        <div class="data-row"><span class="data-label">VENDOR:</span> <span>REDACTED PRINTING</span></div>
+                        <div class="data-row"><span class="data-label">HOSTING PROVIDOR:</span> <span>MICROSOFT / GOOGLE</span></div>
+                    </div>
+                </div>
+
+                <!-- SCHOOL -->
+                <div class="entity-card" id="card-school" onmouseenter="focusNode('school')" onmouseleave="resetFocus()">
+                    <div class="card-header">
+                        <span class="card-title">03. Unsubscribe</span>
+                        <span class="card-type">LLC</span>
+                    </div>
+                    <div class="card-body">
+                        "The School." Business consulting for creatives. Independent entity.
+                    </div>
+                    <div class="data-table">
+                        <div class="data-row"><span class="data-label">RELATION:</span> <span>STRATEGIC PARTNER</span></div>
+                        <div class="data-row"><span class="data-label">INFRA PROVIDER:</span> <span>GOOGLE</span></div>
+                        <div class="data-row"><span class="data-label">HOSTING PROVIDER:</span> <span>AMAZON, MICROSOFT</span></div>
+                    </div>
+                </div>
+
+                <!-- COLA -->
+                <div class="entity-card" id="card-cola" onmouseenter="focusNode('cola')" onmouseleave="resetFocus()">
+                    <div class="card-header">
+                        <span class="card-title">04. COLA</span>
+                        <span class="card-type">IND</span>
+                    </div>
+                    <div class="card-body">
+                        "The Outlier." Chronicle of Living Artists. Community events satellite.
+                    </div>
+                    <div class="data-table">
+                        <div class="data-row"><span class="data-label">TYPE:</span> <span>COMMUNITY</span></div>
+                        <div class="data-row"><span class="data-label">LINK:</span> <span>EVENTS</span></div>
+                    </div>
+                </div>
+
+                <div style="padding: 24px; opacity: 0.3; font-size: 10px; font-family: var(--font-mono);">
+                    END OF FILE.
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- 3D MAP -->
+        <main class="map-panel">
+            <div class="scan-line"></div>
+            <div class="map-overlay-top">
+                <span>CAM_01 [ORBIT]</span>
+                <span>GRID: ACTIVE</span>
+            </div>
+            <div class="reticle"></div>
+            
+            <button class="toggle-btn" id="theme-btn">INVERT</button>
+            
+            <div id="webgl-canvas"></div>
+        </main>
+
+    </div>
+
+    <script>
+        /* --- THREE.JS CONFIGURATION --- */
+        const canvasContainer = document.getElementById('webgl-canvas');
+        const themeBtn = document.getElementById('theme-btn');
+        let isLight = false;
+
+        // SCENE
+        const scene = new THREE.Scene();
+        // Container for everything we want to rotate together
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+        
+        // CAMERA - Isometric-ish
+        const camera = new THREE.PerspectiveCamera(30, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+        camera.position.set(40, 35, 40);
+        camera.lookAt(0, -2, 0);
+
+        // RENDERER
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        canvasContainer.appendChild(renderer.domElement);
+
+        /* --- ASSETS & HELPERS --- */
+        const colors = {
+            wire: 0x444444,
+            active: 0xFF3333,
+            text: 0xffffff,
+            grid: 0x222222
+        };
+
+        const matWire = new THREE.LineBasicMaterial({ color: colors.wire, transparent: true, opacity: 0.5 });
+        const matSolid = new THREE.MeshBasicMaterial({ color: 0x0a0a0a, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+        const matActive = new THREE.LineBasicMaterial({ color: colors.active, linewidth: 2 });
+
+        // GRID - Added to worldGroup so it rotates
+        const grid = new THREE.GridHelper(60, 30, 0x333333, 0x111111);
+        grid.position.y = -6;
+        worldGroup.add(grid);
+
+        /* --- TEXT SPRITE GENERATOR (OPTIMIZED SIZE) --- */
+        function createLabel(text) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // High resolution for sharpness
+            const fontSize = 64; 
+            ctx.font = `bold ${fontSize}px Courier New`;
+            
+            const metrics = ctx.measureText(text);
+            const w = metrics.width;
+            const h = fontSize * 1.4;
+            
+            canvas.width = w + 20;
+            canvas.height = h;
+
+            // Draw Text
+            ctx.font = `bold ${fontSize}px Courier New`;
+            ctx.fillStyle = isLight ? '#000000' : '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width/2, canvas.height/2);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.minFilter = THREE.LinearFilter;
+            
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.9, depthTest: false }); // depthTest false ensures text is always readable
+            const sprite = new THREE.Sprite(mat);
+            
+            // Scale down significantly in 3D space for crispness
+            const scaleFactor = 0.025; 
+            sprite.scale.set(canvas.width * scaleFactor, canvas.height * scaleFactor, 1);
+            
+            // Sprites automatically face the camera, even inside rotating groups!
+            return sprite;
+        }
+
+        /* --- ENTITY FACTORY --- */
+        const entities = {};
+
+        function addEntity(id, type, x, y, z, labelStr) {
+            const group = new THREE.Group();
+            
+            // Geometries
+            let geo;
+            if (type === 'cone') geo = new THREE.ConeGeometry(2, 3.5, 4);
+            else if (type === 'box') geo = new THREE.BoxGeometry(2.5, 2.5, 2.5);
+            else if (type === 'ico') geo = new THREE.IcosahedronGeometry(1.5, 1);
+            else if (type === 'oct') geo = new THREE.OctahedronGeometry(1.2, 0);
+
+            // Mesh (Occluder)
+            const mesh = new THREE.Mesh(geo, matSolid);
+            group.add(mesh);
+
+            // Edges
+            const edges = new THREE.EdgesGeometry(geo);
+            const lines = new THREE.LineSegments(edges, matWire.clone());
+            group.add(lines);
+
+            // Label
+            const sprite = createLabel(labelStr);
+            sprite.position.y = -3.5; // Position BELOW object
+            group.add(sprite);
+
+            group.position.set(x, y, z);
+            
+            // Add to World Group (not Scene directly) so it rotates
+            worldGroup.add(group);
+
+            entities[id] = { group, lines, mesh, sprite, yBase: y, labelText: labelStr };
+        }
+
+        // --- POPULATE WORLD ---
+        // CoCA at center
+        addEntity('coca', 'cone', 0, 4, 0, 'CoCA');
+        // Factory below
+        addEntity('factory', 'box', 0, -2, 0, 'NoMSG - FACTORY');
+        // School to the side
+        addEntity('school', 'ico', 7, 1, 3, 'UNSUB - SCHOOL');
+        // Cola further out
+        addEntity('cola', 'oct', 12, -2, 6, 'COLA');
+
+        // --- CONNECTIONS ---
+        const connectionMat = new THREE.LineBasicMaterial({ color: 0x444444, transparent: true, opacity: 0.3 });
+        
+        function connect(id1, id2) {
+            // Because objects are in worldGroup, their local positions are relative to worldGroup.
+            // We can just use these local positions for the lines if the lines are ALSO in worldGroup.
+            const p1 = entities[id1].group.position;
+            const p2 = entities[id2].group.position;
+            
+            const points = [p1, p2];
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geo, connectionMat);
+            
+            worldGroup.add(line); // Add to worldGroup to rotate with everything else
+        }
+        
+        connect('coca', 'factory');
+        connect('coca', 'school');
+        connect('school', 'cola');
+
+        /* --- ANIMATION LOOP --- */
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.005;
+
+            // 1. GLOBAL ROTATION ("The Turntable")
+            worldGroup.rotation.y -= 0.002;
+
+            // 2. SUBTLE IDLE (Bobbing)
+            for (let id in entities) {
+                const ent = entities[id];
+                // Self rotation
+                ent.group.rotation.y = Math.sin(time + ent.yBase) * 0.1; 
+                // Bobbing (small amplitude to keep lines looking connected)
+                ent.group.position.y = ent.yBase + Math.sin(time * 2 + ent.yBase) * 0.1;
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        /* --- INTERACTION --- */
+        window.focusNode = (id) => {
+            // UI
+            document.querySelectorAll('.entity-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(`card-${id}`).classList.add('active');
+
+            // 3D
+            for (let k in entities) {
+                const ent = entities[k];
+                if (k === id) {
+                    ent.lines.material.color.setHex(colors.active);
+                    ent.lines.material.opacity = 1;
+                    ent.sprite.material.opacity = 1;
+                    ent.group.scale.setScalar(1.2);
+                } else {
+                    ent.lines.material.color.setHex(colors.wire);
+                    ent.lines.material.opacity = 0.2;
+                    ent.sprite.material.opacity = 0.3;
+                    ent.group.scale.setScalar(1);
+                }
+            }
+        };
+
+        window.resetFocus = () => {
+            document.querySelectorAll('.entity-card').forEach(c => c.classList.remove('active'));
+            for (let k in entities) {
+                const ent = entities[k];
+                ent.lines.material.color.setHex(colors.wire);
+                ent.lines.material.opacity = 0.5;
+                ent.sprite.material.opacity = 0.9;
+                ent.group.scale.setScalar(1);
+            }
+        };
+
+        /* --- THEME LOGIC --- */
+        themeBtn.addEventListener('click', () => {
+            isLight = !isLight;
+            document.body.setAttribute('data-theme', isLight ? 'light' : 'dark');
+
+            // Update 3D Colors
+            const cWire = isLight ? 0x999999 : 0x444444;
+            const cGrid = isLight ? 0xd0d0d0 : 0x333333;
+            const cBg   = isLight ? 0xf0f0f0 : 0x0a0a0a;
+
+            colors.wire = cWire;
+            matWire.color.setHex(cWire);
+            grid.material.color.setHex(cGrid); // Center lines
+            grid.material.opacity = isLight ? 0.5 : 1;
+            matSolid.color.setHex(cBg);
+            connectionMat.color.setHex(cWire);
+
+            // Re-generate Labels for Color
+            for (let k in entities) {
+                const ent = entities[k];
+                ent.group.remove(ent.sprite);
+                const newSprite = createLabel(ent.labelText);
+                newSprite.position.y = -3.5;
+                ent.sprite = newSprite;
+                ent.group.add(newSprite);
+            }
+        });
+
+        // Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+        });
+
+    </script>
+</body>
+</html>
