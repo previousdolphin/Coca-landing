@@ -10,7 +10,6 @@
     
     <style>
         /* Typography Imports */
-        /* DM Serif Display offers a very ink-heavy, serious serif look without the curly confusion */
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:wght@400;900&display=swap');
 
         :root {
@@ -20,58 +19,59 @@
             --border: #333333;
         }
 
-        body {
+        html, body {
+            margin: 0;
+            padding: 0;
             background-color: var(--void);
             color: var(--text);
             font-family: 'Space Mono', monospace;
-            overflow: hidden; /* Lock scroll */
-            width: 100vw;
-            height: 100dvh; /* Mobile precise height */
-            position: fixed;
+            width: 100%;
+            min-height: 100vh;
+            overscroll-behavior: none; /* Prevents rubber-banding/peel effect */
         }
 
         /* The Serif Headline Font - Upright and Bold */
         .font-funeral {
             font-family: 'Playfair Display', serif;
             font-weight: 900; 
-            font-style: normal; /* Removed italics to fix readability */
+            font-style: normal;
             line-height: 0.8;
-            letter-spacing: -0.04em; /* Tight packing for impact */
+            letter-spacing: -0.04em;
         }
 
-        /* Scanline Overlay */
+        /* Scanline Overlay - Fixed to Viewport */
         .scanlines {
             background: repeating-linear-gradient(
                 to bottom,
                 transparent 0%,
-                rgba(255, 255, 255, 0.02) 0.5%,
+                rgba(255, 255, 255, 0.03) 0.5%,
                 transparent 1%
             );
             background-size: 100% 4px;
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; width: 100vw; height: 100vh;
             pointer-events: none;
-            z-index: 40;
+            z-index: 2; /* Above canvas, below content */
         }
 
-        /* WebGL Canvas */
+        /* WebGL Canvas - Fixed to Viewport */
         #canvas-container {
             position: fixed;
-            inset: 0;
-            z-index: 0;
-            opacity: 0.3; /* Subtle visibility */
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; /* Deepest layer */
+            opacity: 0.6; /* Increased visibility */
         }
 
-        /* Blur Overlay */
+        /* Blur Overlay - Fixed to Viewport */
         .glass-overlay {
             position: fixed;
-            inset: 0;
-            backdrop-filter: blur(12px) grayscale(100%); /* Increased blur for cleaner look */
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            backdrop-filter: blur(8px) grayscale(100%);
             z-index: 1;
             pointer-events: none;
         }
 
-        /* Content Layer */
+        /* Content Layer - Scrolls normally */
         .content-layer {
             position: relative;
             z-index: 50;
@@ -103,98 +103,103 @@
 
     </style>
 </head>
-<body class="flex flex-col justify-between p-4 md:p-8">
+<body class="flex flex-col min-h-screen">
 
-    <!-- BACKGROUND SYSTEM -->
+    <!-- BACKGROUND SYSTEM (Fixed Position) -->
     <div id="canvas-container"></div>
     <div class="glass-overlay"></div>
     <div class="scanlines"></div>
 
-    <!-- HEADER -->
-    <header class="content-layer flex justify-between items-start pt-2 md:pt-0">
-        <!-- Logo Section -->
-        <div class="w-20 md:w-32 logo-crop h-12 md:h-16 relative">
-            <img 
-                src="CoCA-Vector-redrawn-photoshop.svg" 
-                alt="CoCA" 
-                class="w-full h-full object-contain filter invert scale-150 transform transition-transform duration-500 hover:scale-125"
-                onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';"
-            >
-            <span id="logo-fallback" class="hidden font-serif italic font-black text-2xl text-[var(--coca-red)] absolute top-0 left-0">CoCA</span>
-        </div>
+    <!-- MAIN SCROLLABLE WRAPPER -->
+    <div class="content-layer w-full max-w-screen-xl mx-auto flex flex-col justify-between min-h-screen p-6 md:p-8 gap-8">
 
-        <div class="text-right text-[10px] md:text-xs text-gray-500 font-mono leading-tight">
-            <p>DEPT. OF FINAL AFFAIRS</p>
-            <p>CASE FILE: #00-COPY-END</p>
-            <p class="text-[var(--coca-red)] font-bold animate-pulse-slow">STATUS: TERMINAL</p>
-        </div>
-    </header>
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <!-- Logo Section -->
+            <div class="w-20 md:w-32 logo-crop h-12 md:h-16 relative">
+                <img 
+                    src="CoCA-Vector-redrawn-photoshop.svg" 
+                    alt="CoCA" 
+                    class="w-full h-full object-contain filter invert scale-150 transform transition-transform duration-500 hover:scale-125"
+                    onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';"
+                >
+                <span id="logo-fallback" class="hidden font-serif italic font-black text-2xl text-[var(--coca-red)] absolute top-0 left-0">CoCA</span>
+            </div>
 
-    <!-- MAIN CONTENT -->
-    <main class="content-layer flex-grow flex flex-col items-center justify-center text-center w-full relative z-50">
-        
-        <!-- Intro text -->
-        <p class="text-[10px] md:text-xs tracking-[0.3em] text-gray-500 mb-6 md:mb-8 uppercase font-mono">
-            Scheduled for Termination
-        </p>
+            <div class="text-left md:text-right text-[10px] md:text-xs text-gray-500 font-mono leading-tight w-full md:w-auto border-t md:border-t-0 border-[#333] pt-2 md:pt-0">
+                <p>DEPT. OF FINAL AFFAIRS</p>
+                <p>CASE FILE: #00-COPY-END</p>
+                <p class="text-[var(--coca-red)] font-bold animate-pulse-slow">STATUS: TERMINAL</p>
+            </div>
+        </header>
 
-        <!-- Headline - Refined for Clarity -->
-        <h1 class="font-funeral text-white mix-blend-difference mb-10 md:mb-14 relative z-10 flex flex-col items-center">
-            <span class="block text-[14vw] md:text-[7vw]">NOTICE OF</span>
-            <span class="block text-[14vw] md:text-[7vw] text-gray-400">PASSING</span>
-        </h1>
-
-        <!-- Info Card -->
-        <div class="w-full max-w-[90vw] md:max-w-lg border-y border-[#333] md:border md:border-white/10 bg-black/40 backdrop-blur-md p-6 md:p-8 text-left relative">
+        <!-- CENTER CONTENT -->
+        <main class="flex-grow flex flex-col items-center justify-center text-center w-full relative z-50 py-4">
             
-            <!-- Corner Accents (Subtle) -->
-            <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/50 hidden md:block"></div>
-            <div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/50 hidden md:block"></div>
-            <div class="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/50 hidden md:block"></div>
-            <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/50 hidden md:block"></div>
+            <!-- Intro text -->
+            <p class="text-[10px] md:text-xs tracking-[0.3em] text-gray-500 mb-6 uppercase font-mono">
+                Scheduled for Termination
+            </p>
 
-            <div class="space-y-5 font-mono text-xs md:text-sm">
+            <!-- Headline -->
+            <h1 class="font-funeral text-white mix-blend-difference mb-8 md:mb-12 relative z-10 flex flex-col items-center leading-none">
+                <span class="block text-[14vw] md:text-[8vw] lg:text-[7vw]">NOTICE OF</span>
+                <span class="block text-[14vw] md:text-[8vw] lg:text-[7vw] text-gray-400">PASSING</span>
+            </h1>
+
+            <!-- Info Card -->
+            <div class="w-full max-w-md md:max-w-lg border-y border-[#333] md:border md:border-white/10 bg-black/40 backdrop-blur-md p-6 text-left relative shadow-2xl">
                 
-                <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2">
-                    <span class="text-gray-500">SUBJECT:</span>
-                    <span class="text-white tracking-widest uppercase">Intellectual Property</span>
-                </div>
+                <!-- Corner Accents (Desktop only) -->
+                <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/50 hidden md:block"></div>
+                <div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/50 hidden md:block"></div>
+                <div class="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/50 hidden md:block"></div>
+                <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/50 hidden md:block"></div>
 
-                <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2">
-                    <span class="text-gray-500">STATUS:</span>
-                    <span class="text-white uppercase">Critical / Palliative</span>
-                </div>
+                <div class="space-y-4 font-mono text-xs md:text-sm">
+                    
+                    <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2 gap-2">
+                        <span class="text-gray-500">SUBJECT:</span>
+                        <span class="text-white tracking-widest uppercase truncate">Intellectual Property</span>
+                    </div>
 
-                <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2">
-                    <span class="text-gray-500">PATHOLOGY:</span>
-                    <span class="text-white uppercase glitch-text">Hyper-Reproduction</span>
-                </div>
+                    <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2 gap-2">
+                        <span class="text-gray-500">STATUS:</span>
+                        <span class="text-white uppercase truncate">Critical / Palliative</span>
+                    </div>
 
-                <div class="grid grid-cols-[85px_1fr] items-baseline">
-                    <span class="text-gray-500">DATE:</span>
-                    <span class="text-[var(--coca-red)] font-bold">DECEMBER 10, 2028</span>
+                    <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2 gap-2">
+                        <span class="text-gray-500">PATHOLOGY:</span>
+                        <span class="text-white uppercase glitch-text truncate">Hyper-Reproduction</span>
+                    </div>
+
+                    <div class="grid grid-cols-[85px_1fr] items-baseline gap-2">
+                        <span class="text-gray-500">DATE:</span>
+                        <span class="text-[var(--coca-red)] font-bold truncate">DECEMBER 10, 2028</span>
+                    </div>
+                </div>
+                
+                <!-- Signature -->
+                <div class="mt-6 pt-4 border-t border-[#333] flex justify-between items-end">
+                    <div class="w-3 h-3 border border-[var(--coca-red)] rounded-full animate-pulse-slow"></div>
+                    <p class="text-[9px] text-gray-600 uppercase tracking-widest text-right">Authorized by The Church of Conceptual Art</p>
                 </div>
             </div>
-            
-            <!-- Signature -->
-            <div class="mt-6 pt-4 border-t border-[#333] flex justify-between items-end">
-                 <div class="w-4 h-4 border border-[var(--coca-red)] rounded-full animate-pulse-slow"></div>
-                <p class="text-[9px] text-gray-600 uppercase tracking-widest text-right">Authorized by The Church of Conceptual Art</p>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="flex flex-col md:flex-row justify-between items-end md:items-end border-t border-[#333] pt-4 md:border-t-0 md:pt-0 gap-4">
+            <div class="text-[10px] text-gray-600 max-w-[250px] leading-relaxed text-left">
+                Please refrain from sending flowers.<br>Send data instead.
             </div>
-        </div>
+            <div class="text-right w-full md:w-auto">
+                <p class="text-[10px] text-gray-600 mb-1 uppercase tracking-wider">Time Remaining</p>
+                <p id="countdown" class="font-mono text-lg md:text-xl text-gray-400 tabular-nums">CALCULATING...</p>
+            </div>
+        </footer>
 
-    </main>
-
-    <!-- FOOTER -->
-    <footer class="content-layer border-t border-[#333] pt-4 md:border-t-0 md:pt-0 flex justify-between items-end pb-2">
-        <div class="hidden md:block text-[10px] text-gray-600 max-w-[200px] leading-relaxed">
-            Please refrain from sending flowers.<br>Send data instead.
-        </div>
-        <div class="text-right w-full md:w-auto">
-            <p class="text-[10px] text-gray-600 mb-1 uppercase tracking-wider">Time Remaining</p>
-            <p id="countdown" class="font-mono text-lg md:text-xl text-gray-400 tabular-nums">CALCULATING...</p>
-        </div>
-    </footer>
+    </div>
 
     <!-- LOGIC -->
     <script>
@@ -223,7 +228,13 @@
         const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        function resize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight; // Always fit viewport for fixed background
+            renderer.setSize(width, height);
+            if(uniforms) uniforms.u_resolution.value.set(width, height);
+        }
+        
         container.appendChild(renderer.domElement);
 
         const uniforms = {
@@ -241,23 +252,24 @@
                     vec2 st = gl_FragCoord.xy / u_resolution.xy;
                     st.x *= u_resolution.x / u_resolution.y;
 
-                    // Moiré Pattern Logic
-                    float scale = 25.0; // Slightly larger scale for clarity
+                    // Moiré Pattern Logic (INTENSIFIED)
+                    float scale = 80.0; // Much tighter lines
                     
                     // Layer 1
-                    float pattern1 = sin(st.x * scale + u_time * 0.15) + cos(st.y * scale);
+                    float pattern1 = sin(st.x * scale + u_time * 0.2) + cos(st.y * scale);
                     
-                    // Layer 2 (Rotated)
-                    float angle = 0.15;
+                    // Layer 2 (Rotated slightly more)
+                    float angle = 0.1;
                     vec2 rotSt = vec2(st.x * cos(angle) - st.y * sin(angle), st.x * sin(angle) + st.y * cos(angle));
-                    float pattern2 = sin(rotSt.x * (scale + 2.0) - u_time * 0.1) + cos(rotSt.y * (scale + 2.0));
+                    float pattern2 = sin(rotSt.x * (scale + 3.0) - u_time * 0.15) + cos(rotSt.y * (scale + 3.0));
 
-                    // Interference
                     float interference = pattern1 * pattern2;
                     
-                    // Convert to subtle greyscale
-                    float intensity = smoothstep(0.2, 0.8, interference);
-                    vec3 color = vec3(intensity * 0.12); // Keep it very dark/subtle
+                    // Sharper contrast for visibility
+                    float intensity = smoothstep(0.3, 0.7, interference);
+                    
+                    // Slightly brighter output to punch through the dark overlay
+                    vec3 color = vec3(intensity * 0.25); 
 
                     gl_FragColor = vec4(color, 1.0);
                 }
@@ -272,14 +284,12 @@
         const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
         scene.add(plane);
 
-        window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
-        });
+        window.addEventListener('resize', resize);
+        resize(); 
 
         function animate(time) {
             requestAnimationFrame(animate);
-            uniforms.u_time.value = time * 0.001;
+            uniforms.u_time.value = time * 0.0005; // Slightly faster time for more "buzz"
             renderer.render(scene, camera);
         }
         animate(0);
@@ -287,5 +297,3 @@
     </script>
 </body>
 </html>
-
-
