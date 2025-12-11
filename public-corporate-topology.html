@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CoCA | Live Topology V4</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CoCA | Responsive Dashboard V5</title>
     
     <!-- Import Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -24,6 +24,10 @@
             --font-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             
             --border: 1px solid var(--grid-line);
+            
+            /* Safe Area Variables for iPhone Notch etc */
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
         }
 
         /* LIGHT MODE (THE LAB) */
@@ -44,16 +48,18 @@
             background: var(--bg-color);
             color: var(--text-primary);
             font-family: var(--font-sans);
-            height: 100vh;
+            height: 100dvh; /* Dynamic Height for Mobile Browsers */
             width: 100vw;
-            overflow: hidden; /* App-like feel */
+            overflow: hidden; 
             transition: background 0.3s ease;
         }
 
         /* --- THE GRID LAYOUT --- */
         .app-grid {
             display: grid;
-            grid-template-columns: 400px 1fr; /* Fixed Sidebar | Fluid Map */
+            /* Desktop: Sidebar 350px, Map fills rest */
+            grid-template-columns: 350px 1fr; 
+            grid-template-rows: 100%;
             height: 100%;
             width: 100%;
         }
@@ -66,11 +72,15 @@
             flex-direction: column;
             overflow: hidden;
             z-index: 10;
+            position: relative;
         }
 
         .ledger-header {
             padding: 24px;
+            padding-top: max(24px, var(--safe-top)); /* Notch safety if sidebar is top */
             border-bottom: var(--border);
+            background: var(--panel-bg);
+            z-index: 20;
         }
 
         h1 {
@@ -94,7 +104,15 @@
         .ledger-content {
             flex: 1;
             overflow-y: auto;
+            /* Scrollbar styling */
+            scrollbar-width: thin;
+            scrollbar-color: var(--grid-line) var(--panel-bg);
+            padding-bottom: max(40px, var(--safe-bottom)); /* Ensure last item is clickable */
         }
+        
+        .ledger-content::-webkit-scrollbar { width: 6px; }
+        .ledger-content::-webkit-scrollbar-track { background: var(--panel-bg); }
+        .ledger-content::-webkit-scrollbar-thumb { background: var(--grid-line); }
 
         .entity-card {
             padding: 24px;
@@ -159,18 +177,46 @@
             position: relative;
             background: var(--bg-color);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* UI OVERLAYS FOR MAP */
-        .map-overlay-top {
-            position: absolute; top: 20px; left: 20px; right: 20px;
-            display: flex; justify-content: space-between;
-            pointer-events: none;
+        /* HEADER / UI OVERLAY FOR MAP */
+        .map-ui-header {
+            position: absolute; 
+            top: 0; left: 0; width: 100%;
+            padding: 20px;
+            padding-top: max(20px, var(--safe-top));
+            display: flex; 
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none; /* Let clicks pass to canvas */
+            z-index: 5;
+        }
+
+        .map-meta {
             font-family: var(--font-mono);
             font-size: 10px;
             color: var(--text-secondary);
-            z-index: 5;
         }
+        
+        .map-meta span { display: block; margin-bottom: 4px; }
+
+        /* THEME BUTTON - Now Top Right for Safety */
+        .toggle-btn {
+            pointer-events: auto; /* Re-enable clicks */
+            background: transparent;
+            border: 1px solid var(--text-primary);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 6px 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            opacity: 0.7;
+        }
+        .toggle-btn:hover { background: var(--text-primary); color: var(--bg-color); opacity: 1; }
 
         .reticle {
             position: absolute;
@@ -183,7 +229,6 @@
             opacity: 0.3;
         }
         
-        /* Corner brackets for reticle feel */
         .reticle::before, .reticle::after {
             content: ''; position: absolute; width: 10px; height: 10px;
             border-color: var(--text-primary); border-style: solid; opacity: 0.5;
@@ -199,46 +244,33 @@
             z-index: 2;
         }
 
-        #webgl-canvas { width: 100%; height: 100%; outline: none; }
-
-        /* --- THEME TOGGLE --- */
-        .toggle-btn {
-            position: absolute; bottom: 20px; right: 20px;
-            background: var(--bg-color);
-            border: 1px solid var(--text-primary);
-            color: var(--text-primary);
-            font-family: var(--font-mono);
-            font-size: 10px;
-            padding: 8px 12px;
-            cursor: pointer;
-            text-transform: uppercase;
-            z-index: 100;
-            transition: all 0.3s;
-        }
-        .toggle-btn:hover { background: var(--text-primary); color: var(--bg-color); }
+        #webgl-canvas { width: 100%; height: 100%; outline: none; display: block; }
 
         /* --- MOBILE OPTIMIZATION --- */
         @media (max-width: 768px) {
             .app-grid {
                 grid-template-columns: 1fr;
-                grid-template-rows: 45vh 1fr; /* Map gets 45%, Data gets rest */
+                grid-template-rows: 40dvh 1fr; /* Map gets 40%, Ledger gets 60% */
             }
 
             .ledger-panel {
                 border-right: none;
                 border-top: var(--border);
-                overflow-y: auto;
+                order: 2; /* Sidebar below map */
+            }
+            
+            .ledger-header {
+                padding-top: 20px; /* Reset safe area since it's middle of screen now */
+                padding-bottom: 12px;
             }
 
             .map-panel {
-                order: -1; 
+                order: 1; /* Map on top */
             }
             
-            .card-title { font-size: 14px; }
-            .card-body { font-size: 11px; }
-            
-            /* Hide status badge on small screens to save header space */
-            .status-badge { display: none; } 
+            /* Smaller text on mobile map header */
+            .map-meta { font-size: 9px; }
+            .toggle-btn { font-size: 9px; padding: 4px 8px; }
         }
     </style>
 </head>
@@ -256,7 +288,7 @@
             <div class="ledger-content">
                 
                 <!-- COCA -->
-                <div class="entity-card" id="card-coca" onmouseenter="focusNode('coca')" onmouseleave="resetFocus()">
+                <div class="entity-card" id="card-coca" onclick="focusNode('coca')" onmouseenter="focusNode('coca')" onmouseleave="resetFocus()">
                     <div class="card-header">
                         <span class="card-title">01. CoCA</span>
                         <span class="card-type">501(c)(3)</span>
@@ -272,7 +304,7 @@
                 </div>
 
                 <!-- FACTORY -->
-                <div class="entity-card" id="card-factory" onmouseenter="focusNode('factory')" onmouseleave="resetFocus()">
+                <div class="entity-card" id="card-factory" onclick="focusNode('factory')" onmouseenter="focusNode('factory')" onmouseleave="resetFocus()">
                     <div class="card-header">
                         <span class="card-title">02. Name of My</span>
                         <span class="card-type">C-CORP</span>
@@ -288,7 +320,7 @@
                 </div>
 
                 <!-- SCHOOL -->
-                <div class="entity-card" id="card-school" onmouseenter="focusNode('school')" onmouseleave="resetFocus()">
+                <div class="entity-card" id="card-school" onclick="focusNode('school')" onmouseenter="focusNode('school')" onmouseleave="resetFocus()">
                     <div class="card-header">
                         <span class="card-title">03. Unsubscribe</span>
                         <span class="card-type">LLC</span>
@@ -304,7 +336,7 @@
                 </div>
 
                 <!-- COLA -->
-                <div class="entity-card" id="card-cola" onmouseenter="focusNode('cola')" onmouseleave="resetFocus()">
+                <div class="entity-card" id="card-cola" onclick="focusNode('cola')" onmouseenter="focusNode('cola')" onmouseleave="resetFocus()">
                     <div class="card-header">
                         <span class="card-title">04. COLA</span>
                         <span class="card-type">IND</span>
@@ -328,13 +360,16 @@
         <!-- 3D MAP -->
         <main class="map-panel">
             <div class="scan-line"></div>
-            <div class="map-overlay-top">
-                <span>CAM_01 [ORBIT]</span>
-                <span>GRID: ACTIVE</span>
-            </div>
-            <div class="reticle"></div>
             
-            <button class="toggle-btn" id="theme-btn">INVERT</button>
+            <div class="map-ui-header">
+                <div class="map-meta">
+                    <span>CAM_01 [ORBIT]</span>
+                    <span>GRID: ACTIVE</span>
+                </div>
+                <button class="toggle-btn" id="theme-btn">INVERT COLORS</button>
+            </div>
+            
+            <div class="reticle"></div>
             
             <div id="webgl-canvas"></div>
         </main>
@@ -456,9 +491,9 @@
         // --- POPULATE WORLD ---
         // CoCA at center
         addEntity('coca', 'cone', 0, 4, 0, 'CoCA');
-        // Factory below
+        // Factory below - UPDATED LABEL
         addEntity('factory', 'box', 0, -2, 0, 'NoMSG - FACTORY');
-        // School to the side
+        // School to the side - UPDATED LABEL
         addEntity('school', 'ico', 7, 1, 3, 'UNSUB - SCHOOL');
         // Cola further out
         addEntity('cola', 'oct', 12, -2, 6, 'COLA');
@@ -509,7 +544,12 @@
         window.focusNode = (id) => {
             // UI
             document.querySelectorAll('.entity-card').forEach(c => c.classList.remove('active'));
-            document.getElementById(`card-${id}`).classList.add('active');
+            const card = document.getElementById(`card-${id}`);
+            if(card) {
+                card.classList.add('active');
+                // Optional: Scroll to card on mobile
+                // card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
 
             // 3D
             for (let k in entities) {
