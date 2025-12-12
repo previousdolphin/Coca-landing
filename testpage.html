@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    :root {
+        --primary-color: #2c3e50;
+        --highlight-bg: #fff3cd; /* Soft yellow for Article 27 */
+        --highlight-border: #ffc107; /* Darker gold for border */
+        --link-color: #007bff;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 0 20px;
+    }
+
+    /* The Trigger Text Style */
+    .explainer-text {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+    }
+
+    .expand-trigger {
+        color: var(--link-color);
+        cursor: pointer;
+        text-decoration: underline;
+        font-weight: bold;
+        transition: color 0.2s;
+    }
+
+    .expand-trigger:hover {
+        color: #0056b3;
+    }
+
+    /* The Hidden Section container */
+    #udhr-container {
+        display: none; /* Hidden by default */
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    #udhr-container.visible {
+        display: block;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    /* Typography for the Declaration */
+    h1 { text-align: center; font-size: 1.8rem; margin-bottom: 0.5em; }
+    h2 { font-size: 1.4rem; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 30px; }
+    h3 { font-size: 1.1rem; margin-top: 20px; font-weight: bold; color: var(--primary-color); }
+    ul { margin: 10px 0; padding-left: 20px; }
+    
+    /* Specific Styling for Article 27 */
+    .article-27-highlight {
+        background-color: var(--highlight-bg);
+        border-left: 6px solid var(--highlight-border);
+        padding: 15px;
+        margin: 20px -15px; /* Pull it out slightly for emphasis */
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+</head>
+<body>
+
+    <p class="explainer-text">
+        The international basis for intellectual property rights is rooted in the 
+        <span class="expand-trigger" onclick="toggleDeclaration()">Universal Declaration of Human Rights</span>. 
+        (Click the link to view the full text and locate the copyright clause).
+    </p>
+
+    <div id="udhr-container">
+        <h1>🌍 Universal Declaration of Human Rights</h1>
+        
+        <h2>Preamble</h2>
+        <p>Whereas recognition of the inherent dignity and of the equal and inalienable rights of all members of the human family is the foundation of freedom, justice and peace in the world,</p>
+        <p>Whereas disregard and contempt for human rights have resulted in barbarous acts which have outraged the conscience of mankind, and the advent of a world in which human beings shall enjoy freedom of speech and belief and freedom from fear and want has been proclaimed as the highest aspiration of the common people,</p>
+        <p>Whereas it is essential, if man is not to be compelled to have recourse, as a last resort, to rebellion against tyranny and oppression, that human rights should be protected by the rule of law,</p>
+        <p>Whereas it is essential to promote the development of friendly relations between nations,</p>
+        <p>Whereas the peoples of the United Nations have in the Charter reaffirmed their faith in fundamental human rights, in the dignity and worth of the human person and in the equal rights of men and women and have determined to promote social progress and better standards of life in larger freedom,</p>
+        <p>Whereas Member States have pledged themselves to achieve, in co-operation with the United Nations, the promotion of universal respect for and observance of human rights and fundamental freedoms,</p>
+        <p>Whereas a common understanding of these rights and freedoms is of the greatest importance for the full realization of this pledge,</p>
+        <p>Now, therefore, The General Assembly proclaims This Universal Declaration of Human Rights as a common standard of achievement for all peoples and all nations...</p>
+
+        <h2>📜 Articles</h2>
+
+        <h3>Article 1</h3>
+        <p>All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood.</p>
+
+        <h3>Article 2</h3>
+        <p>Everyone is entitled to all the rights and freedoms set forth in this Declaration, without distinction of any kind, such as race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth or other status...</p>
+
+        <h3>Article 3</h3>
+        <p>Everyone has the right to life, liberty and security of person.</p>
+
+        <h3>Article 4</h3>
+        <p>No one shall be held in slavery or servitude; slavery and the slave trade shall be prohibited in all their forms.</p>
+
+        <h3>Article 5</h3>
+        <p>No one shall be subjected to torture or to cruel, inhuman or degrading treatment or punishment.</p>
+        
+        <h3>Article 6 - Article 25</h3>
+        <p><em>[...Full text of Articles 6 through 25 would reside here...]</em></p>
+
+        <h3>Article 26</h3>
+        <ul>
+            <li>Everyone has the right to education. Education shall be free, at least in the elementary and fundamental stages...</li>
+            <li>Education shall be directed to the full development of the human personality...</li>
+            <li>Parents have a prior right to choose the kind of education that shall be given to their children.</li>
+        </ul>
+
+        <div id="target-article" class="article-27-highlight">
+            <h3>Article 27 (Intellectual Property & Culture)</h3>
+            <ul>
+                <li>Everyone has the right freely to participate in the cultural life of the community, to enjoy the arts and to share in scientific advancement and its benefits.</li>
+                <li><strong>Everyone has the right to the protection of the moral and material interests resulting from any scientific, literary or artistic production of which he is the author.</strong></li>
+            </ul>
+        </div>
+
+        <h3>Article 28</h3>
+        <p>Everyone is entitled to a social and international order in which the rights and freedoms set forth in this Declaration can be fully realized.</p>
+
+        <h3>Article 29</h3>
+        <ul>
+            <li>Everyone has duties to the community in which alone the free and full development of his personality is possible.</li>
+            <li>In the exercise of his rights and freedoms, everyone shall be subject only to such limitations as are determined by law...</li>
+            <li>These rights and freedoms may in no case be exercised contrary to the purposes and principles of the United Nations.</li>
+        </ul>
+
+        <h3>Article 30</h3>
+        <p>Nothing in this Declaration may be interpreted as implying for any State, group or person any right to engage in any activity or to perform any act aimed at the destruction of any of the rights and freedoms set forth herein.</p>
+    </div>
+
+<script>
+    function toggleDeclaration() {
+        const container = document.getElementById('udhr-container');
+        const target = document.getElementById('target-article');
+
+        // Toggle visibility
+        if (container.style.display === 'block') {
+            container.style.display = 'none';
+            container.classList.remove('visible');
+        } else {
+            container.style.display = 'block';
+            container.classList.add('visible');
+            
+            // Wait slightly for the display change to render, then scroll
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }
+</script>
+
+</body>
+</html>
