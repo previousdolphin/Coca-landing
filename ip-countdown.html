@@ -135,15 +135,17 @@
         <!-- HEADER -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
             <!-- Logo Section -->
-            <div class="w-20 md:w-32 logo-crop h-12 md:h-16 relative">
-                <img 
-                    src="CoCA-Vector-redrawn-photoshop.svg" 
-                    alt="CoCA" 
-                    class="w-full h-full object-contain filter invert scale-150 transform transition-transform duration-500 hover:scale-125"
-                    onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';"
-                >
-                <span id="logo-fallback" class="hidden font-serif italic font-black text-2xl text-[var(--coca-red)] absolute top-0 left-0">CoCA</span>
-            </div>
+<a href="https://www.cocausa.org" aria-label="Go to CoCA homepage">
+  <div class="w-20 md:w-32 logo-crop h-12 md:h-16 relative cursor-pointer">
+      <img 
+          src="CoCA-Vector-redrawn-photoshop.svg" 
+          alt="CoCA" 
+          class="w-full h-full object-contain filter invert scale-150 transform transition-transform duration-500 hover:scale-125"
+          onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';"
+      >
+      <span id="logo-fallback" class="hidden font-serif italic font-black text-2xl text-[var(--coca-red)] absolute top-0 left-0">CoCA</span>
+  </div>
+</a>
 
             <div class="text-left md:text-right text-[10px] md:text-xs text-gray-500 font-mono leading-tight w-full md:w-auto border-t md:border-t-0 border-[#333] pt-2 md:pt-0">
                 <p>DEPT. OF FINAL AFFAIRS</p>
