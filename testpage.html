@@ -1,171 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-    :root {
-        --primary-color: #2c3e50;
-        --highlight-bg: #fff3cd; /* Soft yellow for Article 27 */
-        --highlight-border: #ffc107; /* Darker gold for border */
-        --link-color: #007bff;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        max-width: 800px;
-        margin: 20px auto;
-        padding: 0 20px;
-    }
-
-    /* The Trigger Text Style */
-    .explainer-text {
-        font-size: 1.2rem;
-        margin-bottom: 20px;
-    }
-
-    .expand-trigger {
-        color: var(--link-color);
-        cursor: pointer;
-        text-decoration: underline;
-        font-weight: bold;
-        transition: color 0.2s;
-    }
-
-    .expand-trigger:hover {
-        color: #0056b3;
-    }
-
-    /* The Hidden Section container */
-    #udhr-container {
-        display: none; /* Hidden by default */
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        padding: 20px;
-        border-radius: 8px;
-        margin-top: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
-    #udhr-container.visible {
-        display: block;
-        animation: fadeIn 0.5s ease-in-out;
-    }
-
-    /* Typography for the Declaration */
-    h1 { text-align: center; font-size: 1.8rem; margin-bottom: 0.5em; }
-    h2 { font-size: 1.4rem; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 30px; }
-    h3 { font-size: 1.1rem; margin-top: 20px; font-weight: bold; color: var(--primary-color); }
-    ul { margin: 10px 0; padding-left: 20px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NOTICE OF PASSING | CoCA</title>
+    <meta name="theme-color" content="#000000">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
-    /* Specific Styling for Article 27 */
-    .article-27-highlight {
-        background-color: var(--highlight-bg);
-        border-left: 6px solid var(--highlight-border);
-        padding: 15px;
-        margin: 20px -15px; /* Pull it out slightly for emphasis */
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
+    <style>
+        /* Typography Imports */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Playfair+Display:wght@400;900&display=swap');
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-</style>
+        :root {
+            --coca-red: #F40009;
+            --void: #000000;
+            --text: #E5E5E5;
+            --border: #333333;
+        }
+
+        html {
+            height: 100%;
+            background-color: var(--void);
+            overscroll-behavior-y: none;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            background-color: transparent;
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            width: 100%; 
+            min-height: 100dvh; 
+            overflow-x: hidden;
+            position: relative;
+            margin: 0;
+        }
+
+        /* The Serif Headline Font */
+        .font-funeral {
+            font-family: 'Playfair Display', serif;
+            font-weight: 900; 
+            line-height: 0.8;
+            letter-spacing: -0.04em;
+        }
+
+        /* Scanline Overlay */
+        .scanlines {
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(255, 255, 255, 0.02) 0.5%,
+                transparent 1%
+            );
+            background-size: 100% 4px;
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* WebGL Canvas */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Blur Overlay */
+        .glass-overlay {
+            position: fixed;
+            inset: 0;
+            backdrop-filter: blur(12px) grayscale(100%);
+            -webkit-backdrop-filter: blur(12px) grayscale(100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Content Layer */
+        .content-layer {
+            position: relative;
+            z-index: 50;
+        }
+
+        /* Logo Crop Wrapper */
+        .logo-crop {
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Glitch Effect */
+        .glitch-text:hover {
+            color: var(--coca-red);
+            text-shadow: 2px 0px 0px rgba(255, 255, 255, 0.5);
+            cursor: help;
+        }
+
+        /* UDHR Hidden Section Styles */
+        #udhr-container {
+            transition: all 0.5s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            border-top: 1px solid transparent;
+            margin-top: 0;
+        }
+
+        #udhr-container.visible {
+            max-height: 600px; /* Limits height, makes it scrollable internally */
+            opacity: 1;
+            margin-top: 2rem;
+            border-top: 1px solid #333;
+            padding-top: 1rem;
+            overflow-y: auto;
+        }
+
+        /* Custom Scrollbar for UDHR */
+        #udhr-container::-webkit-scrollbar { width: 6px; }
+        #udhr-container::-webkit-scrollbar-track { background: #111; }
+        #udhr-container::-webkit-scrollbar-thumb { background: #333; }
+        #udhr-container::-webkit-scrollbar-thumb:hover { background: var(--coca-red); }
+
+        .article-highlight {
+            background: rgba(244, 0, 9, 0.1);
+            border-left: 4px solid var(--coca-red);
+            padding: 1rem;
+            margin: 1rem 0;
+            color: white;
+        }
+
+        /* Animations */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
 </head>
-<body>
+<body class="flex flex-col">
 
-    <p class="explainer-text">
-        The international basis for intellectual property rights is rooted in the 
-        <span class="expand-trigger" onclick="toggleDeclaration()">Universal Declaration of Human Rights</span>. 
-        (Click the link to view the full text and locate the copyright clause).
-    </p>
+    <div id="canvas-container"></div>
+    <div class="glass-overlay"></div>
+    <div class="scanlines"></div>
 
-    <div id="udhr-container">
-        <h1>🌍 Universal Declaration of Human Rights</h1>
-        
-        <h2>Preamble</h2>
-        <p>Whereas recognition of the inherent dignity and of the equal and inalienable rights of all members of the human family is the foundation of freedom, justice and peace in the world,</p>
-        <p>Whereas disregard and contempt for human rights have resulted in barbarous acts which have outraged the conscience of mankind, and the advent of a world in which human beings shall enjoy freedom of speech and belief and freedom from fear and want has been proclaimed as the highest aspiration of the common people,</p>
-        <p>Whereas it is essential, if man is not to be compelled to have recourse, as a last resort, to rebellion against tyranny and oppression, that human rights should be protected by the rule of law,</p>
-        <p>Whereas it is essential to promote the development of friendly relations between nations,</p>
-        <p>Whereas the peoples of the United Nations have in the Charter reaffirmed their faith in fundamental human rights, in the dignity and worth of the human person and in the equal rights of men and women and have determined to promote social progress and better standards of life in larger freedom,</p>
-        <p>Whereas Member States have pledged themselves to achieve, in co-operation with the United Nations, the promotion of universal respect for and observance of human rights and fundamental freedoms,</p>
-        <p>Whereas a common understanding of these rights and freedoms is of the greatest importance for the full realization of this pledge,</p>
-        <p>Now, therefore, The General Assembly proclaims This Universal Declaration of Human Rights as a common standard of achievement for all peoples and all nations...</p>
+    <div class="content-layer w-full max-w-screen-xl mx-auto flex flex-col justify-between min-h-[100dvh] p-6 md:p-8 gap-8">
 
-        <h2>📜 Articles</h2>
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+            <a href="https://www.cocausa.org" aria-label="Go to CoCA homepage">
+                <div class="w-20 md:w-32 logo-crop h-12 md:h-16 relative cursor-pointer">
+                    <img 
+                        src="CoCA-Vector-redrawn-photoshop.svg" 
+                        alt="CoCA" 
+                        class="w-full h-full object-contain filter invert scale-150 transform transition-transform duration-500 hover:scale-125"
+                        onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';"
+                    >
+                    <span id="logo-fallback" class="hidden font-serif italic font-black text-2xl text-[var(--coca-red)] absolute top-0 left-0">CoCA</span>
+                </div>
+            </a>
 
-        <h3>Article 1</h3>
-        <p>All human beings are born free and equal in dignity and rights. They are endowed with reason and conscience and should act towards one another in a spirit of brotherhood.</p>
+            <div class="text-left md:text-right text-[10px] md:text-xs text-gray-500 font-mono leading-tight w-full md:w-auto border-t md:border-t-0 border-[#333] pt-2 md:pt-0">
+                <p>DEPT. OF FINAL AFFAIRS</p>
+                <p>CASE FILE: #00-COPY-END</p>
+                <p class="text-[var(--coca-red)] font-bold animate-pulse-slow">STATUS: TERMINAL</p>
+            </div>
+        </header>
 
-        <h3>Article 2</h3>
-        <p>Everyone is entitled to all the rights and freedoms set forth in this Declaration, without distinction of any kind, such as race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth or other status...</p>
+        <main class="flex-grow flex flex-col items-center justify-center text-center w-full relative z-50 py-8 shrink-0">
+            
+            <p class="text-[10px] md:text-xs tracking-[0.3em] text-gray-500 mb-6 uppercase font-mono">
+                Scheduled for Termination
+            </p>
 
-        <h3>Article 3</h3>
-        <p>Everyone has the right to life, liberty and security of person.</p>
+            <h1 class="font-funeral text-white mix-blend-difference mb-8 md:mb-12 relative z-10 flex flex-col items-center leading-none">
+                <span class="block text-[14vw] md:text-[8vw] lg:text-[7vw]">NOTICE OF</span>
+                <span class="block text-[14vw] md:text-[8vw] lg:text-[7vw] text-gray-400">PASSING</span>
+            </h1>
 
-        <h3>Article 4</h3>
-        <p>No one shall be held in slavery or servitude; slavery and the slave trade shall be prohibited in all their forms.</p>
+            <div class="w-full max-w-md md:max-w-lg border-y border-[#333] md:border md:border-white/10 bg-black/40 backdrop-blur-md p-6 text-left relative shadow-2xl mb-8">
+                
+                <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/50 hidden md:block"></div>
+                <div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/50 hidden md:block"></div>
+                <div class="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/50 hidden md:block"></div>
+                <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/50 hidden md:block"></div>
 
-        <h3>Article 5</h3>
-        <p>No one shall be subjected to torture or to cruel, inhuman or degrading treatment or punishment.</p>
-        
-        <h3>Article 6 - Article 25</h3>
-        <p><em>[...Full text of Articles 6 through 25 would reside here...]</em></p>
+                <div class="space-y-4 font-mono text-xs md:text-sm">
+                    <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2 gap-2">
+                        <span class="text-gray-500">SUBJECT:</span>
+                        <span class="text-white tracking-widest uppercase truncate">Intellectual Property</span>
+                    </div>
 
-        <h3>Article 26</h3>
-        <ul>
-            <li>Everyone has the right to education. Education shall be free, at least in the elementary and fundamental stages...</li>
-            <li>Education shall be directed to the full development of the human personality...</li>
-            <li>Parents have a prior right to choose the kind of education that shall be given to their children.</li>
-        </ul>
+                    <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2 gap-2">
+                        <span class="text-gray-500">STATUS:</span>
+                        <span class="text-white uppercase truncate">Critical / Palliative</span>
+                    </div>
 
-        <div id="target-article" class="article-27-highlight">
-            <h3>Article 27 (Intellectual Property & Culture)</h3>
-            <ul>
-                <li>Everyone has the right freely to participate in the cultural life of the community, to enjoy the arts and to share in scientific advancement and its benefits.</li>
-                <li><strong>Everyone has the right to the protection of the moral and material interests resulting from any scientific, literary or artistic production of which he is the author.</strong></li>
-            </ul>
-        </div>
+                    <div class="grid grid-cols-[85px_1fr] items-baseline border-b border-[#333] pb-2 gap-2">
+                        <span class="text-gray-500">PATHOLOGY:</span>
+                        <span class="text-white uppercase glitch-text truncate">Hyper-Reproduction</span>
+                    </div>
 
-        <h3>Article 28</h3>
-        <p>Everyone is entitled to a social and international order in which the rights and freedoms set forth in this Declaration can be fully realized.</p>
+                    <div class="grid grid-cols-[85px_1fr] items-baseline gap-2">
+                        <span class="text-gray-500">DATE:</span>
+                        <span class="text-[var(--coca-red)] font-bold truncate">DECEMBER 10, 2028</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-[#333] flex justify-between items-end">
+                    <div class="w-3 h-3 border border-[var(--coca-red)] rounded-full animate-pulse-slow"></div>
+                    <p class="text-[9px] text-gray-600 uppercase tracking-widest text-right">Authorized by The Church of Conceptual Art</p>
+                </div>
+            </div>
 
-        <h3>Article 29</h3>
-        <ul>
-            <li>Everyone has duties to the community in which alone the free and full development of his personality is possible.</li>
-            <li>In the exercise of his rights and freedoms, everyone shall be subject only to such limitations as are determined by law...</li>
-            <li>These rights and freedoms may in no case be exercised contrary to the purposes and principles of the United Nations.</li>
-        </ul>
+            <div class="w-full max-w-md md:max-w-lg text-left pl-4 border-l-2 border-[var(--coca-red)]/30">
+                <p class="text-[10px] text-[var(--coca-red)] mb-2 font-bold uppercase tracking-wider">Coroner's Addendum</p>
+                <p class="text-xs md:text-sm text-gray-400 leading-relaxed font-mono">
+                    Dec 10, 2028 marks the 80th anniversary of the 
+                    <span onclick="toggleDeclaration()" class="text-gray-200 cursor-pointer underline decoration-1 decoration-[var(--coca-red)] hover:text-[var(--coca-red)] transition-colors">Universal Declaration of Human Rights</span>, 
+                    which first codified copyright. 
+                    Today, Intellectual Property succumbs to the hyper-efficiency of Generative AI. 
+                    <span class="italic text-gray-500">It is a double-edged fatality:</span> we gain the total liberation of culture through instant replication, but pay for it with the death of authorship.
+                </p>
 
-        <h3>Article 30</h3>
-        <p>Nothing in this Declaration may be interpreted as implying for any State, group or person any right to engage in any activity or to perform any act aimed at the destruction of any of the rights and freedoms set forth herein.</p>
+                <div id="udhr-container" class="text-[10px] md:text-xs text-gray-500 font-mono leading-relaxed space-y-4 pr-2">
+                    <p class="text-center font-bold text-white mb-4 border-b border-gray-800 pb-2">UNITED NATIONS // 1948 // ARCHIVE</p>
+                    
+                    <p><strong>PREAMBLE</strong><br>Whereas recognition of the inherent dignity and of the equal and inalienable rights of all members of the human family is the foundation of freedom, justice and peace in the world...</p>
+                    
+                    <p><strong>ARTICLE 1</strong><br>All human beings are born free and equal in dignity and rights.</p>
+                    <p><strong>ARTICLE 3</strong><br>Everyone has the right to life, liberty and security of person.</p>
+                    <p><strong>ARTICLE 12</strong><br>No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence...</p>
+                    <p><strong>ARTICLE 19</strong><br>Everyone has the right to freedom of opinion and expression; this right includes freedom to hold opinions without interference and to seek, receive and impart information and ideas through any media and regardless of frontiers.</p>
+                    
+                    <p class="italic text-gray-700">[...Records Truncated for Brevity...]</p>
+
+                    <div id="target-article" class="article-highlight">
+                        <strong class="text-[var(--coca-red)]">ARTICLE 27</strong>
+                        <ul class="list-disc pl-4 mt-2 space-y-2">
+                            <li>Everyone has the right freely to participate in the cultural life of the community, to enjoy the arts and to share in scientific advancement and its benefits.</li>
+                            <li><strong>Everyone has the right to the protection of the moral and material interests resulting from any scientific, literary or artistic production of which he is the author.</strong></li>
+                        </ul>
+                    </div>
+
+                    <p><strong>ARTICLE 29</strong><br>Everyone has duties to the community in which alone the free and full development of his personality is possible.</p>
+                    
+                    <div class="text-center text-[var(--coca-red)] pt-4">/// END OF ARCHIVE ///</div>
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="flex flex-col md:flex-row justify-between items-end md:items-end border-t border-[#333] pt-4 md:border-t-0 md:pt-0 gap-4 shrink-0">
+            <div class="text-[10px] text-gray-600 max-w-[250px] leading-relaxed text-left">
+                Please refrain from sending flowers.<br>Send data instead.
+            </div>
+            <div class="text-right w-full md:w-auto">
+                <p class="text-[10px] text-gray-600 mb-1 uppercase tracking-wider">Time Remaining</p>
+                <p id="countdown" class="font-mono text-lg md:text-xl text-gray-400 tabular-nums">CALCULATING...</p>
+            </div>
+        </footer>
+
     </div>
 
-<script>
-    function toggleDeclaration() {
-        const container = document.getElementById('udhr-container');
-        const target = document.getElementById('target-article');
-
-        // Toggle visibility
-        if (container.style.display === 'block') {
-            container.style.display = 'none';
-            container.classList.remove('visible');
-        } else {
-            container.style.display = 'block';
-            container.classList.add('visible');
+    <script>
+        // --- TOGGLE UDHR FUNCTION ---
+        function toggleDeclaration() {
+            const container = document.getElementById('udhr-container');
+            const target = document.getElementById('target-article');
             
-            // Wait slightly for the display change to render, then scroll
-            setTimeout(() => {
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
+            if (container.classList.contains('visible')) {
+                container.classList.remove('visible');
+            } else {
+                container.classList.add('visible');
+                // Allow CSS transition to start before scrolling
+                setTimeout(() => {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
         }
-    }
-</script>
 
+        // --- COUNTDOWN ---
+        const targetDate = new Date("Dec 10, 2028 00:00:00").getTime();
+        
+        setInterval(() => {
+            const now = new Date().getTime();
+            const diff = targetDate - now;
+            
+            if (diff < 0) {
+                document.getElementById("countdown").innerText = "0000d 00h 00m";
+                return;
+            }
+
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            document.getElementById("countdown").innerText = `${d}d ${h}h ${m}m`;
+        }, 1000);
+
+        // --- WEBGL BACKGROUND ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        
+        function resize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight; 
+            renderer.setSize(width, height);
+            if(uniforms) uniforms.u_resolution.value.set(width, height);
+        }
+        
+        container.appendChild(renderer.domElement);
+
+        const uniforms = {
+            u_time: { value: 0 },
+            u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+        };
+
+        const material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            fragmentShader: `
+                uniform float u_time;
+                uniform vec2 u_resolution;
+
+                void main() {
+                    vec2 st = gl_FragCoord.xy / u_resolution.xy;
+                    st.x *= u_resolution.x / u_resolution.y;
+
+                    float scale = 25.0; 
+                    float pattern1 = sin(st.x * scale + u_time * 0.15) + cos(st.y * scale);
+                    
+                    float angle = 0.15;
+                    vec2 rotSt = vec2(st.x * cos(angle) - st.y * sin(angle), st.x * sin(angle) + st.y * cos(angle));
+                    float pattern2 = sin(rotSt.x * (scale + 2.0) - u_time * 0.1) + cos(rotSt.y * (scale + 2.0));
+
+                    float interference = pattern1 * pattern2;
+                    float intensity = smoothstep(0.2, 0.8, interference);
+                    vec3 color = vec3(intensity * 0.12);
+
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `,
+            vertexShader: `
+                void main() {
+                    gl_Position = vec4(position, 1.0);
+                }
+            `
+        });
+
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+        scene.add(plane);
+
+        window.addEventListener('resize', resize);
+        resize(); 
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            uniforms.u_time.value = time * 0.001;
+            renderer.render(scene, camera);
+        }
+        animate(0);
+    </script>
 </body>
 </html>
