@@ -538,13 +538,13 @@
             titheClicks++;
 
             // STATE 3: The Redirect (Click 6+)
-            if (titheClicks > 5) {
+            if (titheClicks > 2) {
                 window.location.href = "https://www.nameofmy.com";
                 return;
             }
 
             // STATE 2: The Warning (Click 5)
-            if (titheClicks === 5) {
+            if (titheClicks === 1) {
                 titheBtn.classList.remove('wait'); 
                 titheBtn.classList.add('locked');
                 titheBtn.innerText = "ARE YOU SURE???";
