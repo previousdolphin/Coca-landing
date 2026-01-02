@@ -16,8 +16,7 @@
             margin: 0; 
             overflow: hidden; 
             background-color: #000; 
-            /* Changed to Neon Red */
-            color: #ff0033; 
+            color: #ff0033; /* Neon Red */
             font-family: 'Courier New', Courier, monospace;
             -webkit-tap-highlight-color: transparent;
             touch-action: none;
@@ -33,13 +32,10 @@
         #content-modal { touch-action: pan-y; }
 
         ::-webkit-scrollbar { width: 4px; }
-        /* Dark red track */
         ::-webkit-scrollbar-track { background: #1a0000; } 
-        /* Neon red thumb */
         ::-webkit-scrollbar-thumb { background: #ff0033; border-radius: 2px; }
 
         .glitch-text { position: relative; animation: glitch 3s infinite; }
-        /* Adjusted glitch shadows to red */
         @keyframes glitch {
             0% { text-shadow: 2px 2px 0px #330000; }
             90% { text-shadow: 2px 2px 0px #330000; transform: translate(0); }
@@ -159,11 +155,8 @@
             void main() {
                 vUv = uv;
                 vec3 spherePos = position;
-                // Transition to flat card
                 vec3 flatPos = vec3((vUv.x - 0.5) * uWidth, (vUv.y - 0.5) * uHeight, 0.0);
-                
                 vec3 finalPos = mix(spherePos, flatPos, uFlatten);
-                
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
             }
         `;
@@ -176,15 +169,29 @@
             uniform float uActive;
             uniform float uPulse; 
             uniform sampler2D uLabel;
-            uniform sampler2D uLogo; // THE NEW SVG LOGO
+            uniform sampler2D uLogo; 
             
             varying vec2 vUv;
 
             void main() {
                 vec4 labelColor = texture2D(uLabel, vUv);
-                vec4 logoTex = texture2D(uLogo, vUv);
                 
-                // Border logic
+                // --- LOGO LOGIC (BOLD) ---
+                // Force center slightly to prevent edge clipping if SVG has padding
+                vec2 centeredUV = (vUv - 0.5) * 0.9 + 0.5; 
+                vec4 logoTex = texture2D(uLogo, centeredUV);
+                
+                // Use Alpha or Red channel (inverted) depending on SVG type.
+                // Assuming transparent background SVG:
+                float logoShape = logoTex.a; 
+                
+                // Make logo BOLD: Threshold it so weak pixels become solid
+                logoShape = smoothstep(0.05, 0.2, logoShape);
+
+                // Base Colors
+                vec3 color = uColor;
+                
+                // Border
                 float border = 0.0;
                 float bw = 0.015; 
                 if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
@@ -196,58 +203,57 @@
                 // Scanlines
                 float scanline = sin(vUv.y * 200.0 + uTime * 2.0) * 0.05; 
 
-                // LOGO LOGIC (Colorize Black to Red)
-                // We assume the SVG is black text on transparent background.
-                // We use the Alpha channel to detect the shape.
-                float logoShape = logoTex.a; 
-                
-                // Base Color
-                vec3 color = uColor;
-                
+                // COMPOSITION
                 float textStrength = labelColor.a;
-                
-                // SIMULATION VISUALS
+
+                // Effects
                 float pulseGlow = uPulse * 0.8; 
                 float highlight = uHover + uActive;
                 
-                // Calculate brightness
+                // Brightness Calculation
                 float brightness = border * (0.5 + pulseGlow + highlight);
-                brightness += grid * 0.4; 
-                brightness += scanline;
                 
-                // Add Logo Brightness (Underneath text)
-                brightness += logoShape * 0.35; // Subtle logo glow
+                // Grid & Scanlines (Background layer)
+                // We mute these where the logo exists so the logo pops "on top"
+                float background = (grid * 0.4) + scanline;
+                brightness += background * (1.0 - logoShape); 
                 
-                // Text Glow (On top)
-                brightness += textStrength * (0.8 + pulseGlow + highlight);
+                // Logo Brightness (Foreground layer - BOLD)
+                // 1.5 multiplier makes it brighter than standard neon
+                brightness += logoShape * 1.5; 
+                
+                // Text (Top layer)
+                brightness += textStrength * (1.0 + pulseGlow + highlight);
 
-                // Fill Opacity
+                // Opacity Calculation
                 float fill = 0.05 + (uHover * 0.1) + (uActive * 0.9) + (uPulse * 0.35);
                 
-                // Combine Alpha
-                // We want the logo to contribute to opacity so it's visible even without fill
-                float alpha = (border + fill + (grid * 0.1) + textStrength + (logoShape * 0.4)) * uOpacity;
+                // Make logo contribute heavily to opacity (so it's solid)
+                float totalAlpha = (border + fill + (grid * 0.1) + textStrength + logoShape) * uOpacity;
+                
+                // Clamp alpha to max 1.0
+                totalAlpha = min(totalAlpha, 1.0);
 
-                // COLOR MIXING
-                // If pulsing fresh, tint white
+                // Final Color Mixing
+                vec3 finalColor = color * brightness;
+
+                // If pulsing fresh, flash white
                 if (uPulse > 0.8 && uActive < 0.1) {
-                    color = mix(color, vec3(1.0, 1.0, 1.0), (uPulse - 0.8) * 5.0);
+                    finalColor = mix(finalColor, vec3(1.0, 1.0, 1.0), (uPulse - 0.8) * 5.0);
                 }
-
+                
+                // White Text
                 if (uActive > 0.5) {
-                    color = mix(color, vec3(1.0), textStrength);
+                    finalColor = mix(finalColor, vec3(1.0), textStrength);
                 }
 
-                gl_FragColor = vec4(color * brightness, alpha);
+                gl_FragColor = vec4(finalColor, totalAlpha);
             }
         `;
 
         // --- Config ---
         const SPHERE_RADIUS = 14;
-        
-        // --- CHANGED TO NEON RED ---
-        const NEON_RED = new THREE.Color('#ff0033'); 
-        
+        const NEON_RED = new THREE.Color('#ff0033'); // NEON RED
         const DATA_ROWS = 12; 
         const DATA_COLS = 16;
         
@@ -281,7 +287,6 @@
 
         lucide.createIcons();
 
-        // --- Helper: Create Number Texture ---
         function createLabelTexture(number) {
             const size = 512;
             const canvas = document.createElement('canvas');
@@ -295,42 +300,42 @@
             ctx.font = 'bold 140px "Courier New", monospace';
             const text = number.toString().padStart(3, '0');
             ctx.fillText(text, size/2, size/2);
-            // Box around number
             ctx.lineWidth = 8;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.strokeRect(size * 0.15, size * 0.3, size * 0.7, size * 0.4);
             return new THREE.CanvasTexture(canvas);
         }
 
-        // --- Helper: Create Placeholder Logo (Fallback) ---
         function createPlaceholderLogo() {
             const size = 512;
             const canvas = document.createElement('canvas');
             canvas.width = size;
             canvas.height = size;
             const ctx = canvas.getContext('2d');
-            // Transparent background
             ctx.clearRect(0,0,size,size);
             
-            // Draw a "CoCA" symbol style shape in Black (for testing shader colorization)
-            ctx.fillStyle = '#000000'; // Pure black shape
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 20;
-
-            // Outer Circle
+            // Draw a BOLD "CoCA" symbol logic
+            ctx.fillStyle = '#000000'; // Shape must be black/opaque for Alpha logic
+            
+            // Large Circle filling the space
             ctx.beginPath();
             ctx.arc(size/2, size/2, size*0.45, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.fill(); // Fill it solid so it's bold
 
-            // Inner C
+            // Cut out letter C (simple trick: composite mode)
+            ctx.globalCompositeOperation = 'destination-out';
             ctx.font = 'bold 300px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText("C", size/2, size/2);
+            
+            // Reset
+            ctx.globalCompositeOperation = 'source-over';
 
             return new THREE.CanvasTexture(canvas);
         }
 
+        // CRITICAL: Normalize UVs to 0-1 for each specific face
         function normalizeUVs(geometry) {
             const uvAttribute = geometry.attributes.uv;
             let minU = Infinity, maxU = -Infinity;
@@ -357,9 +362,7 @@
         function init() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            
-            // Dark Red background tint instead of dark green
-            scene.background = new THREE.Color(0x050000);
+            scene.background = new THREE.Color(0x050000); // Dark Red-Black
             scene.fog = new THREE.FogExp2(0x050000, 0.015);
 
             camera = new THREE.PerspectiveCamera(state.zoomFOV, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -373,37 +376,32 @@
 
             // --- LOAD THE USER LOGO ---
             const textureLoader = new THREE.TextureLoader();
-            // Start with fallback so it works immediately
             globalLogoTexture = createPlaceholderLogo(); 
 
-            // Attempt to load the real file
             textureLoader.load(
                 'CoCA-Vector-redrawn-photoshop.svg', 
                 (tex) => {
-                    // Success! Swap the texture in all meshes
-                    console.log("SVG Loaded successfully");
+                    console.log("SVG Loaded.");
+                    // Ensure crisp edges
+                    tex.minFilter = THREE.LinearFilter; 
+                    tex.magFilter = THREE.LinearFilter;
                     meshFlatList.forEach(mesh => {
                         mesh.material.uniforms.uLogo.value = tex;
                     });
                 },
-                undefined, // Progress
-                (err) => {
-                    console.warn("Could not load 'CoCA-Vector-redrawn-photoshop.svg'. Using fallback placeholder.");
-                }
+                undefined,
+                (err) => { console.warn("Using placeholder logo."); }
             );
 
             const phiStep = Math.PI / DATA_ROWS;
             const thetaStep = (Math.PI * 2) / DATA_COLS;
-            
             let idCounter = 1;
 
-            // Init Arrays
             meshes = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS));
             simGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
 
             for(let r=0; r<DATA_ROWS; r++) {
                 for(let c=0; c<DATA_COLS; c++) {
-                    
                     const isContent = (r >= 3 && r <= 8); 
                     
                     const phiStart = c * thetaStep; 
@@ -417,7 +415,7 @@
                         phiStart, phiLen, 
                         thetaStart, thetaLen
                     );
-                    normalizeUVs(geo); // Wraps texture 0-1 over this specific segment
+                    normalizeUVs(geo); // This ensures the texture wraps 0-1 across the face
 
                     const labelTex = createLabelTexture(idCounter);
 
@@ -431,7 +429,7 @@
                         fragmentShader: fragmentShader,
                         uniforms: {
                             uTime: { value: 0 },
-                            uColor: { value: NEON_RED }, // PASS RED HERE
+                            uColor: { value: NEON_RED },
                             uOpacity: { value: isContent ? 0.9 : 0.3 },
                             uHover: { value: 0 },
                             uActive: { value: 0 },
@@ -440,7 +438,7 @@
                             uWidth: { value: Math.max(flatWidth, 1.0) },
                             uHeight: { value: flatHeight },
                             uLabel: { value: labelTex },
-                            uLogo: { value: globalLogoTexture } // Pass SVG here
+                            uLogo: { value: globalLogoTexture }
                         },
                         side: THREE.DoubleSide, 
                         transparent: true,
@@ -471,15 +469,11 @@
                     scene.add(mesh);
                     meshes[r][c] = mesh;
                     meshFlatList.push(mesh);
-                    
-                    // Initial Noise
                     simGrid[r][c] = Math.random() > 0.9 ? 1.0 : 0.0;
-                    
                     idCounter++;
                 }
             }
 
-            // Standard Event Listeners
             window.addEventListener('resize', onWindowResize, false);
             window.addEventListener('mousemove', onMouseMove, false);
             window.addEventListener('mousedown', onMouseDown, false);
@@ -496,17 +490,14 @@
             animate();
         }
 
-        // --- BOLD AUTOMATA SIMULATION ---
+        // --- SIMULATION ---
         function updateSimulation() {
             const nextGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
-            
-            // Randomly pick a "seed" spot to explode occasionally
             if (Math.random() < 0.03) {
                 const rr = Math.floor(Math.random() * DATA_ROWS);
                 const cc = Math.floor(Math.random() * DATA_COLS);
                 simGrid[rr][cc] = 1.0;
             }
-
             for(let r=0; r<DATA_ROWS; r++) {
                 for(let c=0; c<DATA_COLS; c++) {
                     let val = simGrid[r][c];
@@ -515,31 +506,19 @@
                     const cRight = (c + 1) % DATA_COLS;
                     const rUp = Math.max(0, r - 1);
                     const rDown = Math.min(DATA_ROWS - 1, r + 1);
-                    
-                    const neighbors = [
-                        simGrid[r][cLeft], simGrid[r][cRight], 
-                        simGrid[rUp][c], simGrid[rDown][c],
-                        simGrid[rUp][cLeft], simGrid[rDown][cRight]
-                    ];
-                    
+                    const neighbors = [ simGrid[r][cLeft], simGrid[r][cRight], simGrid[rUp][c], simGrid[rDown][c], simGrid[rUp][cLeft], simGrid[rDown][cRight] ];
                     let activeNeighbors = 0;
                     neighbors.forEach(n => { if(n > 0.5) activeNeighbors++; });
 
-                    if (val < 0.2) {
-                         if (activeNeighbors >= 2 && activeNeighbors <= 4) {
-                             if(Math.random() < 0.6) val = 1.0; 
-                         }
-                    }
-                    if (Math.random() < 0.002) {
-                        val = 1.0;
-                    }
+                    if (val < 0.2 && activeNeighbors >= 2 && activeNeighbors <= 4 && Math.random() < 0.6) val = 1.0; 
+                    if (Math.random() < 0.002) val = 1.0;
                     nextGrid[r][c] = Math.max(0.0, Math.min(val, 1.0));
                 }
             }
             simGrid = nextGrid;
         }
 
-        // --- Interaction Handlers ---
+        // --- Interaction ---
         function handleFirstInteraction() {
             if (!state.hasInteracted) {
                 state.hasInteracted = true;
@@ -558,23 +537,10 @@
         function onMouseUp() { state.isDragging = false; }
         function onClick() { if(state.activeId === null) checkIntersection(); }
         function checkIntersection() { raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(meshFlatList); if(intersects.length > 0) activateNode(intersects[0].object.userData); }
-        
-        function activateNode(data) {
-            state.activeId = data.id;
-            modalTitle.innerText = data.title;
-            modalId.innerText = data.id.toString().padStart(3, '0');
-            contentModal.classList.remove('hidden');
-            setTimeout(() => contentModal.classList.remove('opacity-0'), 50);
-        }
-        
-        document.getElementById('close-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            contentModal.classList.add('opacity-0');
-            setTimeout(() => { contentModal.classList.add('hidden'); state.activeId = null; mouse.x = -100; mouse.y = -100; }, 300);
-        });
+        function activateNode(data) { state.activeId = data.id; modalTitle.innerText = data.title; modalId.innerText = data.id.toString().padStart(3, '0'); contentModal.classList.remove('hidden'); setTimeout(() => contentModal.classList.remove('opacity-0'), 50); }
+        document.getElementById('close-btn').addEventListener('click', (e) => { e.stopPropagation(); contentModal.classList.add('opacity-0'); setTimeout(() => { contentModal.classList.add('hidden'); state.activeId = null; mouse.x = -100; mouse.y = -100; }, 300); });
         function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
 
-        // --- Loop ---
         function animate() {
             requestAnimationFrame(animate);
             const time = (Date.now() - state.startTime) * 0.001;
@@ -597,12 +563,8 @@
                 const mat = mesh.material;
                 const data = mesh.userData;
                 mat.uniforms.uTime.value = time;
+                mat.uniforms.uPulse.value = simGrid[data.row][data.col];
 
-                // Sync Simulation Data
-                const simValue = simGrid[data.row][data.col];
-                mat.uniforms.uPulse.value = simValue;
-
-                // Hover
                 let isHovered = false;
                 raycaster.setFromCamera(mouse, camera);
                 const intersects = raycaster.intersectObjects(meshFlatList);
@@ -613,7 +575,6 @@
                 }
                 mat.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mat.uniforms.uHover.value) * 0.15;
 
-                // Animation
                 if(state.activeId !== null) {
                     if(data.id === state.activeId) {
                         const dist = 4.0; const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
