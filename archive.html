@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoCA // ARCHIVE_REPOSITORY</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            color: #00ff41; 
+            font-family: 'Courier New', Courier, monospace;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+        
+        #canvas-container { 
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            touch-action: none; 
+        }
+
+        #content-modal { touch-action: pan-y; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #001100; }
+        ::-webkit-scrollbar-thumb { background: #00ff41; border-radius: 2px; }
+
+        .glitch-text { position: relative; animation: glitch 3s infinite; }
+        @keyframes glitch {
+            0% { text-shadow: 2px 2px 0px #003300; }
+            90% { text-shadow: 2px 2px 0px #003300; transform: translate(0); }
+            92% { text-shadow: -2px 2px 0px #003300; transform: translate(1px, 1px); }
+            94% { text-shadow: 2px -2px 0px #003300; transform: translate(-1px, -1px); }
+            96% { text-shadow: -2px -2px 0px #003300; transform: translate(0); }
+            100% { text-shadow: 2px 2px 0px #003300; }
+        }
+
+        .scanlines {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="absolute inset-0 z-50 pointer-events-none scanlines mix-blend-overlay opacity-40"></div>
+    <div class="absolute inset-0 z-50 pointer-events-none" style="background: radial-gradient(circle, transparent 40%, black 140%);"></div>
+
+    <!-- HUD -->
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none p-4 md:p-6 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+            <div class="border border-[#00ff41] bg-black/90 px-3 py-2 backdrop-blur shadow-[0_0_15px_rgba(0,255,65,0.2)]">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="church" class="w-4 h-4 animate-pulse"></i>
+                    <span class="text-xs md:text-sm font-bold tracking-[0.2em]">CoCA_ARCHIVE_V.1</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="center-prompt" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center transition-all duration-700 w-full px-4">
+            <div class="text-4xl mb-4 opacity-50 animate-bounce"><i data-lucide="fingerprint" class="mx-auto w-12 h-12"></i></div>
+            <div class="text-xs md:text-sm tracking-[0.2em] bg-black/80 px-4 py-2 inline-block border border-[#00ff41] shadow-[0_0_10px_rgba(0,255,65,0.3)]">
+                ACCESS REPOSITORY
+            </div>
+        </div>
+
+        <div class="flex justify-between items-end text-[10px] md:text-xs opacity-60">
+            <div>NETWORK: <span id="hud-pulse">ACTIVE</span></div>
+            <div>PROTOCOL: IP_STORAGE</div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="content-modal" class="absolute inset-0 z-40 hidden flex items-center justify-center bg-black/85 backdrop-blur-md transition-all duration-300 opacity-0 px-4">
+        <button id="close-btn" class="absolute top-4 right-4 z-50 pointer-events-auto p-2 border border-[#00ff41] bg-black text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition-colors shadow-[0_0_15px_rgba(0,255,65,0.3)]">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+
+        <div class="relative w-full max-w-4xl h-[85vh] md:h-[70vh] flex flex-col md:flex-row border border-[#00ff41] bg-black/95 shadow-[0_0_80px_rgba(0,255,65,0.15)] pointer-events-auto overflow-hidden rounded-sm">
+            <div class="h-16 md:h-auto md:w-20 border-b md:border-b-0 md:border-r border-[#00ff41]/50 flex flex-row md:flex-col items-center justify-center md:py-8 gap-8 bg-[#001100] shrink-0">
+                <i data-lucide="scroll" class="w-5 h-5 opacity-80"></i>
+                <div class="w-px h-8 md:h-px md:w-8 bg-[#00ff41]/50"></div>
+                <div class="text-[10px] md:rotate-180 tracking-widest opacity-80 font-bold" style="writing-mode: horizontal-tb; md:writing-mode: vertical-rl;">CONCEPT_DATA</div>
+            </div>
+
+            <div id="modal-content-area" class="flex-1 p-6 md:p-12 overflow-y-auto relative overscroll-contain">
+                <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                    <i data-lucide="book-open" class="w-32 h-32"></i>
+                </div>
+
+                <div class="border-b border-[#00ff41] pb-4 mb-6">
+                    <h2 id="modal-title" class="text-2xl md:text-4xl font-black tracking-tighter glitch-text mb-2 break-all text-white">REPO_000</h2>
+                    <div class="flex gap-4 text-[10px] font-bold tracking-widest opacity-80">
+                        <span class="bg-[#00ff41] text-black px-2 py-0.5">UNLOCKED</span>
+                        <span class="border border-[#00ff41] px-2 py-0.5">ID: <span id="modal-id">000</span></span>
+                    </div>
+                </div>
+
+                <div class="prose prose-invert max-w-none text-[#ccffcc] text-sm md:text-base leading-relaxed font-mono">
+                    <p class="text-lg mb-6 border-l-4 border-[#00ff41] pl-4">
+                        <span class="text-white font-bold">>>> CHURCH OF CONCEPTUAL ART.</span><br>
+                        Welcome to the Repository.
+                    </p>
+                    
+                    <p>
+                        This sector serves as a permanent housing facility for abstract thought and intellectual property. CoCA invites you to deposit your concepts here, ensuring their preservation within the digital ether.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-8">
+                        <div class="border border-[#00ff41]/50 p-4 bg-[#00ff41]/10">
+                            <h3 class="font-bold text-[#00ff41] mb-2 text-xs flex items-center gap-2">
+                                <i data-lucide="save" class="w-4 h-4"></i> STORAGE
+                            </h3>
+                            <p class="text-xs opacity-80">Immutable archiving of non-fungible ideas.</p>
+                        </div>
+                        <div class="border border-[#00ff41]/50 p-4 bg-[#00ff41]/10">
+                            <h3 class="font-bold text-[#00ff41] mb-2 text-xs flex items-center gap-2">
+                                <i data-lucide="share-2" class="w-4 h-4"></i> DISTRIBUTION
+                            </h3>
+                            <p class="text-xs opacity-80">Concepts propagate through the grid via neural simulation.</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs opacity-50 mt-8">
+                        // WARNING: Unauthorized duplication of housed concepts is a violation of the CoCA metaphysical accord.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Shaders ---
+        
+        const vertexShader = `
+            varying vec2 vUv;
+            
+            uniform float uFlatten; 
+            uniform float uWidth;
+            uniform float uHeight;
+
+            void main() {
+                vUv = uv;
+                vec3 spherePos = position;
+                vec3 flatPos = vec3((vUv.x - 0.5) * uWidth, (vUv.y - 0.5) * uHeight, 0.0);
+                vec3 finalPos = mix(spherePos, flatPos, uFlatten);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            uniform float uTime;
+            uniform vec3 uColor;
+            uniform float uOpacity;
+            uniform float uHover;
+            uniform float uActive;
+            uniform float uPulse; // Game of Life value (0.0 to 1.0)
+            uniform sampler2D uLabel;
+            
+            varying vec2 vUv;
+
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+            }
+
+            void main() {
+                vec4 labelColor = texture2D(uLabel, vUv);
+                
+                // Border
+                float border = 0.0;
+                float bw = 0.015; 
+                if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
+
+                // Inner Grid
+                float grid = 0.0;
+                if (mod(vUv.x * 10.0, 1.0) < 0.03 || mod(vUv.y * 10.0, 1.0) < 0.03) grid = 0.2; 
+                
+                // Scanlines
+                float scanline = sin(vUv.y * 200.0 + uTime * 2.0) * 0.05; 
+
+                vec3 color = uColor;
+                float textStrength = labelColor.a;
+                
+                // VISUAL LOGIC:
+                // 1. If Active (Clicked): Full brightness, ignore pulse.
+                // 2. If Hovered: Bright, ignore pulse.
+                // 3. Idle: Use Pulse for organic glow.
+                
+                float baseGlow = uPulse * 0.6; // Pulse contributes to base brightness
+                
+                // Highlight calculation
+                float highlight = uHover + uActive;
+                
+                float brightness = border * (0.5 + baseGlow + highlight);
+                brightness += grid * 0.4; 
+                brightness += scanline;
+                
+                // Text Glow: heavily influenced by Pulse when idle
+                brightness += textStrength * (0.8 + baseGlow + highlight * 0.5);
+
+                float fill = 0.05 + (uHover * 0.1) + (uActive * 0.9) + (uPulse * 0.2);
+                
+                float alpha = (border + fill + (grid * 0.1) + textStrength) * uOpacity;
+
+                // Color shift based on pulse state
+                if (uPulse > 0.8 && uActive < 0.1) {
+                    color = mix(color, vec3(0.8, 1.0, 0.8), 0.5); // Flash slightly white on peak pulse
+                }
+
+                if (uActive > 0.5) {
+                    color = mix(color, vec3(1.0), textStrength);
+                }
+
+                gl_FragColor = vec4(color * brightness, alpha);
+            }
+        `;
+
+        // --- Config ---
+        const SPHERE_RADIUS = 14;
+        const NEON_GREEN = new THREE.Color('#00ff41');
+        const DATA_ROWS = 12; 
+        const DATA_COLS = 16;
+        
+        let scene, camera, renderer, raycaster, mouse;
+        let meshes = []; // 2D array [row][col] for neighbor logic logic
+        let meshFlatList = []; // Flat list for raycasting and animation loop
+        
+        // Simulation State
+        // We track a "Life" value for every cell.
+        let simGrid = []; 
+
+        const state = {
+            activeId: null,
+            startTime: Date.now(),
+            cameraLat: 0,
+            cameraLon: 90,
+            zoomFOV: 70, 
+            isDragging: false,
+            touchStartX: 0,
+            touchStartY: 0,
+            lastTouchX: 0,
+            lastTouchY: 0,
+            hasInteracted: false,
+            pinchStartDist: 0,
+            pinchStartFOV: 70
+        };
+
+        const uiZoom = document.getElementById('hud-zoom');
+        const uiPulse = document.getElementById('hud-pulse');
+        const contentModal = document.getElementById('content-modal');
+        const centerPrompt = document.getElementById('center-prompt');
+        const modalTitle = document.getElementById('modal-title');
+        const modalId = document.getElementById('modal-id');
+
+        lucide.createIcons();
+
+        function createLabelTexture(number) {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,size,size);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 140px "Courier New", monospace';
+            const text = number.toString().padStart(3, '0');
+            ctx.fillText(text, size/2, size/2);
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeRect(size * 0.15, size * 0.3, size * 0.7, size * 0.4);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function normalizeUVs(geometry) {
+            const uvAttribute = geometry.attributes.uv;
+            let minU = Infinity, maxU = -Infinity;
+            let minV = Infinity, maxV = -Infinity;
+            for (let i = 0; i < uvAttribute.count; i++) {
+                const u = uvAttribute.getX(i);
+                const v = uvAttribute.getY(i);
+                if (u < minU) minU = u;
+                if (u > maxU) maxU = u;
+                if (v < minV) minV = v;
+                if (v > maxV) maxV = v;
+            }
+            const rangeU = maxU - minU;
+            const rangeV = maxV - minV;
+            if (rangeU < 0.0001 || rangeV < 0.0001) return; 
+            for (let i = 0; i < uvAttribute.count; i++) {
+                const u = uvAttribute.getX(i);
+                const v = uvAttribute.getY(i);
+                uvAttribute.setXY(i, (u - minU) / rangeU, (v - minV) / rangeV);
+            }
+            uvAttribute.needsUpdate = true;
+        }
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000500);
+            scene.fog = new THREE.FogExp2(0x000500, 0.015);
+
+            camera = new THREE.PerspectiveCamera(state.zoomFOV, window.innerWidth / window.innerHeight, 0.1, 100);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2(-100, -100);
+
+            const phiStep = Math.PI / DATA_ROWS;
+            const thetaStep = (Math.PI * 2) / DATA_COLS;
+            
+            let idCounter = 1;
+
+            // Init Arrays
+            meshes = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS));
+            simGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
+
+            for(let r=0; r<DATA_ROWS; r++) {
+                for(let c=0; c<DATA_COLS; c++) {
+                    
+                    const isContent = (r >= 3 && r <= 8); // Expanded content area
+                    
+                    const phiStart = c * thetaStep; 
+                    const phiLen = thetaStep;
+                    const thetaStart = r * phiStep;
+                    const thetaLen = phiStep;
+
+                    const geo = new THREE.SphereGeometry(
+                        SPHERE_RADIUS, 
+                        16, 16, 
+                        phiStart, phiLen, 
+                        thetaStart, thetaLen
+                    );
+                    normalizeUVs(geo);
+
+                    const labelTex = createLabelTexture(idCounter);
+
+                    // Calc flat dimensions
+                    const avgTheta = thetaStart + thetaLen/2; 
+                    const radiusAtLat = SPHERE_RADIUS * Math.sin(avgTheta);
+                    const flatWidth = radiusAtLat * phiLen;
+                    const flatHeight = SPHERE_RADIUS * thetaLen;
+
+                    const material = new THREE.ShaderMaterial({
+                        vertexShader: vertexShader,
+                        fragmentShader: fragmentShader,
+                        uniforms: {
+                            uTime: { value: 0 },
+                            uColor: { value: NEON_GREEN },
+                            uOpacity: { value: isContent ? 0.9 : 0.3 },
+                            uHover: { value: 0 },
+                            uActive: { value: 0 },
+                            uPulse: { value: 0 }, // Driven by JS simulation
+                            uFlatten: { value: 0 },
+                            uWidth: { value: Math.max(flatWidth, 1.0) },
+                            uHeight: { value: flatHeight },
+                            uLabel: { value: labelTex }
+                        },
+                        side: THREE.DoubleSide, 
+                        transparent: true,
+                        depthWrite: false, 
+                        blending: THREE.AdditiveBlending
+                    });
+
+                    const mesh = new THREE.Mesh(geo, material);
+                    
+                    const centerPhi = phiStart + phiLen/2; 
+                    const centerTheta = thetaStart + thetaLen/2;
+                    const x = -SPHERE_RADIUS * Math.sin(centerTheta) * Math.cos(centerPhi);
+                    const y = SPHERE_RADIUS * Math.cos(centerTheta);
+                    const z = SPHERE_RADIUS * Math.sin(centerTheta) * Math.sin(centerPhi);
+                    const centerPos = new THREE.Vector3(x, y, z);
+                    
+                    const nodeTitle = `ARCHIVE_REPO_${idCounter.toString().padStart(3,'0')}`;
+
+                    mesh.userData = { 
+                        id: idCounter, 
+                        row: r,
+                        col: c,
+                        isContent: isContent,
+                        title: nodeTitle,
+                        centerPos: centerPos
+                    };
+
+                    scene.add(mesh);
+                    meshes[r][c] = mesh;
+                    meshFlatList.push(mesh);
+                    
+                    // Init Sim: Randomly ignite some nodes
+                    simGrid[r][c] = Math.random() > 0.85 ? 1.0 : 0.0;
+                    
+                    idCounter++;
+                }
+            }
+
+            // Standard Event Listeners
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('mousedown', onMouseDown, false);
+            window.addEventListener('mouseup', onMouseUp, false);
+            window.addEventListener('click', onClick, false);
+            window.addEventListener('wheel', onWheel, { passive: false });
+            window.addEventListener('touchstart', onTouchStart, { passive: false });
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onTouchEnd, { passive: false });
+            
+            const modalContent = document.getElementById('modal-content-area');
+            if(modalContent) modalContent.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
+
+            animate();
+        }
+
+        // --- Simulation Logic (Analog Game of Life) ---
+        function updateSimulation() {
+            // Create next buffer
+            const nextGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
+            
+            for(let r=0; r<DATA_ROWS; r++) {
+                for(let c=0; c<DATA_COLS; c++) {
+                    let val = simGrid[r][c];
+                    
+                    // 1. Natural Decay
+                    val *= 0.96; // Fade out slowly
+                    
+                    // 2. Neighbor Influence
+                    // Wrap columns, clamp rows
+                    const cLeft = (c - 1 + DATA_COLS) % DATA_COLS;
+                    const cRight = (c + 1) % DATA_COLS;
+                    const rUp = Math.max(0, r - 1);
+                    const rDown = Math.min(DATA_ROWS - 1, r + 1);
+                    
+                    const nSum = simGrid[r][cLeft] + simGrid[r][cRight] + simGrid[rUp][c] + simGrid[rDown][c];
+                    
+                    // 3. Regrowth Rules
+                    // If neighbor energy is high enough, chance to ignite
+                    if (val < 0.1 && nSum > 1.5) {
+                        if (Math.random() < 0.02) val = 1.0; // Spark from neighbors
+                    }
+                    
+                    // 4. Spontaneous Generation (The "Regrowing" part)
+                    if (Math.random() < 0.0005) {
+                        val = 1.0;
+                    }
+
+                    nextGrid[r][c] = Math.min(val, 1.0);
+                }
+            }
+            simGrid = nextGrid;
+        }
+
+        // --- Standard Interaction Handlers ---
+        function handleFirstInteraction() {
+            if (!state.hasInteracted) {
+                state.hasInteracted = true;
+                if(centerPrompt) {
+                    centerPrompt.style.opacity = '0';
+                    setTimeout(() => centerPrompt.style.display = 'none', 700);
+                }
+            }
+        }
+        function onWheel(e) { e.preventDefault(); if(state.activeId !== null) return; state.zoomFOV = Math.max(20, Math.min(120, state.zoomFOV + e.deltaY * 0.05)); camera.fov = state.zoomFOV; camera.updateProjectionMatrix(); uiZoom.innerText = Math.round(state.zoomFOV); }
+        function onTouchStart(e) { handleFirstInteraction(); if (state.activeId !== null) return; if (e.touches.length === 1) { state.isDragging = true; state.touchStartX = state.lastTouchX = e.touches[0].clientX; state.touchStartY = state.lastTouchY = e.touches[0].clientY; } else if (e.touches.length === 2) { state.pinchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); state.pinchStartFOV = state.zoomFOV; state.isDragging = false; } }
+        function onTouchMove(e) { if (state.activeId !== null) return; if (e.touches.length === 1 && state.isDragging) { const x = e.touches[0].clientX; const y = e.touches[0].clientY; state.cameraLon -= (x - state.lastTouchX) * 0.5; state.cameraLat += (y - state.lastTouchY) * 0.5; state.lastTouchX = x; state.lastTouchY = y; } else if (e.touches.length === 2) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); state.zoomFOV = Math.max(20, Math.min(120, state.pinchStartFOV * (state.pinchStartDist / dist))); camera.fov = state.zoomFOV; camera.updateProjectionMatrix(); uiZoom.innerText = Math.round(state.zoomFOV); } }
+        function onTouchEnd(e) { if (state.activeId !== null) return; state.isDragging = false; if(e.changedTouches.length === 1 && e.touches.length === 0 && Math.hypot(e.changedTouches[0].clientX - state.touchStartX, e.changedTouches[0].clientY - state.touchStartY) < 10) { mouse.x = (e.changedTouches[0].clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.changedTouches[0].clientY / window.innerHeight) * 2 + 1; checkIntersection(); } }
+        function onMouseDown(e) { handleFirstInteraction(); if(state.activeId !== null) return; state.isDragging = true; state.lastTouchX = e.clientX; state.lastTouchY = e.clientY; }
+        function onMouseMove(e) { mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; if(state.isDragging && state.activeId === null) { state.cameraLon -= (e.clientX - state.lastTouchX) * 0.1; state.cameraLat += (e.clientY - state.lastTouchY) * 0.1; state.lastTouchX = e.clientX; state.lastTouchY = e.clientY; } }
+        function onMouseUp() { state.isDragging = false; }
+        function onClick() { if(state.activeId === null) checkIntersection(); }
+        function checkIntersection() { raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(meshFlatList); if(intersects.length > 0) activateNode(intersects[0].object.userData); }
+        
+        function activateNode(data) {
+            state.activeId = data.id;
+            modalTitle.innerText = data.title;
+            modalId.innerText = data.id.toString().padStart(3, '0');
+            contentModal.classList.remove('hidden');
+            setTimeout(() => contentModal.classList.remove('opacity-0'), 50);
+        }
+        
+        document.getElementById('close-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            contentModal.classList.add('opacity-0');
+            setTimeout(() => { contentModal.classList.add('hidden'); state.activeId = null; mouse.x = -100; mouse.y = -100; }, 300);
+        });
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+
+        // --- Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = (Date.now() - state.startTime) * 0.001;
+
+            updateSimulation();
+
+            if(state.activeId === null) {
+                state.cameraLat = Math.max(-85, Math.min(85, state.cameraLat));
+                if(!state.isDragging && state.hasInteracted) state.cameraLon += 0.02;
+
+                const phi = THREE.MathUtils.degToRad(90 - state.cameraLat);
+                const theta = THREE.MathUtils.degToRad(state.cameraLon);
+                const targetX = Math.sin(phi) * Math.cos(theta);
+                const targetY = Math.cos(phi);
+                const targetZ = Math.sin(phi) * Math.sin(theta);
+                camera.position.set(0,0,0);
+                camera.lookAt(targetX, targetY, targetZ);
+            }
+
+            meshFlatList.forEach((mesh) => {
+                const mat = mesh.material;
+                const data = mesh.userData;
+                mat.uniforms.uTime.value = time;
+
+                // Sync Simulation Data
+                const simValue = simGrid[data.row][data.col];
+                mat.uniforms.uPulse.value = simValue;
+
+                // Hover
+                let isHovered = false;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(meshFlatList);
+                if(intersects.length > 0 && intersects[0].object === mesh) isHovered = true;
+                if(!state.isDragging && state.activeId === null && !isHovered) {
+                    const c = new THREE.Vector3(); camera.getWorldDirection(c); const dir = data.centerPos.clone().normalize();
+                    if(dir.dot(c) > 0.97) isHovered = true;
+                }
+                mat.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mat.uniforms.uHover.value) * 0.15;
+
+                // Animation
+                if(state.activeId !== null) {
+                    if(data.id === state.activeId) {
+                        const dist = 4.0; const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+                        const targetPos = camera.position.clone().add(dir.multiplyScalar(dist));
+                        mesh.position.lerp(targetPos, 0.1);
+                        mesh.lookAt(camera.position); 
+                        mat.uniforms.uFlatten.value += (1.0 - mat.uniforms.uFlatten.value) * 0.08;
+                        mat.uniforms.uActive.value = 1.0;
+                        mat.uniforms.uOpacity.value = 1.0;
+                    } else {
+                        mesh.position.lerp(new THREE.Vector3(0,0,0), 0.1);
+                        mesh.lookAt(new THREE.Vector3(0,0,0)); mesh.quaternion.slerp(new THREE.Quaternion(), 0.1);
+                        mat.uniforms.uFlatten.value += (0.0 - mat.uniforms.uFlatten.value) * 0.1;
+                        mat.uniforms.uActive.value = 0.0;
+                        mat.uniforms.uOpacity.value += (0.05 - mat.uniforms.uOpacity.value) * 0.1;
+                    }
+                } else {
+                    mesh.position.lerp(new THREE.Vector3(0,0,0), 0.1);
+                    mesh.quaternion.slerp(new THREE.Quaternion(), 0.1);
+                    mat.uniforms.uFlatten.value += (0.0 - mat.uniforms.uFlatten.value) * 0.1;
+                    mat.uniforms.uActive.value = 0.0;
+                    const baseOp = data.isContent ? 0.9 : 0.25;
+                    mat.uniforms.uOpacity.value += (baseOp - mat.uniforms.uOpacity.value) * 0.05;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
+
