@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CoCA // ARCHIVE_LOCKED</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -58,6 +61,7 @@
     <div class="absolute inset-0 z-50 pointer-events-none scanlines mix-blend-overlay opacity-40"></div>
     <div class="absolute inset-0 z-50 pointer-events-none" style="background: radial-gradient(circle, transparent 40%, black 140%);"></div>
 
+    <!-- HUD -->
     <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none p-4 md:p-6 flex flex-col justify-between">
         <div class="flex justify-between items-start">
             <div class="border border-[#ff0033] bg-black/90 px-3 py-2 backdrop-blur shadow-[0_0_15px_rgba(255,0,51,0.2)]">
@@ -84,6 +88,7 @@
         </div>
     </div>
 
+    <!-- Modal -->
     <div id="content-modal" class="absolute inset-0 z-40 hidden flex items-center justify-center bg-black/85 backdrop-blur-md transition-all duration-300 opacity-0 px-4">
         <button id="close-btn" class="absolute top-4 right-4 z-50 pointer-events-auto p-2 border border-[#ff0033] bg-black text-[#ff0033] hover:bg-[#ff0033] hover:text-black transition-colors shadow-[0_0_15px_rgba(255,0,51,0.3)]">
             <i data-lucide="x" class="w-8 h-8"></i>
@@ -174,77 +179,76 @@
             varying vec2 vUv;
 
             void main() {
+                // 1. INPUTS
                 vec4 labelColor = texture2D(uLabel, vUv);
+                float textAlpha = labelColor.a; // Strength of the number text/box
                 
-                // --- LOGO LOGIC (BOLD) ---
-                // Force center slightly to prevent edge clipping if SVG has padding
+                // Logo sampling (Centered and bold)
                 vec2 centeredUV = (vUv - 0.5) * 0.9 + 0.5; 
                 vec4 logoTex = texture2D(uLogo, centeredUV);
-                
-                // Use Alpha or Red channel (inverted) depending on SVG type.
-                // Assuming transparent background SVG:
                 float logoShape = logoTex.a; 
-                
-                // Make logo BOLD: Threshold it so weak pixels become solid
-                logoShape = smoothstep(0.05, 0.2, logoShape);
+                logoShape = smoothstep(0.05, 0.2, logoShape); // Bold thresholding
 
-                // Base Colors
-                vec3 color = uColor;
-                
+                // 2. CONTRAST LOGIC (The "Mask")
+                // We want the text to sit on a "black plate" to be readable.
+                // Wherever textAlpha is high, we suppress the logo and background.
+                float textMask = smoothstep(0.0, 0.5, textAlpha);
+                float logoVisibility = 1.0 - (textMask * 0.95); // 95% blocked behind text
+
+                // 3. COLOR LAYERS
+                vec3 neonRed = uColor;
+                vec3 pureWhite = vec3(1.0, 1.0, 1.0);
+
+                // LAYER A: Background Effects (Grid & Scanlines)
                 // Border
                 float border = 0.0;
                 float bw = 0.015; 
                 if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
-
-                // Inner Grid
+                
+                // Grid/Scanlines
                 float grid = 0.0;
                 if (mod(vUv.x * 10.0, 1.0) < 0.03 || mod(vUv.y * 10.0, 1.0) < 0.03) grid = 0.2; 
-                
-                // Scanlines
                 float scanline = sin(vUv.y * 200.0 + uTime * 2.0) * 0.05; 
+                
+                float bgBrightness = (grid * 0.4) + scanline;
+                // Mask background by logo (logo sits on top) AND text
+                bgBrightness *= (1.0 - logoShape) * (1.0 - textMask);
 
-                // COMPOSITION
-                float textStrength = labelColor.a;
+                // LAYER B: Logo (Red)
+                // Logo brightness boosted (1.5), but masked by text
+                float logoBrightness = logoShape * 1.5 * logoVisibility;
 
-                // Effects
+                // LAYER C: Text (White)
+                // Text sits on top.
+                float textBrightness = textAlpha * 1.2;
+
+                // 4. ANIMATION STATES
                 float pulseGlow = uPulse * 0.8; 
                 float highlight = uHover + uActive;
-                
-                // Brightness Calculation
-                float brightness = border * (0.5 + pulseGlow + highlight);
-                
-                // Grid & Scanlines (Background layer)
-                // We mute these where the logo exists so the logo pops "on top"
-                float background = (grid * 0.4) + scanline;
-                brightness += background * (1.0 - logoShape); 
-                
-                // Logo Brightness (Foreground layer - BOLD)
-                // 1.5 multiplier makes it brighter than standard neon
-                brightness += logoShape * 1.5; 
-                
-                // Text (Top layer)
-                brightness += textStrength * (1.0 + pulseGlow + highlight);
+                float globalGain = 1.0 + pulseGlow + highlight;
 
-                // Opacity Calculation
+                // 5. COMPOSITION
+                vec3 finalColor = vec3(0.0);
+                
+                // Add Red Components
+                finalColor += neonRed * (bgBrightness + logoBrightness + border) * globalGain;
+                
+                // Add White Component (Text is ALWAYS white now for contrast)
+                finalColor += pureWhite * textBrightness * globalGain;
+
+                // 6. ALPHA / OPACITY
                 float fill = 0.05 + (uHover * 0.1) + (uActive * 0.9) + (uPulse * 0.35);
                 
-                // Make logo contribute heavily to opacity (so it's solid)
-                float totalAlpha = (border + fill + (grid * 0.1) + textStrength + logoShape) * uOpacity;
+                // The text and logo essentially define the "shape" of the node now
+                float shapeAlpha = max(border, max(logoShape, textAlpha));
                 
-                // Clamp alpha to max 1.0
+                // Base opacity logic
+                float totalAlpha = (shapeAlpha + fill) * uOpacity;
                 totalAlpha = min(totalAlpha, 1.0);
 
-                // Final Color Mixing
-                vec3 finalColor = color * brightness;
-
-                // If pulsing fresh, flash white
+                // Flash white on pulse
                 if (uPulse > 0.8 && uActive < 0.1) {
                     finalColor = mix(finalColor, vec3(1.0, 1.0, 1.0), (uPulse - 0.8) * 5.0);
-                }
-                
-                // White Text
-                if (uActive > 0.5) {
-                    finalColor = mix(finalColor, vec3(1.0), textStrength);
                 }
 
                 gl_FragColor = vec4(finalColor, totalAlpha);
@@ -294,15 +298,23 @@
             canvas.height = size;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0,0,size,size);
-            ctx.fillStyle = '#ffffff';
+            
+            // Text Settings
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.font = 'bold 140px "Courier New", monospace';
+            
+            // We use White for the text color, the shader handles the rest
+            ctx.fillStyle = '#ffffff';
+            
             const text = number.toString().padStart(3, '0');
             ctx.fillText(text, size/2, size/2);
-            ctx.lineWidth = 8;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            
+            // Box
+            ctx.lineWidth = 10; // Slightly thicker
+            ctx.strokeStyle = '#ffffff';
             ctx.strokeRect(size * 0.15, size * 0.3, size * 0.7, size * 0.4);
+            
             return new THREE.CanvasTexture(canvas);
         }
 
@@ -320,22 +332,20 @@
             // Large Circle filling the space
             ctx.beginPath();
             ctx.arc(size/2, size/2, size*0.45, 0, Math.PI * 2);
-            ctx.fill(); // Fill it solid so it's bold
+            ctx.fill(); 
 
-            // Cut out letter C (simple trick: composite mode)
+            // Cut out letter C
             ctx.globalCompositeOperation = 'destination-out';
             ctx.font = 'bold 300px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText("C", size/2, size/2);
             
-            // Reset
             ctx.globalCompositeOperation = 'source-over';
 
             return new THREE.CanvasTexture(canvas);
         }
 
-        // CRITICAL: Normalize UVs to 0-1 for each specific face
         function normalizeUVs(geometry) {
             const uvAttribute = geometry.attributes.uv;
             let minU = Infinity, maxU = -Infinity;
@@ -362,7 +372,7 @@
         function init() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050000); // Dark Red-Black
+            scene.background = new THREE.Color(0x050000); 
             scene.fog = new THREE.FogExp2(0x050000, 0.015);
 
             camera = new THREE.PerspectiveCamera(state.zoomFOV, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -382,7 +392,6 @@
                 'CoCA-Vector-redrawn-photoshop.svg', 
                 (tex) => {
                     console.log("SVG Loaded.");
-                    // Ensure crisp edges
                     tex.minFilter = THREE.LinearFilter; 
                     tex.magFilter = THREE.LinearFilter;
                     meshFlatList.forEach(mesh => {
@@ -415,7 +424,7 @@
                         phiStart, phiLen, 
                         thetaStart, thetaLen
                     );
-                    normalizeUVs(geo); // This ensures the texture wraps 0-1 across the face
+                    normalizeUVs(geo); 
 
                     const labelTex = createLabelTexture(idCounter);
 
