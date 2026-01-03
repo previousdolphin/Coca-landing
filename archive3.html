@@ -41,7 +41,6 @@
             height: 150px;
             z-index: 5;
             pointer-events: none;
-            /* Changed mix-blend-mode to normal or lighten so white pops */
             mix-blend-mode: lighten;
         }
 
@@ -69,7 +68,6 @@
                     <span class="text-xs md:text-sm font-bold tracking-[0.2em]">CoCA_MIRROR_SITE</span>
                 </div>
             </div>
-            <!-- Cleaner Zoom Indicator -->
             <div class="flex flex-col items-end gap-1">
                  <div class="text-[10px] tracking-widest opacity-70">ORBITAL_VIEW</div>
                  <div class="text-xl font-bold font-mono text-[#ff0033]"><span id="hud-zoom">190</span>%</div>
@@ -78,112 +76,96 @@
 
         <div class="flex justify-between items-end text-[10px] md:text-xs opacity-50 tracking-wider">
             <div>
-                SYS: <span id="hud-pulse" class="text-[#ff0033]">ONLINE</span><br>
+                SYS: <span class="text-[#ff0033]">SLEEP_MODE</span><br>
                 MOMENTUM: <span id="debug-mom">0.00</span>
             </div>
             <div class="text-right">
                 EXTERNAL_ACCESS_ONLY<br>
-                CLICK_TO_PING
+                SECURE_CONNECTION
             </div>
         </div>
     </div>
 
     <script>
-        // --- Shaders ---
-        
-        const vertexShader = `
+        // --- Node Shaders (Transparent Glass) ---
+        const nodeVertexShader = `
             varying vec2 vUv;
-            
-            uniform float uFlatten; 
-            uniform float uPing; 
-            uniform float uWidth;
-            uniform float uHeight;
-
             void main() {
                 vUv = uv;
-                vec3 pos = position;
-                
-                // Add a subtle physical displacement on ping
-                float displacement = uPing * 2.0;
-                pos += normal * displacement;
-                
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
         `;
 
-        const fragmentShader = `
-            uniform float uTime;
+        const nodeFragmentShader = `
             uniform vec3 uColor;
             uniform float uOpacity;
             uniform float uHover;
-            uniform float uActive;
-            uniform float uPulse; 
             uniform sampler2D uLabel;
-            uniform sampler2D uLogo; 
             
             varying vec2 vUv;
 
             void main() {
-                // 1. INPUTS
                 vec4 labelColor = texture2D(uLabel, vUv);
                 float textAlpha = labelColor.a; 
                 
-                vec2 centeredUV = (vUv - 0.5) * 0.9 + 0.5; 
-                vec4 logoTex = texture2D(uLogo, centeredUV);
-                float logoShape = logoTex.a; 
-                logoShape = smoothstep(0.05, 0.2, logoShape);
-
-                // 2. MASKING
-                float textMask = smoothstep(0.0, 0.5, textAlpha);
-                float logoVisibility = 1.0 - (textMask * 0.98); 
-
-                // 3. COLOR LAYERS
-                vec3 neonRed = uColor;
                 vec3 pureWhite = vec3(1.0, 1.0, 1.0);
-
-                // LAYER A: Background Effects
+                
+                // Border Logic
                 float border = 0.0;
                 float bw = 0.02; 
                 if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
-                
-                float grid = 0.0;
-                if (mod(vUv.x * 10.0, 1.0) < 0.05 || mod(vUv.y * 10.0, 1.0) < 0.05) grid = 0.15; 
-                
-                float scanline = sin(vUv.y * 150.0 + uTime * 0.5) * 0.05; 
-                
-                float bgBrightness = (grid * 0.3) + scanline;
-                bgBrightness *= (1.0 - logoShape) * (1.0 - textMask);
 
-                // LAYER B: Logo
-                float logoBrightness = logoShape * 1.6 * logoVisibility;
-
-                // LAYER C: Text
-                float textBrightness = textAlpha * 1.3;
-
-                // 4. STATES
-                float pulseGlow = uPulse * 0.6; 
-                float highlight = uHover + uActive;
-                float globalGain = 1.0 + pulseGlow + highlight;
-
-                // 5. COMPOSITION
                 vec3 finalColor = vec3(0.0);
                 
-                finalColor += neonRed * (bgBrightness + logoBrightness + border * 0.5) * globalGain;
-                finalColor += pureWhite * (textBrightness + (border * 0.5 * highlight)) * globalGain;
+                // Text (White)
+                finalColor += pureWhite * textAlpha * 1.5;
+                
+                // Border (Red)
+                float borderStrength = border * (0.3 + uHover * 0.7);
+                finalColor += uColor * borderStrength;
 
-                // 6. OPACITY
-                float fill = 0.02 + (uHover * 0.05) + (uActive * 0.95) + (uPulse * 0.2);
-                float shapeAlpha = max(border, max(logoShape, textAlpha));
-                float totalAlpha = (shapeAlpha + fill) * uOpacity;
-                totalAlpha = min(totalAlpha, 1.0);
-
-                if (uPulse > 0.8) {
-                    finalColor = mix(finalColor, vec3(1.0), (uPulse - 0.8) * 3.0);
-                }
+                // Opacity
+                float baseAlpha = 0.05 + (uHover * 0.1);
+                // We keep this transparent to see the coin inside
+                float totalAlpha = max(textAlpha, max(border * 0.5, baseAlpha)) * uOpacity;
 
                 gl_FragColor = vec4(finalColor, totalAlpha);
             }
         `;
+
+        // --- Coin Shader (Opaque Cutout) ---
+        // This shader uses 'discard' to create shape, but is rendered as opaque
+        const coinVertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const coinFragmentShader = `
+            uniform sampler2D uTexture;
+            uniform vec3 uColor;
+            uniform float uTime;
+            varying vec2 vUv;
+
+            void main() {
+                vec4 tex = texture2D(uTexture, vUv);
+                float shape = tex.a; 
+                
+                // CRITICAL: Hard Cutout. 
+                // This allows us to use transparent: false material while still having a shape.
+                if (shape < 0.5) discard; 
+
+                // Sleeping Pulse
+                float pulse = 0.6 + 0.4 * (0.5 + 0.5 * sin(uTime * 1.5));
+                
+                vec3 finalColor = uColor * pulse * 2.0; 
+                
+                gl_FragColor = vec4(finalColor, 1.0); // Alpha is always 1.0 for depth writing
+            }
+        `;
+
 
         // --- Config ---
         const SPHERE_RADIUS = 16; 
@@ -191,22 +173,16 @@
         const DATA_ROWS = 14; 
         const DATA_COLS = 20; 
         
-        // --- ZOOM CONFIGURATION ---
-        // 75 was the previous "100%" reference. 
-        // 40 moves camera closer to make sphere larger.
-        // 75 / 40 * 100 = 187.5% -> ~190%
         const REFERENCE_ZOOM_Z = 75; 
         const DEFAULT_ZOOM_Z = 40; 
         const IDLE_TIMEOUT = 3000; 
         
         let scene, camera, renderer, raycaster, mouse;
-        let sphereGroup; 
+        let sphereGroup, coinGroup; 
         let meshes = []; 
         let meshFlatList = []; 
-        let simGrid = []; 
-        let globalLogoTexture; 
+        let coinLayers = [];
         
-        // Waveform Canvas
         const waveCanvas = document.getElementById('waveform-layer');
         const waveCtx = waveCanvas.getContext('2d');
 
@@ -221,14 +197,10 @@
             isDragging: false,
             lastTouchX: 0,
             lastTouchY: 0,
-            
-            lastSimTime: 0,
             lastInteractionTime: Date.now(),
             
             pinchStartDist: 0,
-            pinchStartZ: DEFAULT_ZOOM_Z,
-            
-            activeCellCount: 0
+            pinchStartZ: DEFAULT_ZOOM_Z
         };
 
         const debugMom = document.getElementById('debug-mom');
@@ -241,21 +213,16 @@
             canvas.width = size;
             canvas.height = size;
             const ctx = canvas.getContext('2d');
-            
             ctx.clearRect(0,0,size,size);
-            
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.font = 'bold 120px "Courier New", monospace';
             ctx.fillStyle = '#ffffff';
-            
             const text = number.toString().padStart(3, '0');
             ctx.fillText(text, size/2, size/2);
-            
             ctx.lineWidth = 12; 
             ctx.strokeStyle = '#ffffff';
             ctx.strokeRect(size * 0.2, size * 0.35, size * 0.6, size * 0.3);
-            
             return new THREE.CanvasTexture(canvas);
         }
 
@@ -266,19 +233,16 @@
             canvas.height = size;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0,0,size,size);
-            
             ctx.fillStyle = '#000000'; 
             ctx.beginPath();
             ctx.arc(size/2, size/2, size*0.48, 0, Math.PI * 2); 
             ctx.fill(); 
-
             ctx.globalCompositeOperation = 'destination-out';
             ctx.font = '900 350px sans-serif'; 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText("C", size/2, size/2);
             ctx.globalCompositeOperation = 'source-over';
-
             return new THREE.CanvasTexture(canvas);
         }
 
@@ -326,8 +290,43 @@
             sphereGroup = new THREE.Group();
             scene.add(sphereGroup);
 
+            coinGroup = new THREE.Group();
+            scene.add(coinGroup);
+
             const textureLoader = new THREE.TextureLoader();
-            globalLogoTexture = createPlaceholderLogo(); 
+            const placeholderTex = createPlaceholderLogo();
+            
+            const coinUniforms = {
+                uTexture: { value: placeholderTex },
+                uColor: { value: NEON_RED },
+                uTime: { value: 0 }
+            };
+
+            const layers = 20; 
+            const thickness = 2.0; 
+            const coinSize = 12; 
+
+            for(let i=0; i<layers; i++) {
+                const layerGeo = new THREE.PlaneGeometry(coinSize, coinSize);
+                
+                // CRITICAL FIX: Set transparent to false and depthWrite to true
+                // This forces the coin to render in the Opaque pass (before transparent sphere nodes)
+                // The 'discard' in the shader handles the shape cutout.
+                const layerMat = new THREE.ShaderMaterial({
+                    vertexShader: coinVertexShader,
+                    fragmentShader: coinFragmentShader,
+                    uniforms: coinUniforms,
+                    transparent: false, 
+                    depthWrite: true,
+                    side: THREE.DoubleSide,
+                });
+                
+                const layerMesh = new THREE.Mesh(layerGeo, layerMat);
+                const zPos = ((i / (layers-1)) * thickness) - (thickness/2);
+                layerMesh.position.z = zPos;
+                coinGroup.add(layerMesh);
+                coinLayers.push(layerMesh);
+            }
 
             textureLoader.load(
                 'CoCA-Vector-redrawn-photoshop.svg', 
@@ -336,9 +335,7 @@
                     tex.minFilter = THREE.LinearFilter; 
                     tex.magFilter = THREE.LinearFilter;
                     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-                    meshFlatList.forEach(mesh => {
-                        mesh.material.uniforms.uLogo.value = tex;
-                    });
+                    coinUniforms.uTexture.value = tex;
                 },
                 undefined,
                 (err) => { console.warn("Using placeholder logo."); }
@@ -349,11 +346,10 @@
             let idCounter = 1;
 
             meshes = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS));
-            simGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
 
-            for(let r=0; r<DATA_ROWS; r++) {
+            for(let r=3; r<=10; r++) {
                 for(let c=0; c<DATA_COLS; c++) {
-                    const isContent = (r >= 4 && r <= 10); 
+                    const isContent = (r >= 4 && r <= 9); 
                     
                     const phiStart = c * thetaStep; 
                     const phiLen = thetaStep * 0.98; 
@@ -377,31 +373,23 @@
                     const z = SPHERE_RADIUS * Math.sin(centerTheta) * Math.sin(centerPhi);
                     const centerPos = new THREE.Vector3(x,y,z);
 
+                    // Sphere nodes remain Transparent
                     const material = new THREE.ShaderMaterial({
-                        vertexShader: vertexShader,
-                        fragmentShader: fragmentShader,
+                        vertexShader: nodeVertexShader,
+                        fragmentShader: nodeFragmentShader,
                         uniforms: {
-                            uTime: { value: 0 },
                             uColor: { value: NEON_RED },
                             uOpacity: { value: isContent ? 0.9 : 0.3 },
                             uHover: { value: 0 },
-                            uActive: { value: 0 },
-                            uPulse: { value: 0 }, 
-                            uPing: { value: 0 }, 
-                            uFlatten: { value: 0 },
-                            uWidth: { value: 1.0 }, 
-                            uHeight: { value: 1.0 },
-                            uLabel: { value: labelTex },
-                            uLogo: { value: globalLogoTexture }
+                            uLabel: { value: labelTex }
                         },
                         side: THREE.DoubleSide, 
-                        transparent: true,
-                        depthWrite: false, 
+                        transparent: true, // Keep true for glass effect
+                        depthWrite: false, // Don't block other transparent objects
                         blending: THREE.AdditiveBlending
                     });
 
                     const mesh = new THREE.Mesh(geo, material);
-                    
                     mesh.position.set(0,0,0);
                     mesh.rotation.set(0,0,0);
                     
@@ -416,7 +404,6 @@
                     sphereGroup.add(mesh); 
                     meshes[r][c] = mesh;
                     meshFlatList.push(mesh);
-                    simGrid[r][c] = Math.random() > 0.95 ? 1.0 : 0.0;
                     idCounter++;
                 }
             }
@@ -434,92 +421,34 @@
             animate();
         }
 
-        // --- SIMULATION ---
-        function updateSimulation() {
-            const nextGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
-            let activeCount = 0;
-
-            if (Math.random() < 0.01) {
-                const rr = Math.floor(Math.random() * DATA_ROWS);
-                const cc = Math.floor(Math.random() * DATA_COLS);
-                simGrid[rr][cc] = 1.0;
-            }
-            for(let r=0; r<DATA_ROWS; r++) {
-                for(let c=0; c<DATA_COLS; c++) {
-                    let val = simGrid[r][c];
-                    val *= 0.9; 
-                    const cLeft = (c - 1 + DATA_COLS) % DATA_COLS;
-                    const cRight = (c + 1) % DATA_COLS;
-                    const rUp = Math.max(0, r - 1);
-                    const rDown = Math.min(DATA_ROWS - 1, r + 1);
-                    const neighbors = [ simGrid[r][cLeft], simGrid[r][cRight], simGrid[rUp][c], simGrid[rDown][c], simGrid[rUp][cLeft], simGrid[rDown][cRight] ];
-                    let activeNeighbors = 0;
-                    neighbors.forEach(n => { if(n > 0.5) activeNeighbors++; });
-
-                    if (val < 0.2 && activeNeighbors >= 2 && activeNeighbors <= 4 && Math.random() < 0.4) val = 1.0; 
-                    if (Math.random() < 0.0005) val = 1.0;
-                    
-                    if (val > 0.1) activeCount++;
-                    nextGrid[r][c] = Math.max(0.0, Math.min(val, 1.0));
-                }
-            }
-            simGrid = nextGrid;
-            state.activeCellCount = activeCount;
-        }
-
-        function triggerPing(r, c) {
-            simGrid[r][c] = 2.0; 
-            const cLeft = (c - 1 + DATA_COLS) % DATA_COLS;
-            const cRight = (c + 1) % DATA_COLS;
-            const rUp = Math.max(0, r - 1);
-            const rDown = Math.min(DATA_ROWS - 1, r + 1);
-            simGrid[rUp][c] = 1.5;
-            simGrid[rDown][c] = 1.5;
-            simGrid[r][cLeft] = 1.5;
-            simGrid[r][cRight] = 1.5;
-            registerInteraction();
-        }
-
         function registerInteraction() {
             state.lastInteractionTime = Date.now();
         }
 
-        // --- WAVEFORM DRAWING (Whitish) ---
+        // --- WAVEFORM DRAWING (Whitish & Slow) ---
         let waveTime = 0;
         function drawWaveform() {
             const w = waveCanvas.width = window.innerWidth;
             const h = waveCanvas.height = 150;
             
             waveCtx.clearRect(0,0,w,h);
-            // Strong white base stroke
-            waveCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            waveCtx.lineWidth = 1.5;
+            waveCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            waveCtx.lineWidth = 1;
+            waveTime += 0.02; 
             
-            waveTime += 0.05;
-            
-            const activityLevel = Math.min(state.activeCellCount / 50, 1.0); 
-            const ampBase = 10 + (activityLevel * 30);
+            const ampBase = 20; 
 
-            // Draw white layers
-            for(let l = 0; l < 3; l++) {
+            for(let l = 0; l < 2; l++) {
                 waveCtx.beginPath();
-                waveCtx.strokeStyle = `rgba(255, 255, 255, ${0.3 + (l*0.15)})`; // Increasing opacity
+                waveCtx.strokeStyle = `rgba(255, 255, 255, ${0.1 + (l*0.1)})`; 
                 for(let x = 0; x < w; x+=5) {
-                    const n1 = Math.sin(x * 0.01 + waveTime + (l*20)) * ampBase;
-                    const n2 = Math.cos(x * 0.03 - waveTime) * (ampBase * 0.5);
-                    const n3 = Math.sin(x * 0.1 + waveTime*2) * (ampBase * 0.2 * activityLevel); 
-                    
-                    const y = (h/2) + n1 + n2 + n3;
+                    const n1 = Math.sin(x * 0.005 + waveTime + (l*10)) * ampBase;
+                    const n2 = Math.cos(x * 0.01 - waveTime) * (ampBase * 0.5);
+                    const y = (h/2) + n1 + n2;
                     if(x===0) waveCtx.moveTo(x,y);
                     else waveCtx.lineTo(x,y);
                 }
                 waveCtx.stroke();
-            }
-            
-            // Faint grid
-            waveCtx.fillStyle = 'rgba(255,255,255,0.1)';
-            for(let x=0; x<w; x+=100) {
-                waveCtx.fillRect(x, h/2 - 2, 2, 4);
             }
         }
 
@@ -528,14 +457,9 @@
         function onWheel(e) {
             e.preventDefault();
             registerInteraction();
-            
-            // Zoom Logic (modify Camera Z)
             state.cameraZ += e.deltaY * 0.05;
             state.cameraZ = Math.max(20, Math.min(150, state.cameraZ));
-            
             camera.position.z = state.cameraZ;
-            
-            // Calculate % relative to REFERENCE_ZOOM_Z
             const zoomPct = Math.round((REFERENCE_ZOOM_Z / state.cameraZ) * 100);
             uiZoom.innerText = zoomPct;
         }
@@ -550,10 +474,7 @@
                 state.velocityLat = 0;
             } else if (e.touches.length === 2) {
                 state.isDragging = false; 
-                const dist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX, 
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 state.pinchStartDist = dist;
                 state.pinchStartZ = state.cameraZ;
             }
@@ -566,25 +487,17 @@
                 const y = e.touches[0].clientY; 
                 const deltaX = x - state.lastTouchX;
                 const deltaY = y - state.lastTouchY;
-                
                 state.rotLon -= deltaX * 0.2; 
                 state.rotLat += deltaY * 0.2; 
-                
                 state.velocityLon = -deltaX * 0.1;
                 state.velocityLat = deltaY * 0.1;
-
                 state.lastTouchX = x; 
                 state.lastTouchY = y; 
             } else if (e.touches.length === 2) {
-                const dist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX, 
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                // Pinch Zoom Logic
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const scale = state.pinchStartDist / dist;
                 state.cameraZ = Math.max(20, Math.min(150, state.pinchStartZ * scale));
                 camera.position.z = state.cameraZ;
-                
                 const zoomPct = Math.round((REFERENCE_ZOOM_Z / state.cameraZ) * 100);
                 uiZoom.innerText = zoomPct;
             }
@@ -593,13 +506,6 @@
         function onTouchEnd(e) { 
             state.isDragging = false; 
             registerInteraction();
-            if(Math.abs(state.velocityLon) < 0.05 && Math.abs(state.velocityLat) < 0.05) {
-                 if(e.changedTouches.length > 0 && e.touches.length === 0) {
-                     mouse.x = (e.changedTouches[0].clientX / window.innerWidth) * 2 - 1; 
-                     mouse.y = -(e.changedTouches[0].clientY / window.innerHeight) * 2 + 1; 
-                     checkIntersection();
-                 }
-            }
         }
         
         function onMouseDown(e) { 
@@ -614,42 +520,22 @@
         function onMouseMove(e) { 
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; 
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; 
-            
             if(state.isDragging) { 
                 registerInteraction();
                 const deltaX = e.clientX - state.lastTouchX;
                 const deltaY = e.clientY - state.lastTouchY;
-                
                 state.rotLon -= deltaX * 0.2; 
                 state.rotLat += deltaY * 0.2; 
-                
                 state.velocityLon = -deltaX * 0.1;
                 state.velocityLat = deltaY * 0.1;
-
                 state.lastTouchX = e.clientX; 
                 state.lastTouchY = e.clientY; 
             } 
         }
         
-        function onMouseUp() { 
-            state.isDragging = false; 
-        }
+        function onMouseUp() { state.isDragging = false; }
+        function onClick() { /* No click */ }
         
-        function onClick() { 
-            if(Math.abs(state.velocityLon) < 2 && Math.abs(state.velocityLat) < 2) {
-                checkIntersection(); 
-            }
-        }
-        
-        function checkIntersection() { 
-            raycaster.setFromCamera(mouse, camera); 
-            const intersects = raycaster.intersectObjects(meshFlatList); 
-            if(intersects.length > 0) {
-                const data = intersects[0].object.userData;
-                triggerPing(data.row, data.col);
-            } 
-        }
-
         function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
 
         function animate() {
@@ -659,38 +545,23 @@
             const now = Date.now();
             const time = (now - state.startTime) * 0.001;
 
-            if (now - state.lastSimTime > 150) {
-                updateSimulation();
-                state.lastSimTime = now;
-            }
-
-            // --- MAGNET / DRIFT LOGIC ---
             const timeSinceInteract = now - state.lastInteractionTime;
             const isIdle = timeSinceInteract > IDLE_TIMEOUT;
 
             if (!state.isDragging) {
-                // Apply momentum
                 state.rotLon += state.velocityLon;
                 state.rotLat += state.velocityLat;
                 state.velocityLon *= 0.95;
                 state.velocityLat *= 0.95;
                 
-                // Idle Behavior (Drift back to center/default)
                 if (isIdle) {
-                    // Drift Zoom back to DEFAULT_ZOOM_Z
                     state.cameraZ += (DEFAULT_ZOOM_Z - state.cameraZ) * 0.01;
                     camera.position.z = state.cameraZ;
-                    
                     const zoomPct = Math.round((REFERENCE_ZOOM_Z / state.cameraZ) * 100);
                     uiZoom.innerText = zoomPct;
-
-                    // Drift Rotation (Lat to 0, vertical upright)
                     state.rotLat += (0 - state.rotLat) * 0.02;
-                    
-                    // Maintain gentle spin on Lon
                     if (Math.abs(state.velocityLon) < 0.05) state.velocityLon = 0.05;
                 } else {
-                    // Min spin if active but just let go
                     if(Math.abs(state.velocityLon) < 0.05) state.velocityLon += 0.002; 
                 }
             }
@@ -700,10 +571,16 @@
 
             sphereGroup.rotation.y += (targetRotY - sphereGroup.rotation.y) * 0.1;
             sphereGroup.rotation.x += (targetRotX - sphereGroup.rotation.x) * 0.1;
+            
+            if(coinGroup) {
+                coinGroup.rotation.y = -sphereGroup.rotation.y;
+                coinLayers.forEach(layer => {
+                    layer.material.uniforms.uTime.value = time;
+                });
+            }
 
             if(debugMom) debugMom.innerText = state.velocityLon.toFixed(2);
 
-            // --- HOVER LOGIC ---
             let hoveredObject = null;
             if (!state.isDragging) {
                 if (mouse.x > -1 && mouse.x < 1 && mouse.y > -1 && mouse.y < 1) {
@@ -715,34 +592,10 @@
                 }
             }
 
-            // Mesh Updates
             meshFlatList.forEach((mesh) => {
                 const mat = mesh.material;
-                const data = mesh.userData;
-                
-                mat.uniforms.uTime.value = time;
-                
-                const pulse = simGrid[data.row][data.col];
-                mat.uniforms.uPulse.value = pulse;
-                mat.uniforms.uPing.value = pulse > 1.1 ? (pulse - 1.0) * 0.5 : 0.0;
-
                 let isHovered = (mesh === hoveredObject);
-                
-                // World Position Falloff
-                const worldPos = new THREE.Vector3();
-                mesh.getWorldPosition(worldPos);
-                worldPos.normalize();
-                const camDir = new THREE.Vector3(0,0,1); 
-                if(worldPos.dot(camDir) > 0.95) {
-                    // Center
-                } else {
-                    isHovered = false; 
-                }
-                
                 mat.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mat.uniforms.uHover.value) * 0.1;
-                
-                const baseOp = data.isContent ? 0.9 : 0.25;
-                mat.uniforms.uOpacity.value += (baseOp - mat.uniforms.uOpacity.value) * 0.05;
             });
 
             renderer.render(scene, camera);
@@ -752,3 +605,5 @@
     </script>
 </body>
 </html>
+
+
