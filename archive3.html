@@ -87,7 +87,7 @@
     </div>
 
     <script>
-        // --- Node Shaders (Transparent Glass) ---
+        // --- Node Shaders (Clean, No Automata) ---
         const nodeVertexShader = `
             varying vec2 vUv;
             void main() {
@@ -110,31 +110,25 @@
                 
                 vec3 pureWhite = vec3(1.0, 1.0, 1.0);
                 
-                // Border Logic
                 float border = 0.0;
                 float bw = 0.02; 
                 if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
 
                 vec3 finalColor = vec3(0.0);
                 
-                // Text (White)
                 finalColor += pureWhite * textAlpha * 1.5;
                 
-                // Border (Red)
                 float borderStrength = border * (0.3 + uHover * 0.7);
                 finalColor += uColor * borderStrength;
 
-                // Opacity
                 float baseAlpha = 0.05 + (uHover * 0.1);
-                // We keep this transparent to see the coin inside
                 float totalAlpha = max(textAlpha, max(border * 0.5, baseAlpha)) * uOpacity;
 
                 gl_FragColor = vec4(finalColor, totalAlpha);
             }
         `;
 
-        // --- Coin Shader (Opaque Cutout) ---
-        // This shader uses 'discard' to create shape, but is rendered as opaque
+        // --- Coin Shader (Volumetric Stack with Edge Highlight) ---
         const coinVertexShader = `
             varying vec2 vUv;
             void main() {
@@ -153,16 +147,23 @@
                 vec4 tex = texture2D(uTexture, vUv);
                 float shape = tex.a; 
                 
-                // CRITICAL: Hard Cutout. 
-                // This allows us to use transparent: false material while still having a shape.
+                // Hard Cutout for volume
                 if (shape < 0.5) discard; 
 
-                // Sleeping Pulse
+                // EDGE DETECTION
+                // If shape is between 0.5 and 0.8 (the anti-aliased edge), make it white.
+                // This creates a distinct rim around the extrusion.
+                float edge = smoothstep(0.5, 0.55, shape) * (1.0 - smoothstep(0.75, 0.85, shape));
+                
+                // Base Red Glow (Sleeping Pulse)
                 float pulse = 0.6 + 0.4 * (0.5 + 0.5 * sin(uTime * 1.5));
+                vec3 baseColor = uColor * pulse * 2.0; 
                 
-                vec3 finalColor = uColor * pulse * 2.0; 
+                // Final Mix: White Edge + Red Core
+                // If it's an edge, boost to white/bright pink
+                vec3 finalColor = mix(baseColor, vec3(1.0, 1.0, 1.0), edge); 
                 
-                gl_FragColor = vec4(finalColor, 1.0); // Alpha is always 1.0 for depth writing
+                gl_FragColor = vec4(finalColor, 1.0);
             }
         `;
 
@@ -233,16 +234,19 @@
             canvas.height = size;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0,0,size,size);
+            
             ctx.fillStyle = '#000000'; 
             ctx.beginPath();
             ctx.arc(size/2, size/2, size*0.48, 0, Math.PI * 2); 
             ctx.fill(); 
+
             ctx.globalCompositeOperation = 'destination-out';
             ctx.font = '900 350px sans-serif'; 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText("C", size/2, size/2);
             ctx.globalCompositeOperation = 'source-over';
+
             return new THREE.CanvasTexture(canvas);
         }
 
@@ -302,16 +306,14 @@
                 uTime: { value: 0 }
             };
 
-            const layers = 20; 
-            const thickness = 2.0; 
-            const coinSize = 12; 
+            // INCREASED LAYERS & SIZE
+            const layers = 30; // More density for side view
+            const thickness = 2.5; 
+            const coinSize = 22; // Bigger logo
 
             for(let i=0; i<layers; i++) {
                 const layerGeo = new THREE.PlaneGeometry(coinSize, coinSize);
                 
-                // CRITICAL FIX: Set transparent to false and depthWrite to true
-                // This forces the coin to render in the Opaque pass (before transparent sphere nodes)
-                // The 'discard' in the shader handles the shape cutout.
                 const layerMat = new THREE.ShaderMaterial({
                     vertexShader: coinVertexShader,
                     fragmentShader: coinFragmentShader,
@@ -341,12 +343,14 @@
                 (err) => { console.warn("Using placeholder logo."); }
             );
 
+            // --- SPHERE GENERATION ---
             const phiStep = Math.PI / DATA_ROWS;
             const thetaStep = (Math.PI * 2) / DATA_COLS;
             let idCounter = 1;
 
             meshes = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS));
 
+            // Skip poles (Row 3 to 10)
             for(let r=3; r<=10; r++) {
                 for(let c=0; c<DATA_COLS; c++) {
                     const isContent = (r >= 4 && r <= 9); 
@@ -384,8 +388,8 @@
                             uLabel: { value: labelTex }
                         },
                         side: THREE.DoubleSide, 
-                        transparent: true, // Keep true for glass effect
-                        depthWrite: false, // Don't block other transparent objects
+                        transparent: true, 
+                        depthWrite: false, 
                         blending: THREE.AdditiveBlending
                     });
 
@@ -487,10 +491,13 @@
                 const y = e.touches[0].clientY; 
                 const deltaX = x - state.lastTouchX;
                 const deltaY = y - state.lastTouchY;
+                
                 state.rotLon -= deltaX * 0.2; 
                 state.rotLat += deltaY * 0.2; 
+                
                 state.velocityLon = -deltaX * 0.1;
                 state.velocityLat = deltaY * 0.1;
+
                 state.lastTouchX = x; 
                 state.lastTouchY = y; 
             } else if (e.touches.length === 2) {
@@ -545,6 +552,7 @@
             const now = Date.now();
             const time = (now - state.startTime) * 0.001;
 
+            // --- MAGNET / DRIFT LOGIC ---
             const timeSinceInteract = now - state.lastInteractionTime;
             const isIdle = timeSinceInteract > IDLE_TIMEOUT;
 
