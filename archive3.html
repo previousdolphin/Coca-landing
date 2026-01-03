@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoCA // ARCHIVE_MIRROR_SITE</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            color: #ff0033; /* Neon Red */
+            font-family: 'Courier New', Courier, monospace;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            cursor: crosshair; 
+        }
+        
+        #canvas-container { 
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            touch-action: none; 
+        }
+
+        .scanlines {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <!-- Reduced opacity for cleaner look -->
+    <div class="absolute inset-0 z-50 pointer-events-none scanlines mix-blend-overlay opacity-20"></div>
+    <div class="absolute inset-0 z-50 pointer-events-none" style="background: radial-gradient(circle, transparent 30%, black 150%);"></div>
+
+    <!-- HUD -->
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none p-4 md:p-8 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+            <div class="border border-[#ff0033] bg-black/80 px-4 py-2 backdrop-blur-sm shadow-[0_0_15px_rgba(255,0,51,0.15)] rounded-sm">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="globe" class="w-4 h-4 animate-pulse"></i>
+                    <span class="text-xs md:text-sm font-bold tracking-[0.2em]">CoCA_MIRROR_SITE</span>
+                </div>
+            </div>
+            <!-- Cleaner Zoom Indicator -->
+            <div class="flex flex-col items-end gap-1">
+                 <div class="text-[10px] tracking-widest opacity-70">ORBITAL_VIEW</div>
+                 <div class="text-xl font-bold font-mono text-[#ff0033]"><span id="hud-zoom">75</span>%</div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-end text-[10px] md:text-xs opacity-50 tracking-wider">
+            <div>
+                SYS: <span id="hud-pulse" class="text-[#ff0033]">ONLINE</span><br>
+                MOMENTUM: <span id="debug-mom">0.00</span>
+            </div>
+            <div class="text-right">
+                EXTERNAL_ACCESS_ONLY<br>
+                CLICK_TO_PING
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Shaders ---
+        
+        const vertexShader = `
+            varying vec2 vUv;
+            
+            // We removed the flatten logic to keep it a perfect sphere
+            // But we keep the variable so we don't break existing uniforms
+            uniform float uFlatten; 
+            uniform float uPing; // New uniform for the ripple effect
+            uniform float uWidth;
+            uniform float uHeight;
+
+            void main() {
+                vUv = uv;
+                vec3 pos = position;
+                
+                // Add a subtle physical displacement on ping
+                float displacement = uPing * 2.0;
+                pos += normal * displacement;
+                
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            uniform float uTime;
+            uniform vec3 uColor;
+            uniform float uOpacity;
+            uniform float uHover;
+            uniform float uActive;
+            uniform float uPulse; 
+            uniform sampler2D uLabel;
+            uniform sampler2D uLogo; 
+            
+            varying vec2 vUv;
+
+            void main() {
+                // 1. INPUTS
+                vec4 labelColor = texture2D(uLabel, vUv);
+                float textAlpha = labelColor.a; 
+                
+                vec2 centeredUV = (vUv - 0.5) * 0.9 + 0.5; 
+                vec4 logoTex = texture2D(uLogo, centeredUV);
+                float logoShape = logoTex.a; 
+                logoShape = smoothstep(0.05, 0.2, logoShape);
+
+                // 2. MASKING
+                float textMask = smoothstep(0.0, 0.5, textAlpha);
+                float logoVisibility = 1.0 - (textMask * 0.98); 
+
+                // 3. COLOR LAYERS
+                vec3 neonRed = uColor;
+                vec3 pureWhite = vec3(1.0, 1.0, 1.0);
+
+                // LAYER A: Background Effects
+                float border = 0.0;
+                float bw = 0.02; 
+                if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
+                
+                float grid = 0.0;
+                if (mod(vUv.x * 10.0, 1.0) < 0.05 || mod(vUv.y * 10.0, 1.0) < 0.05) grid = 0.15; 
+                
+                float scanline = sin(vUv.y * 150.0 + uTime * 0.5) * 0.05; 
+                
+                float bgBrightness = (grid * 0.3) + scanline;
+                bgBrightness *= (1.0 - logoShape) * (1.0 - textMask);
+
+                // LAYER B: Logo
+                float logoBrightness = logoShape * 1.6 * logoVisibility;
+
+                // LAYER C: Text
+                float textBrightness = textAlpha * 1.3;
+
+                // 4. STATES
+                // uPulse comes from the Automata sim
+                float pulseGlow = uPulse * 0.6; 
+                float highlight = uHover + uActive;
+                float globalGain = 1.0 + pulseGlow + highlight;
+
+                // 5. COMPOSITION
+                vec3 finalColor = vec3(0.0);
+                
+                // Red Channel
+                finalColor += neonRed * (bgBrightness + logoBrightness + border * 0.5) * globalGain;
+                
+                // White Channel (Text + Border Highlight)
+                finalColor += pureWhite * (textBrightness + (border * 0.5 * highlight)) * globalGain;
+
+                // 6. OPACITY
+                float fill = 0.02 + (uHover * 0.05) + (uActive * 0.95) + (uPulse * 0.2);
+                float shapeAlpha = max(border, max(logoShape, textAlpha));
+                float totalAlpha = (shapeAlpha + fill) * uOpacity;
+                totalAlpha = min(totalAlpha, 1.0);
+
+                // Flash white on strong pulse (ping)
+                if (uPulse > 0.8) {
+                    finalColor = mix(finalColor, vec3(1.0), (uPulse - 0.8) * 3.0);
+                }
+
+                gl_FragColor = vec4(finalColor, totalAlpha);
+            }
+        `;
+
+        // --- Config ---
+        const SPHERE_RADIUS = 16; 
+        const NEON_RED = new THREE.Color('#ff0033'); 
+        const DATA_ROWS = 14; 
+        const DATA_COLS = 20; 
+        
+        let scene, camera, renderer, raycaster, mouse;
+        let sphereGroup; 
+        let meshes = []; 
+        let meshFlatList = []; 
+        let simGrid = []; 
+        let globalLogoTexture; 
+
+        const state = {
+            startTime: Date.now(),
+            // Camera/Group Rotation State
+            rotLon: 0,
+            rotLat: 0,
+            velocityLon: 0.1, // Initial spin
+            velocityLat: 0,
+            zoomFOV: 55, 
+            
+            // Drag State
+            isDragging: false,
+            lastTouchX: 0,
+            lastTouchY: 0,
+            
+            lastSimTime: 0 
+        };
+
+        const debugMom = document.getElementById('debug-mom');
+        lucide.createIcons();
+
+        function createLabelTexture(number) {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0,0,size,size);
+            
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 120px "Courier New", monospace';
+            ctx.fillStyle = '#ffffff';
+            
+            const text = number.toString().padStart(3, '0');
+            ctx.fillText(text, size/2, size/2);
+            
+            ctx.lineWidth = 12; 
+            ctx.strokeStyle = '#ffffff';
+            ctx.strokeRect(size * 0.2, size * 0.35, size * 0.6, size * 0.3);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createPlaceholderLogo() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,size,size);
+            
+            ctx.fillStyle = '#000000'; 
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size*0.48, 0, Math.PI * 2); 
+            ctx.fill(); 
+
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.font = '900 350px sans-serif'; 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("C", size/2, size/2);
+            ctx.globalCompositeOperation = 'source-over';
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function normalizeUVs(geometry) {
+            const uvAttribute = geometry.attributes.uv;
+            let minU = Infinity, maxU = -Infinity;
+            let minV = Infinity, maxV = -Infinity;
+            for (let i = 0; i < uvAttribute.count; i++) {
+                const u = uvAttribute.getX(i);
+                const v = uvAttribute.getY(i);
+                if (u < minU) minU = u;
+                if (u > maxU) maxU = u;
+                if (v < minV) minV = v;
+                if (v > maxV) maxV = v;
+            }
+            const rangeU = maxU - minU;
+            const rangeV = maxV - minV;
+            if (rangeU < 0.0001 || rangeV < 0.0001) return; 
+            for (let i = 0; i < uvAttribute.count; i++) {
+                const u = uvAttribute.getX(i);
+                const v = uvAttribute.getY(i);
+                uvAttribute.setXY(i, (u - minU) / rangeU, (v - minV) / rangeV);
+            }
+            uvAttribute.needsUpdate = true;
+        }
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050000); 
+            scene.fog = new THREE.FogExp2(0x050000, 0.015);
+
+            camera = new THREE.PerspectiveCamera(state.zoomFOV, window.innerWidth / window.innerHeight, 0.1, 100);
+            // 75% Zoom equivalent (Pull back)
+            camera.position.set(0, 0, 75);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2(-100, -100);
+
+            sphereGroup = new THREE.Group();
+            scene.add(sphereGroup);
+
+            const textureLoader = new THREE.TextureLoader();
+            globalLogoTexture = createPlaceholderLogo(); 
+
+            textureLoader.load(
+                'CoCA-Vector-redrawn-photoshop.svg', 
+                (tex) => {
+                    console.log("SVG Loaded.");
+                    tex.minFilter = THREE.LinearFilter; 
+                    tex.magFilter = THREE.LinearFilter;
+                    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                    meshFlatList.forEach(mesh => {
+                        mesh.material.uniforms.uLogo.value = tex;
+                    });
+                },
+                undefined,
+                (err) => { console.warn("Using placeholder logo."); }
+            );
+
+            const phiStep = Math.PI / DATA_ROWS;
+            const thetaStep = (Math.PI * 2) / DATA_COLS;
+            let idCounter = 1;
+
+            meshes = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS));
+            simGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
+
+            for(let r=0; r<DATA_ROWS; r++) {
+                for(let c=0; c<DATA_COLS; c++) {
+                    const isContent = (r >= 4 && r <= 10); 
+                    
+                    const phiStart = c * thetaStep; 
+                    const phiLen = thetaStep * 0.98; // Small gaps
+                    const thetaStart = r * phiStep;
+                    const thetaLen = phiStep * 0.98; // Small gaps
+
+                    // 1. CREATE GEOMETRY AT THE ORIGIN
+                    // SphereGeometry naturally creates vertices at SPHERE_RADIUS distance from (0,0,0)
+                    // We use the phi/theta parameters to just create one segment of that sphere
+                    const geo = new THREE.SphereGeometry(
+                        SPHERE_RADIUS, 
+                        16, 16, 
+                        phiStart, phiLen, 
+                        thetaStart, thetaLen
+                    );
+                    normalizeUVs(geo); 
+
+                    const labelTex = createLabelTexture(idCounter);
+
+                    // We calculate where the center of this segment is for Raycasting/Logic
+                    // But we DO NOT move the mesh. The vertices are already in place.
+                    const centerPhi = phiStart + phiLen/2; 
+                    const centerTheta = thetaStart + thetaLen/2;
+                    const x = -SPHERE_RADIUS * Math.sin(centerTheta) * Math.cos(centerPhi);
+                    const y = SPHERE_RADIUS * Math.cos(centerTheta);
+                    const z = SPHERE_RADIUS * Math.sin(centerTheta) * Math.sin(centerPhi);
+                    const centerPos = new THREE.Vector3(x,y,z);
+
+                    const material = new THREE.ShaderMaterial({
+                        vertexShader: vertexShader,
+                        fragmentShader: fragmentShader,
+                        uniforms: {
+                            uTime: { value: 0 },
+                            uColor: { value: NEON_RED },
+                            uOpacity: { value: isContent ? 0.9 : 0.3 },
+                            uHover: { value: 0 },
+                            uActive: { value: 0 },
+                            uPulse: { value: 0 }, 
+                            uPing: { value: 0 }, // New uniform for physical ripple
+                            uFlatten: { value: 0 },
+                            uWidth: { value: 1.0 }, // Not used for folding anymore
+                            uHeight: { value: 1.0 },
+                            uLabel: { value: labelTex },
+                            uLogo: { value: globalLogoTexture }
+                        },
+                        side: THREE.DoubleSide, 
+                        transparent: true,
+                        depthWrite: false, 
+                        blending: THREE.AdditiveBlending
+                    });
+
+                    const mesh = new THREE.Mesh(geo, material);
+                    
+                    // 2. DO NOT MOVE MESH. DO NOT ROTATE MESH.
+                    // This ensures a perfect contiguous sphere.
+                    mesh.position.set(0,0,0);
+                    mesh.rotation.set(0,0,0);
+                    
+                    mesh.userData = { 
+                        id: idCounter, 
+                        row: r,
+                        col: c,
+                        isContent: isContent,
+                        centerPos: centerPos
+                    };
+
+                    sphereGroup.add(mesh); 
+                    meshes[r][c] = mesh;
+                    meshFlatList.push(mesh);
+                    simGrid[r][c] = Math.random() > 0.95 ? 1.0 : 0.0;
+                    idCounter++;
+                }
+            }
+
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('mousedown', onMouseDown, false);
+            window.addEventListener('mouseup', onMouseUp, false);
+            window.addEventListener('click', onClick, false);
+            window.addEventListener('touchstart', onTouchStart, { passive: false });
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onTouchEnd, { passive: false });
+            
+            animate();
+        }
+
+        // --- SIMULATION ---
+        function updateSimulation() {
+            const nextGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
+            if (Math.random() < 0.01) {
+                const rr = Math.floor(Math.random() * DATA_ROWS);
+                const cc = Math.floor(Math.random() * DATA_COLS);
+                simGrid[rr][cc] = 1.0;
+            }
+            for(let r=0; r<DATA_ROWS; r++) {
+                for(let c=0; c<DATA_COLS; c++) {
+                    let val = simGrid[r][c];
+                    val *= 0.9; 
+                    const cLeft = (c - 1 + DATA_COLS) % DATA_COLS;
+                    const cRight = (c + 1) % DATA_COLS;
+                    const rUp = Math.max(0, r - 1);
+                    const rDown = Math.min(DATA_ROWS - 1, r + 1);
+                    const neighbors = [ simGrid[r][cLeft], simGrid[r][cRight], simGrid[rUp][c], simGrid[rDown][c], simGrid[rUp][cLeft], simGrid[rDown][cRight] ];
+                    let activeNeighbors = 0;
+                    neighbors.forEach(n => { if(n > 0.5) activeNeighbors++; });
+
+                    if (val < 0.2 && activeNeighbors >= 2 && activeNeighbors <= 4 && Math.random() < 0.4) val = 1.0; 
+                    if (Math.random() < 0.0005) val = 1.0;
+                    nextGrid[r][c] = Math.max(0.0, Math.min(val, 1.0));
+                }
+            }
+            simGrid = nextGrid;
+        }
+
+        function triggerPing(r, c) {
+            // High energy ping
+            simGrid[r][c] = 2.0; // Overcharge
+            
+            // Immediate neighbors
+            const cLeft = (c - 1 + DATA_COLS) % DATA_COLS;
+            const cRight = (c + 1) % DATA_COLS;
+            const rUp = Math.max(0, r - 1);
+            const rDown = Math.min(DATA_ROWS - 1, r + 1);
+            
+            simGrid[rUp][c] = 1.5;
+            simGrid[rDown][c] = 1.5;
+            simGrid[r][cLeft] = 1.5;
+            simGrid[r][cRight] = 1.5;
+        }
+
+        // --- Interaction ---
+        function onTouchStart(e) { 
+            if (e.touches.length === 1) { 
+                state.isDragging = true; 
+                state.lastTouchX = e.touches[0].clientX; 
+                state.lastTouchY = e.touches[0].clientY; 
+                state.velocityLon = 0;
+                state.velocityLat = 0;
+            } 
+        }
+        
+        function onTouchMove(e) { 
+            if (e.touches.length === 1 && state.isDragging) { 
+                const x = e.touches[0].clientX; 
+                const y = e.touches[0].clientY; 
+                const deltaX = x - state.lastTouchX;
+                const deltaY = y - state.lastTouchY;
+                
+                state.rotLon -= deltaX * 0.2; 
+                state.rotLat += deltaY * 0.2; 
+                
+                state.velocityLon = -deltaX * 0.1;
+                state.velocityLat = deltaY * 0.1;
+
+                state.lastTouchX = x; 
+                state.lastTouchY = y; 
+            } 
+        }
+        
+        function onTouchEnd(e) { 
+            state.isDragging = false; 
+            if(Math.abs(state.velocityLon) < 0.05 && Math.abs(state.velocityLat) < 0.05) {
+                 if(e.changedTouches.length > 0) {
+                     mouse.x = (e.changedTouches[0].clientX / window.innerWidth) * 2 - 1; 
+                     mouse.y = -(e.changedTouches[0].clientY / window.innerHeight) * 2 + 1; 
+                     checkIntersection();
+                 }
+            }
+        }
+        
+        function onMouseDown(e) { 
+            state.isDragging = true; 
+            state.lastTouchX = e.clientX; 
+            state.lastTouchY = e.clientY; 
+            state.velocityLon = 0;
+            state.velocityLat = 0;
+        }
+        
+        function onMouseMove(e) { 
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; 
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; 
+            
+            if(state.isDragging) { 
+                const deltaX = e.clientX - state.lastTouchX;
+                const deltaY = e.clientY - state.lastTouchY;
+                
+                state.rotLon -= deltaX * 0.2; 
+                state.rotLat += deltaY * 0.2; 
+                
+                state.velocityLon = -deltaX * 0.1;
+                state.velocityLat = deltaY * 0.1;
+
+                state.lastTouchX = e.clientX; 
+                state.lastTouchY = e.clientY; 
+            } 
+        }
+        
+        function onMouseUp() { 
+            state.isDragging = false; 
+        }
+        
+        function onClick() { 
+            if(Math.abs(state.velocityLon) < 2 && Math.abs(state.velocityLat) < 2) {
+                checkIntersection(); 
+            }
+        }
+        
+        function checkIntersection() { 
+            raycaster.setFromCamera(mouse, camera); 
+            const intersects = raycaster.intersectObjects(meshFlatList); 
+            if(intersects.length > 0) {
+                const data = intersects[0].object.userData;
+                triggerPing(data.row, data.col);
+            } 
+        }
+
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const now = Date.now();
+            const time = (now - state.startTime) * 0.001;
+
+            if (now - state.lastSimTime > 150) {
+                updateSimulation();
+                state.lastSimTime = now;
+            }
+
+            // --- MOMENTUM PHYSICS ---
+            if (!state.isDragging) {
+                state.rotLon += state.velocityLon;
+                state.rotLat += state.velocityLat;
+                state.velocityLon *= 0.95;
+                state.velocityLat *= 0.95;
+                if(Math.abs(state.velocityLon) < 0.05) {
+                    state.velocityLon += 0.002; 
+                }
+            }
+            
+            const targetRotY = THREE.MathUtils.degToRad(state.rotLon);
+            const targetRotX = THREE.MathUtils.degToRad(state.rotLat);
+
+            sphereGroup.rotation.y += (targetRotY - sphereGroup.rotation.y) * 0.1;
+            sphereGroup.rotation.x += (targetRotX - sphereGroup.rotation.x) * 0.1;
+
+            if(debugMom) debugMom.innerText = state.velocityLon.toFixed(2);
+
+            // --- HOVER LOGIC ---
+            let hoveredObject = null;
+            if (!state.isDragging) {
+                if (mouse.x > -1 && mouse.x < 1 && mouse.y > -1 && mouse.y < 1) {
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersects = raycaster.intersectObjects(meshFlatList);
+                    if (intersects.length > 0) {
+                        hoveredObject = intersects[0].object;
+                    }
+                }
+            }
+
+            // Mesh Updates
+            meshFlatList.forEach((mesh) => {
+                const mat = mesh.material;
+                const data = mesh.userData;
+                
+                mat.uniforms.uTime.value = time;
+                
+                // Get sim value
+                const pulse = simGrid[data.row][data.col];
+                mat.uniforms.uPulse.value = pulse;
+                
+                // Physical displacement (Ping)
+                mat.uniforms.uPing.value = pulse > 1.1 ? (pulse - 1.0) * 0.5 : 0.0;
+
+                let isHovered = (mesh === hoveredObject);
+                
+                // World Position Falloff (Highlight facing nodes)
+                const worldPos = new THREE.Vector3();
+                mesh.getWorldPosition(worldPos);
+                worldPos.normalize();
+                const camDir = new THREE.Vector3(0,0,1); 
+                if(worldPos.dot(camDir) > 0.95) {
+                    // Slight ambient hover for center nodes
+                } else {
+                    isHovered = false; // Don't highlight back-facing nodes
+                }
+                
+                mat.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mat.uniforms.uHover.value) * 0.1;
+                
+                // Opacity
+                const baseOp = data.isContent ? 0.9 : 0.25;
+                mat.uniforms.uOpacity.value += (baseOp - mat.uniforms.uOpacity.value) * 0.05;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
