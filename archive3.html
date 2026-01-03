@@ -115,7 +115,6 @@
                 if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
 
                 vec3 finalColor = vec3(0.0);
-                
                 finalColor += pureWhite * textAlpha * 1.5;
                 
                 float borderStrength = border * (0.3 + uHover * 0.7);
@@ -128,8 +127,7 @@
             }
         `;
 
-        // --- Coin Shader (Cross-Browser Fix) ---
-        // Using standard Alpha Test logic compatible with mobile
+        // --- Coin Shader (Volumetric Stack - Fixed) ---
         const coinVertexShader = `
             varying vec2 vUv;
             void main() {
@@ -145,23 +143,36 @@
             varying vec2 vUv;
 
             void main() {
+                // 1. FORCE CIRCULAR CROP
+                // This eliminates the "square" plane corners completely
+                float dist = distance(vUv, vec2(0.5));
+                if (dist > 0.49) discard; // Cut off anything outside circle
+
+                // 2. TEXTURE SAMPLING
                 vec4 tex = texture2D(uTexture, vUv);
                 float shape = tex.a; 
                 
-                // EDGE DETECTION (Sharpened)
-                // Tighten the smoothstep range for a crisp line
-                // Edge starts at 0.5, solid red starts at 0.65
-                float edge = smoothstep(0.5, 0.52, shape) * (1.0 - smoothstep(0.65, 0.68, shape));
+                // 3. HARD CUTOUT (Alpha Test)
+                // If the texture itself is transparent (the logo cutout), discard.
+                if (shape < 0.4) discard; 
+
+                // 4. EDGE HIGHLIGHT
+                // Mix shape alpha edge AND geometric circle edge
+                float geoEdge = smoothstep(0.45, 0.48, dist); // White ring at outer rim
+                float texEdge = smoothstep(0.4, 0.5, shape) * (1.0 - smoothstep(0.6, 0.7, shape)); // White ring at texture edge
                 
-                // Base Red Glow
+                float totalEdge = max(geoEdge, texEdge);
+
+                // 5. COLOR
+                // Sleeping Pulse
                 float pulse = 0.6 + 0.4 * (0.5 + 0.5 * sin(uTime * 1.5));
                 vec3 baseColor = uColor * pulse * 2.0; 
                 
-                // Mix: White Edge + Red Core
-                vec3 finalColor = mix(baseColor, vec3(1.0, 1.0, 1.0), edge); 
+                // Mix White Edge + Red Core
+                vec3 finalColor = mix(baseColor, vec3(1.0, 1.0, 1.0), totalEdge); 
                 
-                // Pass alpha through for AlphaTest to handle discard
-                gl_FragColor = vec4(finalColor, shape); 
+                // Output opaque alpha for depth writing
+                gl_FragColor = vec4(finalColor, 1.0);
             }
         `;
 
@@ -192,12 +203,10 @@
             velocityLon: 0.1, 
             velocityLat: 0,
             cameraZ: DEFAULT_ZOOM_Z, 
-            
             isDragging: false,
             lastTouchX: 0,
             lastTouchY: 0,
             lastInteractionTime: Date.now(),
-            
             pinchStartDist: 0,
             pinchStartZ: DEFAULT_ZOOM_Z
         };
@@ -232,19 +241,16 @@
             canvas.height = size;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0,0,size,size);
-            
             ctx.fillStyle = '#000000'; 
             ctx.beginPath();
             ctx.arc(size/2, size/2, size*0.48, 0, Math.PI * 2); 
             ctx.fill(); 
-
             ctx.globalCompositeOperation = 'destination-out';
             ctx.font = '900 350px sans-serif'; 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText("C", size/2, size/2);
             ctx.globalCompositeOperation = 'source-over';
-
             return new THREE.CanvasTexture(canvas);
         }
 
@@ -281,12 +287,12 @@
             camera.position.set(0, 0, state.cameraZ);
             camera.lookAt(0, 0, 0);
 
-            // Robust Renderer Setup
+            // Robust Renderer for Mobile
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true, 
                 alpha: true, 
                 powerPreference: "high-performance",
-                precision: "mediump" // Better mobile compatibility
+                precision: "mediump" 
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -310,24 +316,22 @@
                 uTime: { value: 0 }
             };
 
-            // COIN SETUP
-            const layers = 30; 
+            // COIN SETUP (Reduced count for mobile perf, maintained visual density)
+            const layers = 25; 
             const thickness = 2.5; 
             const coinSize = 22; 
 
             for(let i=0; i<layers; i++) {
                 const layerGeo = new THREE.PlaneGeometry(coinSize, coinSize);
                 
-                // CRITICAL FIX FOR SAFARI MOBILE:
-                // Use alphaTest: 0.5 instead of shader discard.
-                // This lets Three.js handle the depth sorting correctly on mobile GPUs.
+                // CRITICAL: Transparent FALSE + AlphaTest ensures depth write works on iOS
                 const layerMat = new THREE.ShaderMaterial({
                     vertexShader: coinVertexShader,
                     fragmentShader: coinFragmentShader,
                     uniforms: coinUniforms,
-                    transparent: false, // Must be false for z-buffer writing
+                    transparent: false, 
                     depthWrite: true,
-                    alphaTest: 0.5, // Native alpha testing
+                    alphaTest: 0.5, 
                     side: THREE.DoubleSide,
                 });
                 
@@ -342,8 +346,10 @@
                 'CoCA-Vector-redrawn-photoshop.svg', 
                 (tex) => {
                     console.log("SVG Loaded.");
+                    // Disable mipmaps for cleaner edges on mobile
                     tex.minFilter = THREE.LinearFilter; 
                     tex.magFilter = THREE.LinearFilter;
+                    tex.generateMipmaps = false; 
                     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
                     coinUniforms.uTexture.value = tex;
                 },
@@ -435,7 +441,6 @@
             state.lastInteractionTime = Date.now();
         }
 
-        // --- WAVEFORM DRAWING (Whitish & Slow) ---
         let waveTime = 0;
         function drawWaveform() {
             const w = waveCanvas.width = window.innerWidth;
@@ -462,8 +467,6 @@
             }
         }
 
-        // --- Interaction ---
-        
         function onWheel(e) {
             e.preventDefault();
             registerInteraction();
@@ -497,13 +500,10 @@
                 const y = e.touches[0].clientY; 
                 const deltaX = x - state.lastTouchX;
                 const deltaY = y - state.lastTouchY;
-                
                 state.rotLon -= deltaX * 0.2; 
                 state.rotLat += deltaY * 0.2; 
-                
                 state.velocityLon = -deltaX * 0.1;
                 state.velocityLat = deltaY * 0.1;
-
                 state.lastTouchX = x; 
                 state.lastTouchY = y; 
             } else if (e.touches.length === 2) {
@@ -516,10 +516,7 @@
             }
         }
         
-        function onTouchEnd(e) { 
-            state.isDragging = false; 
-            registerInteraction();
-        }
+        function onTouchEnd(e) { state.isDragging = false; registerInteraction(); }
         
         function onMouseDown(e) { 
             registerInteraction();
@@ -547,7 +544,7 @@
         }
         
         function onMouseUp() { state.isDragging = false; }
-        function onClick() { /* No click */ }
+        function onClick() { }
         
         function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
 
@@ -558,7 +555,6 @@
             const now = Date.now();
             const time = (now - state.startTime) * 0.001;
 
-            // --- MAGNET / DRIFT LOGIC ---
             const timeSinceInteract = now - state.lastInteractionTime;
             const isIdle = timeSinceInteract > IDLE_TIMEOUT;
 
