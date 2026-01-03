@@ -32,25 +32,32 @@
             touch-action: none; 
         }
 
+        /* Improved Modal Scrollbar */
         #content-modal { touch-action: pan-y; }
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #1a0000; } 
-        ::-webkit-scrollbar-thumb { background: #ff0033; border-radius: 2px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0000; } 
+        ::-webkit-scrollbar-thumb { background: #ff0033; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3355; }
 
-        .glitch-text { position: relative; animation: glitch 3s infinite; }
+        .glitch-text { position: relative; animation: glitch 4s infinite; }
         @keyframes glitch {
             0% { text-shadow: 2px 2px 0px #330000; }
-            90% { text-shadow: 2px 2px 0px #330000; transform: translate(0); }
-            92% { text-shadow: -2px 2px 0px #330000; transform: translate(1px, 1px); }
-            94% { text-shadow: 2px -2px 0px #330000; transform: translate(-1px, -1px); }
-            96% { text-shadow: -2px -2px 0px #330000; transform: translate(0); }
+            94% { text-shadow: 2px 2px 0px #330000; transform: translate(0); }
+            95% { text-shadow: -2px 2px 0px #330000; transform: translate(1px, 1px); }
+            96% { text-shadow: 2px -2px 0px #330000; transform: translate(-1px, -1px); }
+            97% { text-shadow: -2px -2px 0px #330000; transform: translate(0); }
             100% { text-shadow: 2px 2px 0px #330000; }
         }
 
         .scanlines {
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
             background-size: 100% 4px;
+        }
+        
+        /* Utility for Modal content wrapper */
+        .modal-wrapper {
+            box-shadow: 0 0 100px rgba(255, 0, 51, 0.1);
         }
     </style>
 </head>
@@ -58,97 +65,118 @@
 
     <div id="canvas-container"></div>
 
-    <div class="absolute inset-0 z-50 pointer-events-none scanlines mix-blend-overlay opacity-40"></div>
-    <div class="absolute inset-0 z-50 pointer-events-none" style="background: radial-gradient(circle, transparent 40%, black 140%);"></div>
+    <!-- Reduced opacity for cleaner look -->
+    <div class="absolute inset-0 z-50 pointer-events-none scanlines mix-blend-overlay opacity-20"></div>
+    <div class="absolute inset-0 z-50 pointer-events-none" style="background: radial-gradient(circle, transparent 30%, black 150%);"></div>
 
     <!-- HUD -->
-    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none p-4 md:p-6 flex flex-col justify-between">
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none p-4 md:p-8 flex flex-col justify-between">
         <div class="flex justify-between items-start">
-            <div class="border border-[#ff0033] bg-black/90 px-3 py-2 backdrop-blur shadow-[0_0_15px_rgba(255,0,51,0.2)]">
-                <div class="flex items-center gap-2">
+            <div class="border border-[#ff0033] bg-black/80 px-4 py-2 backdrop-blur-sm shadow-[0_0_15px_rgba(255,0,51,0.15)] rounded-sm">
+                <div class="flex items-center gap-3">
                     <i data-lucide="lock" class="w-4 h-4 animate-pulse"></i>
-                    <span class="text-xs md:text-sm font-bold tracking-[0.2em]">CoCA_SECURE_ARCHIVE</span>
+                    <span class="text-xs md:text-sm font-bold tracking-[0.2em]">CoCA_ARCHIVE_V2</span>
                 </div>
             </div>
-            <div class="text-xs font-bold border border-[#ff0033] px-2 py-1 bg-black">
-                ZOOM: <span id="hud-zoom">70</span>
+            <!-- Cleaner Zoom Indicator -->
+            <div class="flex flex-col items-end gap-1">
+                 <div class="text-[10px] tracking-widest opacity-70">OPTICAL_ZOOM</div>
+                 <div class="text-xl font-bold font-mono text-[#ff0033]"><span id="hud-zoom">70</span>mm</div>
             </div>
         </div>
 
         <div id="center-prompt" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center transition-all duration-700 w-full px-4">
-            <div class="text-4xl mb-4 opacity-50 animate-bounce"><i data-lucide="fingerprint" class="mx-auto w-12 h-12"></i></div>
-            <div class="text-xs md:text-sm tracking-[0.2em] bg-black/80 px-4 py-2 inline-block border border-[#ff0033] shadow-[0_0_10px_rgba(255,0,51,0.3)]">
-                AUTHENTICATE
+            <div class="text-5xl mb-6 opacity-40 animate-bounce duration-1000"><i data-lucide="fingerprint" class="mx-auto w-16 h-16 stroke-1"></i></div>
+            <div class="text-xs md:text-sm tracking-[0.3em] bg-black/90 px-6 py-3 inline-block border border-[#ff0033]/50 shadow-[0_0_20px_rgba(255,0,51,0.2)] hover:bg-[#ff0033] hover:text-black transition-all cursor-pointer pointer-events-auto rounded-sm">
+                INITIALIZE_HANDSHAKE
             </div>
         </div>
 
-        <div class="flex justify-between items-end text-[10px] md:text-xs opacity-60">
-            <div>SIMULATION: <span id="hud-pulse">RUNNING</span></div>
-            <div>STATUS: ENCRYPTED</div>
+        <div class="flex justify-between items-end text-[10px] md:text-xs opacity-50 tracking-wider">
+            <div>
+                SYS: <span id="hud-pulse" class="text-[#ff0033]">ONLINE</span><br>
+                LAT: <span id="debug-lat">00.00</span>
+            </div>
+            <div class="text-right">
+                SECURE_CONNECTION<br>
+                ENCRYPTED_SHA256
+            </div>
         </div>
     </div>
 
     <!-- Modal -->
-    <div id="content-modal" class="absolute inset-0 z-40 hidden flex items-center justify-center bg-black/85 backdrop-blur-md transition-all duration-300 opacity-0 px-4">
-        <button id="close-btn" class="absolute top-4 right-4 z-50 pointer-events-auto p-2 border border-[#ff0033] bg-black text-[#ff0033] hover:bg-[#ff0033] hover:text-black transition-colors shadow-[0_0_15px_rgba(255,0,51,0.3)]">
-            <i data-lucide="x" class="w-8 h-8"></i>
+    <div id="content-modal" class="absolute inset-0 z-40 hidden flex items-center justify-center bg-black/90 backdrop-blur-sm transition-all duration-500 opacity-0 px-4 cursor-pointer">
+        <!-- Close Button -->
+        <button id="close-btn" class="absolute top-6 right-6 z-50 pointer-events-auto p-2 border border-[#ff0033] bg-black/50 text-[#ff0033] hover:bg-[#ff0033] hover:text-black transition-all duration-300 shadow-[0_0_20px_rgba(255,0,51,0.2)] rounded-sm">
+            <i data-lucide="x" class="w-6 h-6"></i>
         </button>
 
-        <div class="relative w-full max-w-4xl h-[85vh] md:h-[70vh] flex flex-col md:flex-row border border-[#ff0033] bg-black/95 shadow-[0_0_80px_rgba(255,0,51,0.15)] pointer-events-auto overflow-hidden rounded-sm">
-            <div class="h-16 md:h-auto md:w-20 border-b md:border-b-0 md:border-r border-[#ff0033]/50 flex flex-row md:flex-col items-center justify-center md:py-8 gap-8 bg-[#1a0000] shrink-0">
-                <i data-lucide="shield-check" class="w-5 h-5 opacity-80"></i>
-                <div class="w-px h-8 md:h-px md:w-8 bg-[#ff0033]/50"></div>
-                <div class="text-[10px] md:rotate-180 tracking-widest opacity-80 font-bold" style="writing-mode: horizontal-tb; md:writing-mode: vertical-rl;">SECURE_STORAGE</div>
+        <div id="modal-wrapper" class="relative w-full max-w-5xl h-[80vh] md:h-[75vh] flex flex-col md:flex-row border border-[#ff0033] bg-black shadow-[0_0_100px_rgba(255,0,51,0.1)] pointer-events-auto overflow-hidden rounded-sm cursor-auto">
+            <!-- Decorative Sidebar -->
+            <div class="h-14 md:h-auto md:w-16 border-b md:border-b-0 md:border-r border-[#ff0033]/30 flex flex-row md:flex-col items-center justify-between md:justify-center md:py-8 px-6 md:px-0 gap-8 bg-[#0a0000] shrink-0">
+                <i data-lucide="database" class="w-5 h-5 opacity-60"></i>
+                <div class="w-full h-px md:w-px md:h-24 bg-gradient-to-r md:bg-gradient-to-b from-transparent via-[#ff0033]/50 to-transparent"></div>
+                <div class="text-[10px] md:-rotate-90 tracking-[0.2em] opacity-60 font-bold whitespace-nowrap">RESTRICTED AREA</div>
             </div>
 
-            <div id="modal-content-area" class="flex-1 p-6 md:p-12 overflow-y-auto relative overscroll-contain">
-                <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                    <i data-lucide="file-lock" class="w-32 h-32"></i>
+            <!-- Content Area -->
+            <div id="modal-content-area" class="flex-1 p-8 md:p-12 overflow-y-auto relative overscroll-contain custom-scrollbar">
+                <!-- Background Decoration -->
+                <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none select-none">
+                    <i data-lucide="shield-alert" class="w-64 h-64"></i>
                 </div>
 
-                <div class="border-b border-[#ff0033] pb-4 mb-6">
-                    <h2 id="modal-title" class="text-2xl md:text-4xl font-black tracking-tighter glitch-text mb-2 break-all text-white">REPO_000</h2>
-                    <div class="flex gap-4 text-[10px] font-bold tracking-widest opacity-80">
-                        <span class="bg-[#ff0033] text-black px-2 py-0.5 flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> LOCKED</span>
-                        <span class="border border-[#ff0033] px-2 py-0.5">ID: <span id="modal-id">000</span></span>
+                <div class="border-b border-[#ff0033]/50 pb-6 mb-8 relative">
+                    <div class="absolute -left-2 top-0 bottom-0 w-1 bg-[#ff0033]"></div>
+                    <h2 id="modal-title" class="text-3xl md:text-5xl font-black tracking-tighter glitch-text mb-3 text-white pl-4">REPO_000</h2>
+                    <div class="flex flex-wrap gap-3 pl-4">
+                         <span class="bg-[#ff0033] text-black text-[10px] font-bold px-2 py-1 rounded-sm flex items-center gap-2">
+                            <i data-lucide="lock" class="w-3 h-3"></i> ENCRYPTED
+                        </span>
+                        <span class="border border-[#ff0033]/50 text-[#ff0033] text-[10px] font-bold px-3 py-1 rounded-sm tracking-widest">
+                            NODE_ID: <span id="modal-id">000</span>
+                        </span>
                     </div>
                 </div>
 
                 <div class="prose prose-invert max-w-none text-[#ffcccc] text-sm md:text-base leading-relaxed font-mono">
-                    <p class="text-lg mb-6 border-l-4 border-[#ff0033] pl-4">
-                        <span class="text-white font-bold">>>> REPOSITORY SECURE.</span><br>
-                        Church of Conceptual Art (CoCA) Intellectual Property Vault.
+                    <p class="text-xl mb-8 font-light text-white/90">
+                        <span class="text-[#ff0033] font-bold">>>> ACCESS GRANTED.</span><br>
+                        Welcome to the Church of Conceptual Art (CoCA) Intellectual Property Vault.
                     </p>
                     
-                    <p>
-                        You have accessed a secure node within the Archive Sphere. The contents of this repository are locked to ensure the integrity of the conceptual works housed within.
+                    <p class="mb-6 opacity-80">
+                        You have successfully established a secure neural link to Archive Node <span id="modal-id-inline" class="text-white">000</span>. This artifact represents a crystallized moment of conceptual ideation, preserved against the entropy of the digital void.
                     </p>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-8">
-                        <div class="border border-[#ff0033]/50 p-4 bg-[#ff0033]/10">
-                            <h3 class="font-bold text-[#ff0033] mb-2 text-xs flex items-center gap-2">
-                                <i data-lucide="fingerprint" class="w-4 h-4"></i> IMMUTABLE
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-10">
+                        <div class="border border-[#ff0033]/30 p-5 bg-gradient-to-br from-[#ff0033]/10 to-transparent rounded-sm hover:border-[#ff0033] transition-colors duration-300">
+                            <h3 class="font-bold text-[#ff0033] mb-3 text-xs flex items-center gap-2 tracking-widest">
+                                <i data-lucide="hash" class="w-4 h-4"></i> HASH_VERIFICATION
                             </h3>
-                            <p class="text-xs opacity-80">Concepts are cryptographically sealed against modification.</p>
+                            <p class="text-xs opacity-70 font-mono">0x7F...3A2B [MATCH]</p>
+                            <p class="text-xs opacity-60 mt-2">Integrity verified across the distributed ledger.</p>
                         </div>
-                        <div class="border border-[#ff0033]/50 p-4 bg-[#ff0033]/10">
-                            <h3 class="font-bold text-[#ff0033] mb-2 text-xs flex items-center gap-2">
-                                <i data-lucide="server" class="w-4 h-4"></i> ARCHIVED
+                        <div class="border border-[#ff0033]/30 p-5 bg-gradient-to-br from-[#ff0033]/10 to-transparent rounded-sm hover:border-[#ff0033] transition-colors duration-300">
+                            <h3 class="font-bold text-[#ff0033] mb-3 text-xs flex items-center gap-2 tracking-widest">
+                                <i data-lucide="archive" class="w-4 h-4"></i> STORAGE_PROTOCOL
                             </h3>
-                            <p class="text-xs opacity-80">Redundant storage across distributed neural pathways.</p>
+                            <p class="text-xs opacity-70 font-mono">COLD_STORAGE // TIER_1</p>
+                            <p class="text-xs opacity-60 mt-2">Redundant copies exist in Sector 7 and 9.</p>
                         </div>
                     </div>
                     
-                    <p class="text-xs opacity-50 mt-8">
-                        // ACCESS RESTRICTED: Read-only mode active.
-                    </p>
+                    <div class="border-t border-[#ff0033]/20 pt-8 mt-12 flex items-center justify-between opacity-50 text-xs">
+                        <span>SESSION_ID: <span class="text-[#ff0033]">#AF9920</span></span>
+                        <span>TERMINAL_V2.4</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- Shaders ---
+        // --- Shaders (Optimized) ---
         
         const vertexShader = `
             varying vec2 vUv;
@@ -181,74 +209,64 @@
             void main() {
                 // 1. INPUTS
                 vec4 labelColor = texture2D(uLabel, vUv);
-                float textAlpha = labelColor.a; // Strength of the number text/box
+                float textAlpha = labelColor.a; 
                 
-                // Logo sampling (Centered and bold)
                 vec2 centeredUV = (vUv - 0.5) * 0.9 + 0.5; 
                 vec4 logoTex = texture2D(uLogo, centeredUV);
                 float logoShape = logoTex.a; 
-                logoShape = smoothstep(0.05, 0.2, logoShape); // Bold thresholding
+                logoShape = smoothstep(0.05, 0.2, logoShape);
 
-                // 2. CONTRAST LOGIC (The "Mask")
-                // We want the text to sit on a "black plate" to be readable.
-                // Wherever textAlpha is high, we suppress the logo and background.
+                // 2. MASKING
                 float textMask = smoothstep(0.0, 0.5, textAlpha);
-                float logoVisibility = 1.0 - (textMask * 0.95); // 95% blocked behind text
+                float logoVisibility = 1.0 - (textMask * 0.98); // Increased masking
 
                 // 3. COLOR LAYERS
                 vec3 neonRed = uColor;
                 vec3 pureWhite = vec3(1.0, 1.0, 1.0);
 
-                // LAYER A: Background Effects (Grid & Scanlines)
-                // Border
+                // LAYER A: Background Effects
                 float border = 0.0;
-                float bw = 0.015; 
+                float bw = 0.02; // Slightly thicker border for "tight" look
                 if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
                 
-                // Grid/Scanlines
                 float grid = 0.0;
-                if (mod(vUv.x * 10.0, 1.0) < 0.03 || mod(vUv.y * 10.0, 1.0) < 0.03) grid = 0.2; 
-                float scanline = sin(vUv.y * 200.0 + uTime * 2.0) * 0.05; 
+                if (mod(vUv.x * 10.0, 1.0) < 0.05 || mod(vUv.y * 10.0, 1.0) < 0.05) grid = 0.15; 
                 
-                float bgBrightness = (grid * 0.4) + scanline;
-                // Mask background by logo (logo sits on top) AND text
+                // Slowed down scanline in shader too
+                float scanline = sin(vUv.y * 150.0 + uTime * 0.5) * 0.05; 
+                
+                float bgBrightness = (grid * 0.3) + scanline;
                 bgBrightness *= (1.0 - logoShape) * (1.0 - textMask);
 
-                // LAYER B: Logo (Red)
-                // Logo brightness boosted (1.5), but masked by text
-                float logoBrightness = logoShape * 1.5 * logoVisibility;
+                // LAYER B: Logo
+                float logoBrightness = logoShape * 1.6 * logoVisibility;
 
-                // LAYER C: Text (White)
-                // Text sits on top.
-                float textBrightness = textAlpha * 1.2;
+                // LAYER C: Text
+                float textBrightness = textAlpha * 1.3;
 
-                // 4. ANIMATION STATES
-                float pulseGlow = uPulse * 0.8; 
+                // 4. STATES
+                float pulseGlow = uPulse * 0.6; 
                 float highlight = uHover + uActive;
                 float globalGain = 1.0 + pulseGlow + highlight;
 
                 // 5. COMPOSITION
                 vec3 finalColor = vec3(0.0);
                 
-                // Add Red Components
-                finalColor += neonRed * (bgBrightness + logoBrightness + border) * globalGain;
+                // Red Channel
+                finalColor += neonRed * (bgBrightness + logoBrightness + border * 0.5) * globalGain;
                 
-                // Add White Component (Text is ALWAYS white now for contrast)
-                finalColor += pureWhite * textBrightness * globalGain;
+                // White Channel (Text + Border Highlight)
+                finalColor += pureWhite * (textBrightness + (border * 0.5 * highlight)) * globalGain;
 
-                // 6. ALPHA / OPACITY
-                float fill = 0.05 + (uHover * 0.1) + (uActive * 0.9) + (uPulse * 0.35);
-                
-                // The text and logo essentially define the "shape" of the node now
+                // 6. OPACITY
+                float fill = 0.02 + (uHover * 0.05) + (uActive * 0.95) + (uPulse * 0.2);
                 float shapeAlpha = max(border, max(logoShape, textAlpha));
-                
-                // Base opacity logic
                 float totalAlpha = (shapeAlpha + fill) * uOpacity;
                 totalAlpha = min(totalAlpha, 1.0);
 
-                // Flash white on pulse
+                // Flash white
                 if (uPulse > 0.8 && uActive < 0.1) {
-                    finalColor = mix(finalColor, vec3(1.0, 1.0, 1.0), (uPulse - 0.8) * 5.0);
+                    finalColor = mix(finalColor, vec3(1.0), (uPulse - 0.8) * 3.0);
                 }
 
                 gl_FragColor = vec4(finalColor, totalAlpha);
@@ -256,10 +274,12 @@
         `;
 
         // --- Config ---
-        const SPHERE_RADIUS = 14;
-        const NEON_RED = new THREE.Color('#ff0033'); // NEON RED
-        const DATA_ROWS = 12; 
-        const DATA_COLS = 16;
+        const SPHERE_RADIUS = 16; // Increased radius for fuller screen feel
+        const NEON_RED = new THREE.Color('#ff0033'); 
+        
+        // Increased Density for "Rounder" feel
+        const DATA_ROWS = 14; 
+        const DATA_COLS = 20; 
         
         let scene, camera, renderer, raycaster, mouse;
         let meshes = []; 
@@ -272,7 +292,7 @@
             startTime: Date.now(),
             cameraLat: 0,
             cameraLon: 90,
-            zoomFOV: 70, 
+            zoomFOV: 65, // Tighter FOV for less distortion (telephoto feel)
             isDragging: false,
             touchStartX: 0,
             touchStartY: 0,
@@ -280,14 +300,18 @@
             lastTouchY: 0,
             hasInteracted: false,
             pinchStartDist: 0,
-            pinchStartFOV: 70
+            pinchStartFOV: 65,
+            lastSimTime: 0 // For slowing down simulation
         };
 
+        // DOM Elements
         const uiZoom = document.getElementById('hud-zoom');
+        const debugLat = document.getElementById('debug-lat');
         const contentModal = document.getElementById('content-modal');
         const centerPrompt = document.getElementById('center-prompt');
         const modalTitle = document.getElementById('modal-title');
         const modalId = document.getElementById('modal-id');
+        const modalIdInline = document.getElementById('modal-id-inline');
 
         lucide.createIcons();
 
@@ -297,23 +321,24 @@
             canvas.width = size;
             canvas.height = size;
             const ctx = canvas.getContext('2d');
+            
+            // Background is transparent
             ctx.clearRect(0,0,size,size);
             
-            // Text Settings
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.font = 'bold 140px "Courier New", monospace';
-            
-            // We use White for the text color, the shader handles the rest
+            // Tighter Font
+            ctx.font = 'bold 120px "Courier New", monospace';
             ctx.fillStyle = '#ffffff';
             
             const text = number.toString().padStart(3, '0');
             ctx.fillText(text, size/2, size/2);
             
-            // Box
-            ctx.lineWidth = 10; // Slightly thicker
+            // Cleaner Box
+            ctx.lineWidth = 12; 
             ctx.strokeStyle = '#ffffff';
-            ctx.strokeRect(size * 0.15, size * 0.3, size * 0.7, size * 0.4);
+            // Slightly smaller box relative to text for tightness
+            ctx.strokeRect(size * 0.2, size * 0.35, size * 0.6, size * 0.3);
             
             return new THREE.CanvasTexture(canvas);
         }
@@ -326,21 +351,16 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0,0,size,size);
             
-            // Draw a BOLD "CoCA" symbol logic
-            ctx.fillStyle = '#000000'; // Shape must be black/opaque for Alpha logic
-            
-            // Large Circle filling the space
+            ctx.fillStyle = '#000000'; 
             ctx.beginPath();
-            ctx.arc(size/2, size/2, size*0.45, 0, Math.PI * 2);
+            ctx.arc(size/2, size/2, size*0.48, 0, Math.PI * 2); // Bigger fill
             ctx.fill(); 
 
-            // Cut out letter C
             ctx.globalCompositeOperation = 'destination-out';
-            ctx.font = 'bold 300px sans-serif';
+            ctx.font = '900 350px sans-serif'; // Bolder
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText("C", size/2, size/2);
-            
             ctx.globalCompositeOperation = 'source-over';
 
             return new THREE.CanvasTexture(canvas);
@@ -373,10 +393,10 @@
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x050000); 
-            scene.fog = new THREE.FogExp2(0x050000, 0.015);
+            scene.fog = new THREE.FogExp2(0x050000, 0.012); // Slightly less fog
 
             camera = new THREE.PerspectiveCamera(state.zoomFOV, window.innerWidth / window.innerHeight, 0.1, 100);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             container.appendChild(renderer.domElement);
@@ -384,7 +404,6 @@
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2(-100, -100);
 
-            // --- LOAD THE USER LOGO ---
             const textureLoader = new THREE.TextureLoader();
             globalLogoTexture = createPlaceholderLogo(); 
 
@@ -394,6 +413,7 @@
                     console.log("SVG Loaded.");
                     tex.minFilter = THREE.LinearFilter; 
                     tex.magFilter = THREE.LinearFilter;
+                    tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); // Crisper textures at angles
                     meshFlatList.forEach(mesh => {
                         mesh.material.uniforms.uLogo.value = tex;
                     });
@@ -402,6 +422,7 @@
                 (err) => { console.warn("Using placeholder logo."); }
             );
 
+            // Tighter packing
             const phiStep = Math.PI / DATA_ROWS;
             const thetaStep = (Math.PI * 2) / DATA_COLS;
             let idCounter = 1;
@@ -411,12 +432,13 @@
 
             for(let r=0; r<DATA_ROWS; r++) {
                 for(let c=0; c<DATA_COLS; c++) {
-                    const isContent = (r >= 3 && r <= 8); 
+                    // Adjusted content band to match new resolution
+                    const isContent = (r >= 4 && r <= 10); 
                     
                     const phiStart = c * thetaStep; 
-                    const phiLen = thetaStep;
+                    const phiLen = thetaStep * 0.98; // Slight gap for individual card feel
                     const thetaStart = r * phiStep;
-                    const thetaLen = phiStep;
+                    const thetaLen = phiStep * 0.98;
 
                     const geo = new THREE.SphereGeometry(
                         SPHERE_RADIUS, 
@@ -464,7 +486,7 @@
                     const z = SPHERE_RADIUS * Math.sin(centerTheta) * Math.sin(centerPhi);
                     const centerPos = new THREE.Vector3(x, y, z);
                     
-                    const nodeTitle = `ARCHIVE_REPO_${idCounter.toString().padStart(3,'0')}`;
+                    const nodeTitle = `REPO_${idCounter.toString().padStart(3,'0')}`;
 
                     mesh.userData = { 
                         id: idCounter, 
@@ -478,7 +500,8 @@
                     scene.add(mesh);
                     meshes[r][c] = mesh;
                     meshFlatList.push(mesh);
-                    simGrid[r][c] = Math.random() > 0.9 ? 1.0 : 0.0;
+                    // Initialize grid with reduced random noise
+                    simGrid[r][c] = Math.random() > 0.95 ? 1.0 : 0.0;
                     idCounter++;
                 }
             }
@@ -493,34 +516,63 @@
             window.addEventListener('touchmove', onTouchMove, { passive: false });
             window.addEventListener('touchend', onTouchEnd, { passive: false });
             
-            const modalContent = document.getElementById('modal-content-area');
-            if(modalContent) modalContent.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
-
             animate();
         }
+
+        // --- CLOSING LOGIC (Minimizing Details) ---
+        function closeModal() {
+            contentModal.classList.add('opacity-0');
+            setTimeout(() => { 
+                contentModal.classList.add('hidden'); 
+                state.activeId = null; 
+                // Reset mouse to prevent immediate re-hover trigger
+                mouse.x = -100; 
+                mouse.y = -100; 
+            }, 300);
+        }
+
+        document.getElementById('close-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeModal();
+        });
+
+        // Click Outside to Minimize
+        contentModal.addEventListener('click', (e) => {
+            if(e.target === contentModal) {
+                closeModal();
+            }
+        });
 
         // --- SIMULATION ---
         function updateSimulation() {
             const nextGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
-            if (Math.random() < 0.03) {
+            
+            // Randomly seed, but much less often
+            if (Math.random() < 0.01) {
                 const rr = Math.floor(Math.random() * DATA_ROWS);
                 const cc = Math.floor(Math.random() * DATA_COLS);
                 simGrid[rr][cc] = 1.0;
             }
+
             for(let r=0; r<DATA_ROWS; r++) {
                 for(let c=0; c<DATA_COLS; c++) {
                     let val = simGrid[r][c];
-                    val *= 0.92; 
+                    
+                    // Slower decay for smoother trails
+                    val *= 0.95; 
+                    
                     const cLeft = (c - 1 + DATA_COLS) % DATA_COLS;
                     const cRight = (c + 1) % DATA_COLS;
                     const rUp = Math.max(0, r - 1);
                     const rDown = Math.min(DATA_ROWS - 1, r + 1);
+                    
                     const neighbors = [ simGrid[r][cLeft], simGrid[r][cRight], simGrid[rUp][c], simGrid[rDown][c], simGrid[rUp][cLeft], simGrid[rDown][cRight] ];
                     let activeNeighbors = 0;
                     neighbors.forEach(n => { if(n > 0.5) activeNeighbors++; });
 
-                    if (val < 0.2 && activeNeighbors >= 2 && activeNeighbors <= 4 && Math.random() < 0.6) val = 1.0; 
-                    if (Math.random() < 0.002) val = 1.0;
+                    if (val < 0.2 && activeNeighbors >= 2 && activeNeighbors <= 4 && Math.random() < 0.4) val = 1.0; 
+                    if (Math.random() < 0.0005) val = 1.0;
+                    
                     nextGrid[r][c] = Math.max(0.0, Math.min(val, 1.0));
                 }
             }
@@ -537,27 +589,69 @@
                 }
             }
         }
-        function onWheel(e) { e.preventDefault(); if(state.activeId !== null) return; state.zoomFOV = Math.max(20, Math.min(120, state.zoomFOV + e.deltaY * 0.05)); camera.fov = state.zoomFOV; camera.updateProjectionMatrix(); uiZoom.innerText = Math.round(state.zoomFOV); }
+        function onWheel(e) { e.preventDefault(); if(state.activeId !== null) return; state.zoomFOV = Math.max(20, Math.min(100, state.zoomFOV + e.deltaY * 0.05)); camera.fov = state.zoomFOV; camera.updateProjectionMatrix(); uiZoom.innerText = Math.round(state.zoomFOV); }
         function onTouchStart(e) { handleFirstInteraction(); if (state.activeId !== null) return; if (e.touches.length === 1) { state.isDragging = true; state.touchStartX = state.lastTouchX = e.touches[0].clientX; state.touchStartY = state.lastTouchY = e.touches[0].clientY; } else if (e.touches.length === 2) { state.pinchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); state.pinchStartFOV = state.zoomFOV; state.isDragging = false; } }
-        function onTouchMove(e) { if (state.activeId !== null) return; if (e.touches.length === 1 && state.isDragging) { const x = e.touches[0].clientX; const y = e.touches[0].clientY; state.cameraLon -= (x - state.lastTouchX) * 0.5; state.cameraLat += (y - state.lastTouchY) * 0.5; state.lastTouchX = x; state.lastTouchY = y; } else if (e.touches.length === 2) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); state.zoomFOV = Math.max(20, Math.min(120, state.pinchStartFOV * (state.pinchStartDist / dist))); camera.fov = state.zoomFOV; camera.updateProjectionMatrix(); uiZoom.innerText = Math.round(state.zoomFOV); } }
+        function onTouchMove(e) { if (state.activeId !== null) return; if (e.touches.length === 1 && state.isDragging) { const x = e.touches[0].clientX; const y = e.touches[0].clientY; state.cameraLon -= (x - state.lastTouchX) * 0.5; state.cameraLat += (y - state.lastTouchY) * 0.5; state.lastTouchX = x; state.lastTouchY = y; } else if (e.touches.length === 2) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); state.zoomFOV = Math.max(20, Math.min(100, state.pinchStartFOV * (state.pinchStartDist / dist))); camera.fov = state.zoomFOV; camera.updateProjectionMatrix(); uiZoom.innerText = Math.round(state.zoomFOV); } }
         function onTouchEnd(e) { if (state.activeId !== null) return; state.isDragging = false; if(e.changedTouches.length === 1 && e.touches.length === 0 && Math.hypot(e.changedTouches[0].clientX - state.touchStartX, e.changedTouches[0].clientY - state.touchStartY) < 10) { mouse.x = (e.changedTouches[0].clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.changedTouches[0].clientY / window.innerHeight) * 2 + 1; checkIntersection(); } }
         function onMouseDown(e) { handleFirstInteraction(); if(state.activeId !== null) return; state.isDragging = true; state.lastTouchX = e.clientX; state.lastTouchY = e.clientY; }
         function onMouseMove(e) { mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; if(state.isDragging && state.activeId === null) { state.cameraLon -= (e.clientX - state.lastTouchX) * 0.1; state.cameraLat += (e.clientY - state.lastTouchY) * 0.1; state.lastTouchX = e.clientX; state.lastTouchY = e.clientY; } }
         function onMouseUp() { state.isDragging = false; }
         function onClick() { if(state.activeId === null) checkIntersection(); }
-        function checkIntersection() { raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(meshFlatList); if(intersects.length > 0) activateNode(intersects[0].object.userData); }
-        function activateNode(data) { state.activeId = data.id; modalTitle.innerText = data.title; modalId.innerText = data.id.toString().padStart(3, '0'); contentModal.classList.remove('hidden'); setTimeout(() => contentModal.classList.remove('opacity-0'), 50); }
-        document.getElementById('close-btn').addEventListener('click', (e) => { e.stopPropagation(); contentModal.classList.add('opacity-0'); setTimeout(() => { contentModal.classList.add('hidden'); state.activeId = null; mouse.x = -100; mouse.y = -100; }, 300); });
+        
+        // --- OPTIMIZED RAYCASTING ---
+        function checkIntersection() { 
+            raycaster.setFromCamera(mouse, camera); 
+            // Only check intersection on Click event
+            const intersects = raycaster.intersectObjects(meshFlatList); 
+            if(intersects.length > 0) activateNode(intersects[0].object.userData); 
+        }
+
+        function activateNode(data) { 
+            state.activeId = data.id; 
+            modalTitle.innerText = data.title; 
+            modalId.innerText = data.id.toString().padStart(3, '0'); 
+            modalIdInline.innerText = data.id.toString().padStart(3, '0');
+            contentModal.classList.remove('hidden'); 
+            setTimeout(() => contentModal.classList.remove('opacity-0'), 50); 
+        }
+        
         function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
 
         function animate() {
             requestAnimationFrame(animate);
-            const time = (Date.now() - state.startTime) * 0.001;
-            updateSimulation();
+            
+            const now = Date.now();
+            const time = (now - state.startTime) * 0.001;
 
+            // --- SIMULATION TIMING (200% Slower) ---
+            // Run sim every 150ms instead of 16ms
+            if (now - state.lastSimTime > 150) {
+                updateSimulation();
+                state.lastSimTime = now;
+            }
+
+            // --- OPTIMIZED HOVER LOGIC ---
+            // Don't raycast inside the loop. Do it once.
+            let hoveredObject = null;
+            if (!state.isDragging && state.activeId === null) {
+                // Check if mouse is on screen
+                if (mouse.x > -1 && mouse.x < 1 && mouse.y > -1 && mouse.y < 1) {
+                    raycaster.setFromCamera(mouse, camera);
+                    // This is the heavy operation, done only once per frame now
+                    const intersects = raycaster.intersectObjects(meshFlatList);
+                    if (intersects.length > 0) {
+                        hoveredObject = intersects[0].object;
+                    }
+                }
+            }
+
+            // Camera Movement
             if(state.activeId === null) {
                 state.cameraLat = Math.max(-85, Math.min(85, state.cameraLat));
-                if(!state.isDragging && state.hasInteracted) state.cameraLon += 0.02;
+                if(!state.isDragging && state.hasInteracted) state.cameraLon += 0.03; // Smooth rotation
+                
+                // Debug UI
+                if(debugLat) debugLat.innerText = state.cameraLat.toFixed(2);
 
                 const phi = THREE.MathUtils.degToRad(90 - state.cameraLat);
                 const theta = THREE.MathUtils.degToRad(state.cameraLon);
@@ -568,34 +662,45 @@
                 camera.lookAt(targetX, targetY, targetZ);
             }
 
+            // Mesh Updates
             meshFlatList.forEach((mesh) => {
                 const mat = mesh.material;
                 const data = mesh.userData;
+                
                 mat.uniforms.uTime.value = time;
                 mat.uniforms.uPulse.value = simGrid[data.row][data.col];
 
-                let isHovered = false;
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObjects(meshFlatList);
-                if(intersects.length > 0 && intersects[0].object === mesh) isHovered = true;
+                // Hover check is now O(1) inside loop
+                let isHovered = (mesh === hoveredObject);
+                
+                // Camera Center Check (Falloff hover)
                 if(!state.isDragging && state.activeId === null && !isHovered) {
-                    const c = new THREE.Vector3(); camera.getWorldDirection(c); const dir = data.centerPos.clone().normalize();
-                    if(dir.dot(c) > 0.97) isHovered = true;
+                    const c = new THREE.Vector3(); 
+                    camera.getWorldDirection(c); 
+                    const dir = data.centerPos.clone().normalize();
+                    // Increased strictness for cleaner center-only highlight
+                    if(dir.dot(c) > 0.985) isHovered = true;
                 }
-                mat.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mat.uniforms.uHover.value) * 0.15;
+                
+                // Smoothly interpolate hover state
+                mat.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mat.uniforms.uHover.value) * 0.1;
 
                 if(state.activeId !== null) {
                     if(data.id === state.activeId) {
-                        const dist = 4.0; const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+                        const dist = 3.5; // Closer zoom
+                        const dir = new THREE.Vector3(); 
+                        camera.getWorldDirection(dir);
                         const targetPos = camera.position.clone().add(dir.multiplyScalar(dist));
-                        mesh.position.lerp(targetPos, 0.1);
+                        mesh.position.lerp(targetPos, 0.08);
                         mesh.lookAt(camera.position); 
-                        mat.uniforms.uFlatten.value += (1.0 - mat.uniforms.uFlatten.value) * 0.08;
+                        mat.uniforms.uFlatten.value += (1.0 - mat.uniforms.uFlatten.value) * 0.05;
                         mat.uniforms.uActive.value = 1.0;
                         mat.uniforms.uOpacity.value = 1.0;
                     } else {
+                        // Return to sphere
                         mesh.position.lerp(new THREE.Vector3(0,0,0), 0.1);
-                        mesh.lookAt(new THREE.Vector3(0,0,0)); mesh.quaternion.slerp(new THREE.Quaternion(), 0.1);
+                        mesh.lookAt(new THREE.Vector3(0,0,0)); 
+                        mesh.quaternion.slerp(new THREE.Quaternion(), 0.1);
                         mat.uniforms.uFlatten.value += (0.0 - mat.uniforms.uFlatten.value) * 0.1;
                         mat.uniforms.uActive.value = 0.0;
                         mat.uniforms.uOpacity.value += (0.05 - mat.uniforms.uOpacity.value) * 0.1;
