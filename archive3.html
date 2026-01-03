@@ -33,6 +33,18 @@
             touch-action: none; 
         }
 
+        #waveform-layer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            z-index: 5;
+            pointer-events: none;
+            /* Changed mix-blend-mode to normal or lighten so white pops */
+            mix-blend-mode: lighten;
+        }
+
         .scanlines {
             background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
             background-size: 100% 4px;
@@ -42,6 +54,7 @@
 <body>
 
     <div id="canvas-container"></div>
+    <canvas id="waveform-layer"></canvas>
 
     <!-- Reduced opacity for cleaner look -->
     <div class="absolute inset-0 z-50 pointer-events-none scanlines mix-blend-overlay opacity-20"></div>
@@ -59,7 +72,7 @@
             <!-- Cleaner Zoom Indicator -->
             <div class="flex flex-col items-end gap-1">
                  <div class="text-[10px] tracking-widest opacity-70">ORBITAL_VIEW</div>
-                 <div class="text-xl font-bold font-mono text-[#ff0033]"><span id="hud-zoom">75</span>%</div>
+                 <div class="text-xl font-bold font-mono text-[#ff0033]"><span id="hud-zoom">190</span>%</div>
             </div>
         </div>
 
@@ -81,10 +94,8 @@
         const vertexShader = `
             varying vec2 vUv;
             
-            // We removed the flatten logic to keep it a perfect sphere
-            // But we keep the variable so we don't break existing uniforms
             uniform float uFlatten; 
-            uniform float uPing; // New uniform for the ripple effect
+            uniform float uPing; 
             uniform float uWidth;
             uniform float uHeight;
 
@@ -150,7 +161,6 @@
                 float textBrightness = textAlpha * 1.3;
 
                 // 4. STATES
-                // uPulse comes from the Automata sim
                 float pulseGlow = uPulse * 0.6; 
                 float highlight = uHover + uActive;
                 float globalGain = 1.0 + pulseGlow + highlight;
@@ -158,10 +168,7 @@
                 // 5. COMPOSITION
                 vec3 finalColor = vec3(0.0);
                 
-                // Red Channel
                 finalColor += neonRed * (bgBrightness + logoBrightness + border * 0.5) * globalGain;
-                
-                // White Channel (Text + Border Highlight)
                 finalColor += pureWhite * (textBrightness + (border * 0.5 * highlight)) * globalGain;
 
                 // 6. OPACITY
@@ -170,7 +177,6 @@
                 float totalAlpha = (shapeAlpha + fill) * uOpacity;
                 totalAlpha = min(totalAlpha, 1.0);
 
-                // Flash white on strong pulse (ping)
                 if (uPulse > 0.8) {
                     finalColor = mix(finalColor, vec3(1.0), (uPulse - 0.8) * 3.0);
                 }
@@ -185,31 +191,48 @@
         const DATA_ROWS = 14; 
         const DATA_COLS = 20; 
         
+        // --- ZOOM CONFIGURATION ---
+        // 75 was the previous "100%" reference. 
+        // 40 moves camera closer to make sphere larger.
+        // 75 / 40 * 100 = 187.5% -> ~190%
+        const REFERENCE_ZOOM_Z = 75; 
+        const DEFAULT_ZOOM_Z = 40; 
+        const IDLE_TIMEOUT = 3000; 
+        
         let scene, camera, renderer, raycaster, mouse;
         let sphereGroup; 
         let meshes = []; 
         let meshFlatList = []; 
         let simGrid = []; 
         let globalLogoTexture; 
+        
+        // Waveform Canvas
+        const waveCanvas = document.getElementById('waveform-layer');
+        const waveCtx = waveCanvas.getContext('2d');
 
         const state = {
             startTime: Date.now(),
-            // Camera/Group Rotation State
             rotLon: 0,
             rotLat: 0,
-            velocityLon: 0.1, // Initial spin
+            velocityLon: 0.1, 
             velocityLat: 0,
-            zoomFOV: 55, 
+            cameraZ: DEFAULT_ZOOM_Z, 
             
-            // Drag State
             isDragging: false,
             lastTouchX: 0,
             lastTouchY: 0,
             
-            lastSimTime: 0 
+            lastSimTime: 0,
+            lastInteractionTime: Date.now(),
+            
+            pinchStartDist: 0,
+            pinchStartZ: DEFAULT_ZOOM_Z,
+            
+            activeCellCount: 0
         };
 
         const debugMom = document.getElementById('debug-mom');
+        const uiZoom = document.getElementById('hud-zoom');
         lucide.createIcons();
 
         function createLabelTexture(number) {
@@ -288,9 +311,8 @@
             scene.background = new THREE.Color(0x050000); 
             scene.fog = new THREE.FogExp2(0x050000, 0.015);
 
-            camera = new THREE.PerspectiveCamera(state.zoomFOV, window.innerWidth / window.innerHeight, 0.1, 100);
-            // 75% Zoom equivalent (Pull back)
-            camera.position.set(0, 0, 75);
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.set(0, 0, state.cameraZ);
             camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -334,13 +356,10 @@
                     const isContent = (r >= 4 && r <= 10); 
                     
                     const phiStart = c * thetaStep; 
-                    const phiLen = thetaStep * 0.98; // Small gaps
+                    const phiLen = thetaStep * 0.98; 
                     const thetaStart = r * phiStep;
-                    const thetaLen = phiStep * 0.98; // Small gaps
+                    const thetaLen = phiStep * 0.98; 
 
-                    // 1. CREATE GEOMETRY AT THE ORIGIN
-                    // SphereGeometry naturally creates vertices at SPHERE_RADIUS distance from (0,0,0)
-                    // We use the phi/theta parameters to just create one segment of that sphere
                     const geo = new THREE.SphereGeometry(
                         SPHERE_RADIUS, 
                         16, 16, 
@@ -351,8 +370,6 @@
 
                     const labelTex = createLabelTexture(idCounter);
 
-                    // We calculate where the center of this segment is for Raycasting/Logic
-                    // But we DO NOT move the mesh. The vertices are already in place.
                     const centerPhi = phiStart + phiLen/2; 
                     const centerTheta = thetaStart + thetaLen/2;
                     const x = -SPHERE_RADIUS * Math.sin(centerTheta) * Math.cos(centerPhi);
@@ -370,9 +387,9 @@
                             uHover: { value: 0 },
                             uActive: { value: 0 },
                             uPulse: { value: 0 }, 
-                            uPing: { value: 0 }, // New uniform for physical ripple
+                            uPing: { value: 0 }, 
                             uFlatten: { value: 0 },
-                            uWidth: { value: 1.0 }, // Not used for folding anymore
+                            uWidth: { value: 1.0 }, 
                             uHeight: { value: 1.0 },
                             uLabel: { value: labelTex },
                             uLogo: { value: globalLogoTexture }
@@ -385,8 +402,6 @@
 
                     const mesh = new THREE.Mesh(geo, material);
                     
-                    // 2. DO NOT MOVE MESH. DO NOT ROTATE MESH.
-                    // This ensures a perfect contiguous sphere.
                     mesh.position.set(0,0,0);
                     mesh.rotation.set(0,0,0);
                     
@@ -411,6 +426,7 @@
             window.addEventListener('mousedown', onMouseDown, false);
             window.addEventListener('mouseup', onMouseUp, false);
             window.addEventListener('click', onClick, false);
+            window.addEventListener('wheel', onWheel, { passive: false });
             window.addEventListener('touchstart', onTouchStart, { passive: false });
             window.addEventListener('touchmove', onTouchMove, { passive: false });
             window.addEventListener('touchend', onTouchEnd, { passive: false });
@@ -421,6 +437,8 @@
         // --- SIMULATION ---
         function updateSimulation() {
             const nextGrid = new Array(DATA_ROWS).fill(0).map(() => new Array(DATA_COLS).fill(0));
+            let activeCount = 0;
+
             if (Math.random() < 0.01) {
                 const rr = Math.floor(Math.random() * DATA_ROWS);
                 const cc = Math.floor(Math.random() * DATA_COLS);
@@ -440,40 +458,109 @@
 
                     if (val < 0.2 && activeNeighbors >= 2 && activeNeighbors <= 4 && Math.random() < 0.4) val = 1.0; 
                     if (Math.random() < 0.0005) val = 1.0;
+                    
+                    if (val > 0.1) activeCount++;
                     nextGrid[r][c] = Math.max(0.0, Math.min(val, 1.0));
                 }
             }
             simGrid = nextGrid;
+            state.activeCellCount = activeCount;
         }
 
         function triggerPing(r, c) {
-            // High energy ping
-            simGrid[r][c] = 2.0; // Overcharge
-            
-            // Immediate neighbors
+            simGrid[r][c] = 2.0; 
             const cLeft = (c - 1 + DATA_COLS) % DATA_COLS;
             const cRight = (c + 1) % DATA_COLS;
             const rUp = Math.max(0, r - 1);
             const rDown = Math.min(DATA_ROWS - 1, r + 1);
-            
             simGrid[rUp][c] = 1.5;
             simGrid[rDown][c] = 1.5;
             simGrid[r][cLeft] = 1.5;
             simGrid[r][cRight] = 1.5;
+            registerInteraction();
+        }
+
+        function registerInteraction() {
+            state.lastInteractionTime = Date.now();
+        }
+
+        // --- WAVEFORM DRAWING (Whitish) ---
+        let waveTime = 0;
+        function drawWaveform() {
+            const w = waveCanvas.width = window.innerWidth;
+            const h = waveCanvas.height = 150;
+            
+            waveCtx.clearRect(0,0,w,h);
+            // Strong white base stroke
+            waveCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            waveCtx.lineWidth = 1.5;
+            
+            waveTime += 0.05;
+            
+            const activityLevel = Math.min(state.activeCellCount / 50, 1.0); 
+            const ampBase = 10 + (activityLevel * 30);
+
+            // Draw white layers
+            for(let l = 0; l < 3; l++) {
+                waveCtx.beginPath();
+                waveCtx.strokeStyle = `rgba(255, 255, 255, ${0.3 + (l*0.15)})`; // Increasing opacity
+                for(let x = 0; x < w; x+=5) {
+                    const n1 = Math.sin(x * 0.01 + waveTime + (l*20)) * ampBase;
+                    const n2 = Math.cos(x * 0.03 - waveTime) * (ampBase * 0.5);
+                    const n3 = Math.sin(x * 0.1 + waveTime*2) * (ampBase * 0.2 * activityLevel); 
+                    
+                    const y = (h/2) + n1 + n2 + n3;
+                    if(x===0) waveCtx.moveTo(x,y);
+                    else waveCtx.lineTo(x,y);
+                }
+                waveCtx.stroke();
+            }
+            
+            // Faint grid
+            waveCtx.fillStyle = 'rgba(255,255,255,0.1)';
+            for(let x=0; x<w; x+=100) {
+                waveCtx.fillRect(x, h/2 - 2, 2, 4);
+            }
         }
 
         // --- Interaction ---
+        
+        function onWheel(e) {
+            e.preventDefault();
+            registerInteraction();
+            
+            // Zoom Logic (modify Camera Z)
+            state.cameraZ += e.deltaY * 0.05;
+            state.cameraZ = Math.max(20, Math.min(150, state.cameraZ));
+            
+            camera.position.z = state.cameraZ;
+            
+            // Calculate % relative to REFERENCE_ZOOM_Z
+            const zoomPct = Math.round((REFERENCE_ZOOM_Z / state.cameraZ) * 100);
+            uiZoom.innerText = zoomPct;
+        }
+
         function onTouchStart(e) { 
+            registerInteraction();
             if (e.touches.length === 1) { 
                 state.isDragging = true; 
                 state.lastTouchX = e.touches[0].clientX; 
                 state.lastTouchY = e.touches[0].clientY; 
                 state.velocityLon = 0;
                 state.velocityLat = 0;
-            } 
+            } else if (e.touches.length === 2) {
+                state.isDragging = false; 
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX, 
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                state.pinchStartDist = dist;
+                state.pinchStartZ = state.cameraZ;
+            }
         }
         
         function onTouchMove(e) { 
+            registerInteraction();
             if (e.touches.length === 1 && state.isDragging) { 
                 const x = e.touches[0].clientX; 
                 const y = e.touches[0].clientY; 
@@ -488,13 +575,26 @@
 
                 state.lastTouchX = x; 
                 state.lastTouchY = y; 
-            } 
+            } else if (e.touches.length === 2) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX, 
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                // Pinch Zoom Logic
+                const scale = state.pinchStartDist / dist;
+                state.cameraZ = Math.max(20, Math.min(150, state.pinchStartZ * scale));
+                camera.position.z = state.cameraZ;
+                
+                const zoomPct = Math.round((REFERENCE_ZOOM_Z / state.cameraZ) * 100);
+                uiZoom.innerText = zoomPct;
+            }
         }
         
         function onTouchEnd(e) { 
             state.isDragging = false; 
+            registerInteraction();
             if(Math.abs(state.velocityLon) < 0.05 && Math.abs(state.velocityLat) < 0.05) {
-                 if(e.changedTouches.length > 0) {
+                 if(e.changedTouches.length > 0 && e.touches.length === 0) {
                      mouse.x = (e.changedTouches[0].clientX / window.innerWidth) * 2 - 1; 
                      mouse.y = -(e.changedTouches[0].clientY / window.innerHeight) * 2 + 1; 
                      checkIntersection();
@@ -503,6 +603,7 @@
         }
         
         function onMouseDown(e) { 
+            registerInteraction();
             state.isDragging = true; 
             state.lastTouchX = e.clientX; 
             state.lastTouchY = e.clientY; 
@@ -515,6 +616,7 @@
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; 
             
             if(state.isDragging) { 
+                registerInteraction();
                 const deltaX = e.clientX - state.lastTouchX;
                 const deltaY = e.clientY - state.lastTouchY;
                 
@@ -552,6 +654,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            drawWaveform();
             
             const now = Date.now();
             const time = (now - state.startTime) * 0.001;
@@ -561,14 +664,34 @@
                 state.lastSimTime = now;
             }
 
-            // --- MOMENTUM PHYSICS ---
+            // --- MAGNET / DRIFT LOGIC ---
+            const timeSinceInteract = now - state.lastInteractionTime;
+            const isIdle = timeSinceInteract > IDLE_TIMEOUT;
+
             if (!state.isDragging) {
+                // Apply momentum
                 state.rotLon += state.velocityLon;
                 state.rotLat += state.velocityLat;
                 state.velocityLon *= 0.95;
                 state.velocityLat *= 0.95;
-                if(Math.abs(state.velocityLon) < 0.05) {
-                    state.velocityLon += 0.002; 
+                
+                // Idle Behavior (Drift back to center/default)
+                if (isIdle) {
+                    // Drift Zoom back to DEFAULT_ZOOM_Z
+                    state.cameraZ += (DEFAULT_ZOOM_Z - state.cameraZ) * 0.01;
+                    camera.position.z = state.cameraZ;
+                    
+                    const zoomPct = Math.round((REFERENCE_ZOOM_Z / state.cameraZ) * 100);
+                    uiZoom.innerText = zoomPct;
+
+                    // Drift Rotation (Lat to 0, vertical upright)
+                    state.rotLat += (0 - state.rotLat) * 0.02;
+                    
+                    // Maintain gentle spin on Lon
+                    if (Math.abs(state.velocityLon) < 0.05) state.velocityLon = 0.05;
+                } else {
+                    // Min spin if active but just let go
+                    if(Math.abs(state.velocityLon) < 0.05) state.velocityLon += 0.002; 
                 }
             }
             
@@ -599,29 +722,25 @@
                 
                 mat.uniforms.uTime.value = time;
                 
-                // Get sim value
                 const pulse = simGrid[data.row][data.col];
                 mat.uniforms.uPulse.value = pulse;
-                
-                // Physical displacement (Ping)
                 mat.uniforms.uPing.value = pulse > 1.1 ? (pulse - 1.0) * 0.5 : 0.0;
 
                 let isHovered = (mesh === hoveredObject);
                 
-                // World Position Falloff (Highlight facing nodes)
+                // World Position Falloff
                 const worldPos = new THREE.Vector3();
                 mesh.getWorldPosition(worldPos);
                 worldPos.normalize();
                 const camDir = new THREE.Vector3(0,0,1); 
                 if(worldPos.dot(camDir) > 0.95) {
-                    // Slight ambient hover for center nodes
+                    // Center
                 } else {
-                    isHovered = false; // Don't highlight back-facing nodes
+                    isHovered = false; 
                 }
                 
                 mat.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mat.uniforms.uHover.value) * 0.1;
                 
-                // Opacity
                 const baseOp = data.isContent ? 0.9 : 0.25;
                 mat.uniforms.uOpacity.value += (baseOp - mat.uniforms.uOpacity.value) * 0.05;
             });
