@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoCA // ARCHIVE_CONSTELLATION</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            color: #ffffff; 
+            font-family: 'Courier New', Courier, monospace;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            cursor: move; 
+        }
+        
+        #canvas-container { 
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            touch-action: none; 
+        }
+
+        #waveform-layer {
+            position: absolute;
+            bottom: 100px;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            z-index: 5;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            opacity: 0.6;
+        }
+
+        .scanlines {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 3px;
+        }
+
+        .nav-btn {
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.9);
+            color: rgba(255,255,255,0.6);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .nav-btn:hover {
+            border-color: #ffffff;
+            color: #ffffff;
+            background: rgba(50,50,50,0.8);
+        }
+        .nav-btn.active {
+            border-color: #ffffff;
+            background: #ffffff;
+            color: #000000;
+            box-shadow: 0 0 15px rgba(255,255,255,0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <canvas id="waveform-layer"></canvas>
+
+    <!-- Scanlines & Vignette -->
+    <div class="absolute inset-0 z-50 pointer-events-none scanlines mix-blend-overlay opacity-20"></div>
+    <div class="absolute inset-0 z-50 pointer-events-none" style="background: radial-gradient(circle, transparent 40%, black 140%);"></div>
+
+    <!-- Top HUD -->
+    <div id="ui-layer" class="absolute top-0 left-0 right-0 z-10 pointer-events-none p-6 flex justify-between items-start">
+        <div class="border border-white/50 bg-black/80 px-4 py-2 backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.1)] rounded-sm">
+            <div class="flex items-center gap-3">
+                <i data-lucide="network" class="w-4 h-4 animate-pulse"></i>
+                <span class="text-xs md:text-sm font-bold tracking-[0.2em]">ARCHIVE_CONSTELLATION</span>
+            </div>
+        </div>
+        <div class="flex flex-col items-end gap-1 text-white">
+             <div class="text-[10px] tracking-widest opacity-70">ORBIT_RADIUS</div>
+             <div class="text-xl font-bold font-mono"><span id="hud-zoom">40</span>m</div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex gap-4 pointer-events-auto">
+        <button onclick="focusNode(0)" class="nav-btn px-6 py-3 text-xs font-bold rounded-sm active" id="btn-0">
+            Node_Red
+        </button>
+        <button onclick="focusNode(1)" class="nav-btn px-6 py-3 text-xs font-bold rounded-sm" id="btn-1">
+            Node_Grn
+        </button>
+        <button onclick="focusNode(2)" class="nav-btn px-6 py-3 text-xs font-bold rounded-sm" id="btn-2">
+            Node_Blu
+        </button>
+    </div>
+
+    <script>
+        // --- Shaders ---
+        
+        // Node Surface (Transparent Glass with Text)
+        const nodeVertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const nodeFragmentShader = `
+            uniform vec3 uColor;
+            uniform float uOpacity;
+            uniform float uHover;
+            uniform sampler2D uLabel;
+            
+            varying vec2 vUv;
+
+            void main() {
+                vec4 labelColor = texture2D(uLabel, vUv);
+                float textAlpha = labelColor.a; 
+                vec3 pureWhite = vec3(1.0);
+                
+                float border = 0.0;
+                float bw = 0.02; 
+                if (vUv.x < bw || vUv.x > 1.0 - bw || vUv.y < bw || vUv.y > 1.0 - bw) border = 1.0;
+
+                vec3 finalColor = vec3(0.0);
+                finalColor += pureWhite * textAlpha * 1.8; 
+                
+                float borderStrength = border * (0.3 + uHover * 0.7);
+                finalColor += uColor * borderStrength;
+
+                float baseAlpha = 0.05 + (uHover * 0.1);
+                float totalAlpha = max(textAlpha, max(border * 0.5, baseAlpha)) * uOpacity;
+
+                gl_FragColor = vec4(finalColor, totalAlpha);
+            }
+        `;
+
+        // Central Coin (Solid with Rim Light)
+        const coinVertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const coinFragmentShader = `
+            uniform sampler2D uTexture;
+            uniform vec3 uColor;
+            uniform float uTime;
+            varying vec2 vUv;
+
+            void main() {
+                float dist = distance(vUv, vec2(0.5));
+                if (dist > 0.49) discard;
+
+                vec4 tex = texture2D(uTexture, vUv);
+                float shape = tex.a; 
+                if (shape < 0.4) discard; 
+
+                float edge = smoothstep(0.5, 0.52, shape) * (1.0 - smoothstep(0.65, 0.68, shape));
+                
+                float pulse = 0.6 + 0.4 * (0.5 + 0.5 * sin(uTime * 1.5));
+                vec3 baseColor = uColor * pulse * 2.0; 
+                
+                vec3 finalColor = mix(baseColor, vec3(1.0), edge); 
+                
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+
+        // --- Config ---
+        const SPHERE_RADIUS = 16; 
+        const DATA_ROWS = 14; 
+        const DATA_COLS = 20; 
+        
+        // Colors
+        const COL_RED = new THREE.Color('#ff0033');
+        const COL_GRN = new THREE.Color('#00ff41');
+        const COL_BLU = new THREE.Color('#0088ff');
+        
+        // Sphere Positions - Spread out more for better zoom-out view
+        const SPHERE_POSITIONS = [
+            new THREE.Vector3(0, 0, 0),        // Center (Red)
+            new THREE.Vector3(120, 30, -60),   // Right Back (Green)
+            new THREE.Vector3(-100, -50, 40)   // Left Front (Blue)
+        ];
+
+        // Zoom Limits
+        const ZOOM_MIN = 35;  // Close up
+        const ZOOM_MAX = 450; // See all constellation
+        const IDLE_TIMEOUT = 4000; 
+        
+        let scene, camera, renderer, raycaster, mouse;
+        let spheres = []; 
+        let meshFlatList = []; 
+        
+        const waveCanvas = document.getElementById('waveform-layer');
+        const waveCtx = waveCanvas.getContext('2d');
+
+        const state = {
+            startTime: Date.now(),
+            
+            // CAMERA ORBIT STATE (Spherical Coordinates)
+            // Theta = Horizontal (Longitude), Phi = Vertical (Latitude)
+            camTheta: Math.PI / 2, 
+            camPhi: Math.PI / 2,
+            camRadius: 50,
+            
+            // Momentum
+            velTheta: 0.002, 
+            velPhi: 0,
+            
+            // Target Interpolation
+            targetCenter: new THREE.Vector3(0,0,0), // Where we orbit around
+            currentCenter: new THREE.Vector3(0,0,0), // Current orbit center
+            
+            activeNodeIndex: 0, 
+            
+            isDragging: false,
+            lastTouchX: 0,
+            lastTouchY: 0,
+            lastInteractionTime: Date.now(),
+            
+            pinchStartDist: 0,
+            pinchStartZoom: 0
+        };
+
+        const uiZoom = document.getElementById('hud-zoom');
+        lucide.createIcons();
+
+        // --- Init ---
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020202); 
+            // Fog far enough to see constellation, close enough to fade distant void
+            scene.fog = new THREE.FogExp2(0x020202, 0.0015);
+
+            // Far plane increased to prevent clipping when zoomed out
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+            
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, alpha: true, powerPreference: "high-performance", precision: "mediump" 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2(-100, -100);
+
+            // Load Logo
+            const textureLoader = new THREE.TextureLoader();
+            const placeholderTex = createPlaceholderLogo();
+            const sharedTexValue = { value: placeholderTex };
+
+            textureLoader.load('CoCA-Vector-redrawn-photoshop.svg', (tex) => {
+                tex.minFilter = THREE.LinearFilter; 
+                tex.magFilter = THREE.LinearFilter;
+                tex.generateMipmaps = false; 
+                tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                sharedTexValue.value = tex;
+            });
+
+            // Create 3 Spheres
+            const colors = [COL_RED, COL_GRN, COL_BLU];
+            
+            for(let i=0; i<3; i++) {
+                createArchiveSphere(i, colors[i], SPHERE_POSITIONS[i], sharedTexValue);
+            }
+
+            // Bind Events
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('mousedown', onMouseDown, false);
+            window.addEventListener('mouseup', onMouseUp, false);
+            window.addEventListener('wheel', onWheel, { passive: false });
+            window.addEventListener('touchstart', onTouchStart, { passive: false });
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onTouchEnd, { passive: false });
+            
+            animate();
+        }
+
+        // --- Factories ---
+
+        function createLabelTexture(number) {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,size,size);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 120px "Courier New", monospace';
+            ctx.fillStyle = '#ffffff';
+            const text = number.toString().padStart(3, '0');
+            ctx.fillText(text, size/2, size/2);
+            ctx.lineWidth = 12; 
+            ctx.strokeStyle = '#ffffff';
+            ctx.strokeRect(size * 0.2, size * 0.35, size * 0.6, size * 0.3);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createPlaceholderLogo() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,size,size);
+            ctx.fillStyle = '#ffffff'; 
+            ctx.beginPath(); ctx.arc(size/2, size/2, size*0.48, 0, Math.PI * 2); ctx.fill(); 
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.font = '900 350px sans-serif'; 
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText("C", size/2, size/2);
+            ctx.globalCompositeOperation = 'source-over';
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function normalizeUVs(geo) {
+            const uv = geo.attributes.uv;
+            let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+            for(let i=0; i<uv.count; i++){
+                const u=uv.getX(i); const v=uv.getY(i);
+                if(u<minU)minU=u; if(u>maxU)maxU=u; if(v<minV)minV=v; if(v>maxV)maxV=v;
+            }
+            const rU=maxU-minU; const rV=maxV-minV;
+            if(rU<0.001 || rV<0.001) return;
+            for(let i=0; i<uv.count; i++){
+                uv.setXY(i, (uv.getX(i)-minU)/rU, (uv.getY(i)-minV)/rV);
+            }
+            uv.needsUpdate=true;
+        }
+
+        function createArchiveSphere(index, color, position, sharedTex) {
+            const group = new THREE.Group();
+            group.position.copy(position);
+            scene.add(group);
+
+            const coinGroup = new THREE.Group();
+            group.add(coinGroup);
+
+            const coinLayers = [];
+            const layers = 30; 
+            const thickness = 2.5; 
+            const coinSize = 22; 
+
+            for(let i=0; i<layers; i++) {
+                const layerGeo = new THREE.PlaneGeometry(coinSize, coinSize);
+                const layerMat = new THREE.ShaderMaterial({
+                    vertexShader: coinVertexShader,
+                    fragmentShader: coinFragmentShader,
+                    uniforms: {
+                        uTexture: sharedTex,
+                        uColor: { value: color },
+                        uTime: { value: 0 }
+                    },
+                    transparent: false, depthWrite: true, alphaTest: 0.5, side: THREE.DoubleSide,
+                });
+                const layerMesh = new THREE.Mesh(layerGeo, layerMat);
+                layerMesh.position.z = ((i / (layers-1)) * thickness) - (thickness/2);
+                coinGroup.add(layerMesh);
+                coinLayers.push(layerMesh);
+            }
+
+            const phiStep = Math.PI / DATA_ROWS;
+            const thetaStep = (Math.PI * 2) / DATA_COLS;
+            let idCounter = 1;
+
+            for(let r=3; r<=10; r++) {
+                for(let c=0; c<DATA_COLS; c++) {
+                    const isContent = (r >= 4 && r <= 9); 
+                    const geo = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16, c*thetaStep, thetaStep*0.98, r*phiStep, phiStep*0.98);
+                    normalizeUVs(geo); 
+                    
+                    const labelTex = createLabelTexture(idCounter);
+                    const mat = new THREE.ShaderMaterial({
+                        vertexShader: nodeVertexShader,
+                        fragmentShader: nodeFragmentShader,
+                        uniforms: {
+                            uColor: { value: color },
+                            uOpacity: { value: isContent ? 0.9 : 0.3 },
+                            uHover: { value: 0 },
+                            uLabel: { value: labelTex }
+                        },
+                        side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+                    });
+
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.userData = { id: idCounter, parentIndex: index };
+                    group.add(mesh);
+                    meshFlatList.push(mesh);
+                    idCounter++;
+                }
+            }
+
+            spheres.push({
+                group: group,
+                coinGroup: coinGroup,
+                coinLayers: coinLayers,
+                basePos: position
+            });
+        }
+
+        // --- Interaction Logic ---
+
+        window.focusNode = function(index) {
+            state.activeNodeIndex = index;
+            // Set new target for camera center
+            state.targetCenter.copy(SPHERE_POSITIONS[index]);
+            // Reset zoom to close-up
+            state.camRadius = 50; 
+            
+            // Update UI
+            for(let i=0; i<3; i++) {
+                const btn = document.getElementById(`btn-${i}`);
+                if(i === index) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+            registerInteraction();
+        };
+
+        function registerInteraction() {
+            state.lastInteractionTime = Date.now();
+        }
+
+        // --- Drawing ---
+
+        function drawWaveform() {
+            const w = waveCanvas.width = window.innerWidth;
+            const h = waveCanvas.height = 100;
+            waveCtx.clearRect(0,0,w,h);
+            waveCtx.lineWidth = 1;
+            state.waveTime = (state.waveTime || 0) + 0.02; 
+            const t = state.waveTime;
+
+            for(let l = 0; l < 2; l++) {
+                waveCtx.beginPath();
+                waveCtx.strokeStyle = `rgba(255, 255, 255, ${0.1 + (l*0.1)})`; 
+                for(let x = 0; x < w; x+=5) {
+                    const n1 = Math.sin(x * 0.005 + t + (l*10)) * 15;
+                    const n2 = Math.cos(x * 0.01 - t) * 8;
+                    const y = (h/2) + n1 + n2;
+                    if(x===0) waveCtx.moveTo(x,y); else waveCtx.lineTo(x,y);
+                }
+                waveCtx.stroke();
+            }
+        }
+
+        // --- Input Events ---
+        
+        function onWheel(e) {
+            e.preventDefault();
+            registerInteraction();
+            state.camRadius += e.deltaY * 0.1;
+            state.camRadius = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, state.camRadius));
+        }
+
+        function onTouchStart(e) { 
+            registerInteraction();
+            if (e.touches.length === 1) { 
+                state.isDragging = true; 
+                state.lastTouchX = e.touches[0].clientX; 
+                state.lastTouchY = e.touches[0].clientY; 
+                state.velTheta = 0; state.velPhi = 0;
+            } else if (e.touches.length === 2) {
+                state.isDragging = false; 
+                state.pinchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                state.pinchStartZoom = state.camRadius;
+            }
+        }
+        
+        function onTouchMove(e) { 
+            registerInteraction();
+            if (e.touches.length === 1 && state.isDragging) { 
+                const x = e.touches[0].clientX; const y = e.touches[0].clientY; 
+                const deltaX = x - state.lastTouchX; const deltaY = y - state.lastTouchY;
+                
+                // Drag rotates camera orbit
+                state.camTheta -= deltaX * 0.005; 
+                state.camPhi -= deltaY * 0.005; 
+                state.camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, state.camPhi)); // Clamp poles
+
+                state.velTheta = -deltaX * 0.0001; // Store momentum
+                state.velPhi = -deltaY * 0.0001;
+
+                state.lastTouchX = x; state.lastTouchY = y; 
+            } else if (e.touches.length === 2) {
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const scale = state.pinchStartDist / dist;
+                state.camRadius = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, state.pinchStartZoom * scale));
+            }
+        }
+        
+        function onTouchEnd(e) { state.isDragging = false; registerInteraction(); }
+        function onMouseDown(e) { registerInteraction(); state.isDragging = true; state.lastTouchX = e.clientX; state.lastTouchY = e.clientY; state.velTheta = 0; state.velPhi = 0; }
+        function onMouseMove(e) { 
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; 
+            if(state.isDragging) { 
+                registerInteraction();
+                const deltaX = e.clientX - state.lastTouchX; const deltaY = e.clientY - state.lastTouchY;
+                state.camTheta -= deltaX * 0.005; 
+                state.camPhi -= deltaY * 0.005; 
+                state.camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, state.camPhi));
+
+                state.velTheta = -deltaX * 0.0001;
+                state.velPhi = -deltaY * 0.0001;
+
+                state.lastTouchX = e.clientX; state.lastTouchY = e.clientY; 
+            } 
+        }
+        function onMouseUp() { state.isDragging = false; }
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+
+        // --- Loop ---
+
+        function animate() {
+            requestAnimationFrame(animate);
+            drawWaveform();
+            
+            const now = Date.now();
+            const time = (now - state.startTime) * 0.001;
+            const timeSinceInteract = now - state.lastInteractionTime;
+            const isIdle = timeSinceInteract > IDLE_TIMEOUT;
+
+            // 1. Camera Orbit Physics
+            if (!state.isDragging) {
+                state.camTheta += state.velTheta;
+                state.camPhi += state.velPhi;
+                state.velTheta *= 0.95; // Friction
+                state.velPhi *= 0.95;
+                
+                if (isIdle) {
+                    // Drift
+                    if(Math.abs(state.velTheta) < 0.0005) state.velTheta = 0.0005; 
+                    // Slowly drift zoom back to "close" if not super far out
+                    // if(state.camRadius > 60) state.camRadius -= 0.05;
+                }
+            }
+
+            // 2. Camera Positioning (Spherical to Cartesian)
+            // Interpolate the "Center" of the orbit (when switching nodes)
+            state.currentCenter.lerp(state.targetCenter, 0.05);
+
+            const r = state.camRadius;
+            const x = r * Math.sin(state.camPhi) * Math.cos(state.camTheta);
+            const y = r * Math.cos(state.camPhi);
+            const z = r * Math.sin(state.camPhi) * Math.sin(state.camTheta);
+
+            // Camera is offset from the current focus center
+            camera.position.set(
+                state.currentCenter.x + x,
+                state.currentCenter.y + y,
+                state.currentCenter.z + z
+            );
+            camera.lookAt(state.currentCenter);
+
+            // Update UI
+            uiZoom.innerText = Math.round(state.camRadius);
+
+            // 3. Object Animation
+            spheres.forEach((obj, idx) => {
+                // Gentle self-rotation of spheres
+                // Give them slightly different speeds
+                const speed = 0.05 + (idx * 0.01);
+                obj.group.rotation.y += speed * 0.05;
+                
+                // Coin spins inside
+                obj.coinGroup.rotation.y = -obj.group.rotation.y * 2.0;
+                
+                obj.coinLayers.forEach(layer => {
+                    layer.material.uniforms.uTime.value = time;
+                });
+            });
+
+            // 4. Hover
+            let hoveredMesh = null;
+            if (!state.isDragging) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(meshFlatList);
+                if (intersects.length > 0) {
+                    hoveredMesh = intersects[0].object;
+                }
+            }
+
+            meshFlatList.forEach(mesh => {
+                const isHovered = (mesh === hoveredMesh);
+                mesh.material.uniforms.uHover.value += ((isHovered ? 1.0 : 0.0) - mesh.material.uniforms.uHover.value) * 0.1;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        init();
+        focusNode(0); // Start on Red
+
+    </script>
+</body>
+</html>
+
+
