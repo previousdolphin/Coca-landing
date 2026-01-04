@@ -139,10 +139,12 @@
         const videoTextures = [];
         
         // ============================================
-        // CANVAS SCREEN DRAWING
+        // CANVAS SCREEN DRAWING (Optimized)
         // ============================================
         function drawScreenPaused(userData) {
             const { screenCtx, screenCanvas, screenColor, screenColorDark, id } = userData;
+            if (!screenCtx) return;
+            
             const w = screenCanvas.width;
             const h = screenCanvas.height;
             
@@ -161,60 +163,47 @@
             
             // Node ID text
             screenCtx.fillStyle = 'rgba(255,255,255,0.5)';
-            screenCtx.font = 'bold 24px monospace';
+            screenCtx.font = 'bold 16px monospace';
             screenCtx.textAlign = 'center';
-            screenCtx.fillText(`NODE ${id}`, w/2, h - 20);
+            screenCtx.fillText(`${id}`, w/2, h - 10);
             
             userData.canvasTexture.needsUpdate = true;
         }
         
         function drawScreenPlaying(userData, time) {
-            const { screenCtx, screenCanvas, screenColor, hue, id, animationOffset } = userData;
+            const { screenCtx, screenCanvas, hue, id, animationOffset } = userData;
+            if (!screenCtx) return;
+            
             const w = screenCanvas.width;
             const h = screenCanvas.height;
             const t = time + animationOffset;
             
-            // Animated gradient background
-            const gradient = screenCtx.createLinearGradient(0, 0, w, h);
-            const hue1 = (hue + Math.sin(t * 0.001) * 30) % 360;
-            const hue2 = (hue + 60 + Math.cos(t * 0.0015) * 30) % 360;
-            gradient.addColorStop(0, `hsl(${hue1}, 70%, 30%)`);
-            gradient.addColorStop(1, `hsl(${hue2}, 70%, 40%)`);
-            screenCtx.fillStyle = gradient;
+            // Simple animated background
+            const hue1 = (hue + (t * 0.02) % 60) % 360;
+            screenCtx.fillStyle = `hsl(${hue1}, 60%, 25%)`;
             screenCtx.fillRect(0, 0, w, h);
             
-            // Animated bars (like audio visualizer)
-            const barCount = 12;
-            const barWidth = w / barCount - 4;
-            screenCtx.fillStyle = `hsla(${hue}, 80%, 60%, 0.8)`;
+            // Simplified bars (fewer, no transparency)
+            const barCount = 8;
+            const barWidth = w / barCount - 2;
+            screenCtx.fillStyle = `hsl(${hue}, 70%, 55%)`;
             
             for (let i = 0; i < barCount; i++) {
-                const barHeight = (Math.sin(t * 0.005 + i * 0.5) * 0.5 + 0.5) * h * 0.6;
-                const x = i * (barWidth + 4) + 2;
-                const y = h - barHeight - 30;
+                const barHeight = (Math.sin(t * 0.004 + i * 0.7) * 0.5 + 0.5) * h * 0.5;
+                const x = i * (barWidth + 2) + 1;
+                const y = h - barHeight - 20;
                 screenCtx.fillRect(x, y, barWidth, barHeight);
             }
             
-            // Animated circles
-            screenCtx.strokeStyle = `hsla(${(hue + 180) % 360}, 70%, 70%, 0.5)`;
-            screenCtx.lineWidth = 2;
-            for (let i = 0; i < 3; i++) {
-                const radius = 20 + Math.sin(t * 0.003 + i) * 15 + i * 25;
-                screenCtx.beginPath();
-                screenCtx.arc(w/2, h/2, radius, 0, Math.PI * 2);
-                screenCtx.stroke();
-            }
-            
-            // "PLAYING" indicator
-            screenCtx.fillStyle = 'rgba(255,255,255,0.9)';
-            screenCtx.font = 'bold 16px monospace';
+            // "PLAYING" text
+            screenCtx.fillStyle = '#fff';
+            screenCtx.font = 'bold 12px monospace';
             screenCtx.textAlign = 'center';
-            screenCtx.fillText('▶ PLAYING', w/2, 25);
+            screenCtx.fillText('▶ PLAYING', w/2, 16);
             
             // Node ID
-            screenCtx.fillStyle = 'rgba(255,255,255,0.5)';
-            screenCtx.font = 'bold 20px monospace';
-            screenCtx.fillText(`NODE ${id}`, w/2, h - 15);
+            screenCtx.fillStyle = 'rgba(255,255,255,0.6)';
+            screenCtx.fillText(`${id}`, w/2, h - 8);
             
             userData.canvasTexture.needsUpdate = true;
         }
@@ -245,8 +234,15 @@
             hoveredNode: null,
             
             // Zoom
-            zoomDistance: CONFIG.CAMERA.distance
+            zoomDistance: CONFIG.CAMERA.distance,
+            
+            // Performance: throttle updates
+            lastRaycastTime: 0,
+            frameCount: 0
         };
+        
+        // Cache DOM elements
+        let nodeInfoEl, infoTitleEl, infoSubtitleEl;
 
         // ============================================
         // THREE.JS SETUP
@@ -256,6 +252,11 @@
 
         function init() {
             const container = document.getElementById('canvas-container');
+            
+            // Cache DOM elements
+            nodeInfoEl = document.getElementById('node-info');
+            infoTitleEl = document.getElementById('info-title');
+            infoSubtitleEl = document.querySelector('.node-info-subtitle');
             
             // Scene
             scene = new THREE.Scene();
@@ -270,10 +271,13 @@
             );
             scene.add(camera);
             
-            // Renderer
+            // Renderer - optimized settings
             renderer = new THREE.WebGLRenderer({ 
-                antialias: true,
-                alpha: true
+                antialias: window.devicePixelRatio < 2, // Disable AA on high-DPI
+                alpha: false,
+                powerPreference: 'high-performance',
+                stencil: false,
+                depth: true
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -337,30 +341,20 @@
                     const thetaStart = (row / ROWS) * Math.PI;
                     const thetaLength = (Math.PI / ROWS) * 0.92;
                     
+                    // Reduced geometry complexity
                     const geometry = new THREE.SphereGeometry(
                         SPHERE_RADIUS,
-                        12, 8,
+                        8, 6,  // Reduced from 12, 8
                         phiStart, phiLength,
                         thetaStart, thetaLength
                     );
-                    
-                    // Create animated canvas "screen" for this node
-                    const screenCanvas = document.createElement('canvas');
-                    screenCanvas.width = 256;
-                    screenCanvas.height = 256;
-                    const screenCtx = screenCanvas.getContext('2d');
-                    
-                    // Create canvas texture
-                    const canvasTexture = new THREE.CanvasTexture(screenCanvas);
-                    canvasTexture.minFilter = THREE.LinearFilter;
-                    canvasTexture.magFilter = THREE.LinearFilter;
                     
                     // Generate unique colors/pattern for this screen
                     const hue = ((nodeId * 37) % 360);
                     const screenColor = `hsl(${hue}, 70%, 50%)`;
                     const screenColorDark = `hsl(${hue}, 70%, 20%)`;
                     
-                    // Material with canvas texture (starts with low opacity, shows sphere color)
+                    // Material - NO canvas texture until needed (lazy loading)
                     const material = new THREE.MeshBasicMaterial({
                         color: sphereColor,
                         transparent: true,
@@ -386,10 +380,10 @@
                         baseOpacity: 0.05,
                         hoverOpacity: 0.2,
                         insideOpacity: 0.95,
-                        // Canvas-based screen
-                        screenCanvas: screenCanvas,
-                        screenCtx: screenCtx,
-                        canvasTexture: canvasTexture,
+                        // Canvas created lazily when entering sphere
+                        screenCanvas: null,
+                        screenCtx: null,
+                        canvasTexture: null,
                         screenColor: screenColor,
                         screenColorDark: screenColorDark,
                         hue: hue,
@@ -397,9 +391,6 @@
                         animationOffset: Math.random() * 1000,
                         originalColor: sphereColor.clone()
                     };
-                    
-                    // Draw initial paused state
-                    drawScreenPaused(mesh.userData);
                     
                     sphereGroup.add(mesh);
                     sphereGroup.userData.nodes.push(mesh);
@@ -625,11 +616,35 @@
         // ============================================
         // SCREEN CONTROLS
         // ============================================
+        function createScreenCanvas(userData) {
+            // Lazy creation of canvas - smaller size for performance
+            const screenCanvas = document.createElement('canvas');
+            screenCanvas.width = 128;  // Reduced from 256
+            screenCanvas.height = 128;
+            const screenCtx = screenCanvas.getContext('2d');
+            
+            const canvasTexture = new THREE.CanvasTexture(screenCanvas);
+            canvasTexture.minFilter = THREE.LinearFilter;
+            canvasTexture.magFilter = THREE.LinearFilter;
+            canvasTexture.generateMipmaps = false;  // Disable mipmaps for performance
+            
+            userData.screenCanvas = screenCanvas;
+            userData.screenCtx = screenCtx;
+            userData.canvasTexture = canvasTexture;
+            
+            return canvasTexture;
+        }
+        
         function startVideosForSphere(sphereIndex) {
             const sphere = sphereGroups[sphereIndex];
             const nodes = sphere.userData.nodes;
             
             nodes.forEach(node => {
+                // Lazy create canvas if needed
+                if (!node.userData.canvasTexture) {
+                    createScreenCanvas(node.userData);
+                }
+                
                 const { canvasTexture } = node.userData;
                 
                 // Enable canvas texture
@@ -662,11 +677,15 @@
         }
         
         function updateVideoTextures() {
-            // Update all active canvas screens when inside
+            // Only update playing screens, throttled
             if (state.isInside) {
                 const sphere = sphereGroups[state.currentSphereIndex];
                 const nodes = sphere.userData.nodes;
                 const time = performance.now();
+                
+                // Only update every other frame for playing animations
+                state.frameCount++;
+                if (state.frameCount % 2 !== 0) return;
                 
                 nodes.forEach(node => {
                     if (node.userData.isPlaying) {
@@ -969,10 +988,13 @@
         }
 
         // ============================================
-        // ANIMATION LOOP
+        // ANIMATION LOOP (Optimized)
         // ============================================
         function animate() {
             requestAnimationFrame(animate);
+            
+            state.frameCount++;
+            const now = performance.now();
             
             // Apply momentum to look-around
             if (!state.isDragging && !state.isTransitioning) {
@@ -987,30 +1009,27 @@
                 updateCamera();
             }
             
-            // Update video textures when inside
+            // Update video textures when inside (already throttled internally)
             if (state.isInside) {
                 updateVideoTextures();
             }
             
             // Rotate each sphere on its own axis (gentle idle spin) - only when outside
-            if (!state.isInside) {
+            // Throttle to every 2nd frame
+            if (!state.isInside && state.frameCount % 2 === 0) {
                 sphereGroups.forEach(sphere => {
-                    sphere.rotation.y += 0.001;
+                    sphere.rotation.y += 0.002;  // Doubled since we skip frames
                 });
             }
             
-            // Raycasting for hover
-            if (!state.isDragging && !state.isTransitioning) {
+            // Raycasting for hover - throttle to every 3rd frame (20fps is enough for hover)
+            if (!state.isDragging && !state.isTransitioning && state.frameCount % 3 === 0) {
                 raycaster.setFromCamera(mouse, camera);
                 
                 const currentSphere = sphereGroups[state.currentSphereIndex];
                 const currentNodes = currentSphere.userData.nodes;
                 
                 const intersects = raycaster.intersectObjects(currentNodes);
-                
-                const nodeInfo = document.getElementById('node-info');
-                const infoTitle = document.getElementById('info-title');
-                const infoSubtitle = document.querySelector('.node-info-subtitle');
                 
                 if (intersects.length > 0) {
                     const hoveredNode = intersects[0].object;
@@ -1028,9 +1047,9 @@
                             hoveredNode.material.opacity = hoveredNode.userData.hoverOpacity;
                         }
                         
-                        infoTitle.textContent = `${hoveredNode.userData.sphereName}-${String(hoveredNode.userData.id).padStart(3, '0')}`;
-                        infoSubtitle.textContent = `Sphere ${hoveredNode.userData.sphereName} · Node ${hoveredNode.userData.id}`;
-                        nodeInfo.classList.add('visible');
+                        infoTitleEl.textContent = `${hoveredNode.userData.sphereName}-${String(hoveredNode.userData.id).padStart(3, '0')}`;
+                        infoSubtitleEl.textContent = `Sphere ${hoveredNode.userData.sphereName} · Node ${hoveredNode.userData.id}`;
+                        nodeInfoEl.classList.add('visible');
                     }
                 } else {
                     if (state.hoveredNode) {
@@ -1039,903 +1058,7 @@
                         }
                         state.hoveredNode = null;
                     }
-                    nodeInfo.classList.remove('visible');
-                }
-            }
-            
-            renderer.render(scene, camera);
-        }
-
-        // Initialize
-        init();
-    </script>
-</body>
-</html>            opacity: 1;
-        }
-
-        .node-info-title {
-            font-family: 'Space Mono', monospace;
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .node-info-subtitle {
-            font-size: 12px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-    </style>
-</head>
-<body>
-
-    <div id="canvas-container"></div>
-
-    <div id="node-info">
-        <div class="node-info-title" id="info-title">001</div>
-        <div class="node-info-subtitle">Section Node</div>
-    </div>
-
-    <script>
-        // ============================================
-        // CONFIGURATION
-        // ============================================
-        const CONFIG = {
-            SPHERE_RADIUS: 15,
-            ROWS: 8,
-            COLS: 16,
-            ORBIT_RADIUS: 50,
-            CAMERA: {
-                distance: 45,
-                fov: 60,
-                insideFov: 90
-            },
-            TRANSITION_DURATION: 1200,
-            CAROUSEL_DURATION: 600,
-            
-            // Sample video URLs (mix of sources for demo)
-            // In production, these would come from user uploads/database
-            SAMPLE_VIDEOS: [
-                'https://www.w3schools.com/html/mov_bbb.mp4',
-                'https://www.w3schools.com/html/movie.mp4',
-                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-                'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-            ],
-            
-            // =====================================
-            // EASILY ADD/REMOVE SPHERES HERE
-            // =====================================
-            SPHERES: [
-                { id: 1, color: 0xff4444, name: '1' },  // Red
-                { id: 2, color: 0xffcc44, name: '2' },  // Yellow
-                { id: 3, color: 0x4488ff, name: '3' },  // Blue
-                // Add more spheres here:
-                // { id: 4, color: 0x44ff88, name: '4' },  // Green
-                // { id: 5, color: 0xff44ff, name: '5' },  // Magenta
-            ]
-        };
-        
-        // Video elements and textures storage
-        const videoElements = [];
-        const videoTextures = [];
-
-        // ============================================
-        // STATE
-        // ============================================
-        const state = {
-            isInside: false,
-            isTransitioning: false,
-            
-            // Current sphere
-            currentSphereIndex: 0,
-            cameraTarget: null,  // Used during carousel transitions
-            
-            // Camera orbit controls (orbits around current sphere)
-            orbitLon: 0,
-            orbitLat: 0,
-            velocityLon: 0,
-            velocityLat: 0,
-            
-            // Interaction
-            isDragging: false,
-            dragStartX: 0,
-            dragStartY: 0,
-            lastX: 0,
-            lastY: 0,
-            hoveredNode: null,
-            
-            // Zoom
-            zoomDistance: CONFIG.CAMERA.distance
-        };
-
-        // ============================================
-        // THREE.JS SETUP
-        // ============================================
-        let scene, camera, renderer, raycaster, mouse;
-        let sphereGroups = [];
-
-        function init() {
-            const container = document.getElementById('canvas-container');
-            
-            // Scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0a0f);
-            
-            // Camera - will be positioned to orbit around current sphere
-            camera = new THREE.PerspectiveCamera(
-                CONFIG.CAMERA.fov,
-                window.innerWidth / window.innerHeight,
-                0.1,
-                1000
-            );
-            scene.add(camera);
-            
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ 
-                antialias: true,
-                alpha: true
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            container.appendChild(renderer.domElement);
-            
-            // Raycaster
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2(-100, -100);
-            
-            // Create spheres in fixed positions around center
-            createAllSpheres();
-            
-            // Set initial camera position
-            updateCamera();
-            
-            // Event listeners
-            setupEventListeners();
-            
-            // Start animation
-            animate();
-        }
-
-        // ============================================
-        // SPHERE CREATION
-        // ============================================
-        function createAllSpheres() {
-            const numSpheres = CONFIG.SPHERES.length;
-            
-            CONFIG.SPHERES.forEach((sphereConfig, index) => {
-                const sphereGroup = createSphere(sphereConfig, index, numSpheres);
-                scene.add(sphereGroup);
-                sphereGroups.push(sphereGroup);
-            });
-        }
-
-        function createSphere(sphereConfig, index, totalSpheres) {
-            const { SPHERE_RADIUS, ROWS, COLS, ORBIT_RADIUS } = CONFIG;
-            const sphereColor = new THREE.Color(sphereConfig.color);
-            
-            // Calculate fixed position on orbit circle
-            const angle = (index / totalSpheres) * Math.PI * 2;
-            const x = Math.sin(angle) * ORBIT_RADIUS;
-            const z = Math.cos(angle) * ORBIT_RADIUS;
-            
-            // Create sphere group
-            const sphereGroup = new THREE.Group();
-            sphereGroup.position.set(x, 0, z);
-            sphereGroup.userData = { 
-                index: index,
-                config: sphereConfig,
-                angle: angle,
-                nodes: []
-            };
-            
-            // Create nodes
-            let nodeId = 1;
-            for (let row = 1; row < ROWS - 1; row++) {
-                for (let col = 0; col < COLS; col++) {
-                    const phiStart = (col / COLS) * Math.PI * 2;
-                    const phiLength = (Math.PI * 2 / COLS) * 0.92;
-                    const thetaStart = (row / ROWS) * Math.PI;
-                    const thetaLength = (Math.PI / ROWS) * 0.92;
-                    
-                    const geometry = new THREE.SphereGeometry(
-                        SPHERE_RADIUS,
-                        12, 8,
-                        phiStart, phiLength,
-                        thetaStart, thetaLength
-                    );
-                    
-                    // Create video element for this node
-                    const videoIndex = (nodeId - 1) % CONFIG.SAMPLE_VIDEOS.length;
-                    const video = document.createElement('video');
-                    video.src = CONFIG.SAMPLE_VIDEOS[videoIndex];
-                    video.crossOrigin = 'anonymous';
-                    video.loop = true;
-                    video.muted = true;
-                    video.playsInline = true;
-                    video.preload = 'metadata';
-                    
-                    // Create video texture
-                    const videoTexture = new THREE.VideoTexture(video);
-                    videoTexture.minFilter = THREE.LinearFilter;
-                    videoTexture.magFilter = THREE.LinearFilter;
-                    videoTexture.format = THREE.RGBFormat;
-                    
-                    // Material with video texture (starts with low opacity, shows color)
-                    const material = new THREE.MeshBasicMaterial({
-                        color: sphereColor,
-                        transparent: true,
-                        opacity: 0.05,
-                        side: THREE.DoubleSide,
-                        wireframe: false,
-                        depthWrite: false,
-                        map: null  // Will be set to videoTexture when inside
-                    });
-                    
-                    const mesh = new THREE.Mesh(geometry, material);
-                    
-                    const uniqueId = `${sphereConfig.id}-${nodeId}`;
-                    
-                    mesh.userData = {
-                        id: nodeId,
-                        uniqueId: uniqueId,
-                        sphereId: sphereConfig.id,
-                        sphereName: sphereConfig.name,
-                        row: row,
-                        col: col,
-                        sphereIndex: index,
-                        baseOpacity: 0.05,
-                        hoverOpacity: 0.2,
-                        insideOpacity: 0.95,
-                        video: video,
-                        videoTexture: videoTexture,
-                        originalColor: sphereColor.clone()
-                    };
-                    
-                    sphereGroup.add(mesh);
-                    sphereGroup.userData.nodes.push(mesh);
-                    nodeId++;
-                }
-            }
-            
-            // Create wireframe
-            createSphereWireframe(sphereGroup, sphereColor);
-            
-            // Create floating label
-            createLabel(sphereGroup, sphereConfig.name, sphereColor);
-            
-            return sphereGroup;
-        }
-
-        function createSphereWireframe(sphereGroup, color) {
-            const { SPHERE_RADIUS, ROWS, COLS } = CONFIG;
-            
-            // Latitude lines
-            for (let row = 0; row <= ROWS; row++) {
-                const theta = (row / ROWS) * Math.PI;
-                const radius = SPHERE_RADIUS * Math.sin(theta);
-                const y = SPHERE_RADIUS * Math.cos(theta);
-                
-                const geometry = new THREE.BufferGeometry();
-                const positions = [];
-                
-                for (let i = 0; i <= 64; i++) {
-                    const phi = (i / 64) * Math.PI * 2;
-                    positions.push(
-                        radius * Math.cos(phi),
-                        y,
-                        radius * Math.sin(phi)
-                    );
-                }
-                
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                
-                const material = new THREE.LineBasicMaterial({
-                    color: color,
-                    transparent: true,
-                    opacity: 0.15
-                });
-                
-                const line = new THREE.Line(geometry, material);
-                sphereGroup.add(line);
-            }
-            
-            // Longitude lines
-            for (let col = 0; col < COLS; col++) {
-                const phi = (col / COLS) * Math.PI * 2;
-                
-                const geometry = new THREE.BufferGeometry();
-                const positions = [];
-                
-                for (let i = 0; i <= 32; i++) {
-                    const theta = (i / 32) * Math.PI;
-                    positions.push(
-                        SPHERE_RADIUS * Math.sin(theta) * Math.cos(phi),
-                        SPHERE_RADIUS * Math.cos(theta),
-                        SPHERE_RADIUS * Math.sin(theta) * Math.sin(phi)
-                    );
-                }
-                
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                
-                const material = new THREE.LineBasicMaterial({
-                    color: color,
-                    transparent: true,
-                    opacity: 0.15
-                });
-                
-                const line = new THREE.Line(geometry, material);
-                sphereGroup.add(line);
-            }
-        }
-
-        function createLabel(sphereGroup, text, color) {
-            const canvas = document.createElement('canvas');
-            const size = 256;
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.clearRect(0, 0, size, size);
-            ctx.font = 'bold 140px "Space Mono", monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#' + color.getHexString();
-            ctx.fillText(text, size / 2, size / 2);
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.needsUpdate = true;
-            
-            const material = new THREE.SpriteMaterial({
-                map: texture,
-                transparent: true,
-                opacity: 0.9
-            });
-            
-            const sprite = new THREE.Sprite(material);
-            sprite.position.set(0, CONFIG.SPHERE_RADIUS + 8, 0);
-            sprite.scale.set(12, 12, 1);
-            
-            sphereGroup.add(sprite);
-        }
-
-        // ============================================
-        // CAMERA CONTROLS
-        // ============================================
-        function updateCamera() {
-            const targetPos = state.cameraTarget || getSphereWorldPosition(state.currentSphereIndex);
-            
-            if (state.isInside) {
-                // Inside: camera is AT the sphere center, just rotating to look around
-                camera.position.set(targetPos.x, targetPos.y, targetPos.z);
-                
-                // Calculate look direction from orbit angles
-                const lonRad = THREE.MathUtils.degToRad(state.orbitLon);
-                const latRad = THREE.MathUtils.degToRad(state.orbitLat);
-                
-                // Look direction (outward from center)
-                const lookX = Math.sin(lonRad) * Math.cos(latRad);
-                const lookY = Math.sin(latRad);
-                const lookZ = Math.cos(lonRad) * Math.cos(latRad);
-                
-                camera.lookAt(
-                    targetPos.x + lookX,
-                    targetPos.y + lookY,
-                    targetPos.z + lookZ
-                );
-            } else {
-                // Outside: camera orbits around the sphere
-                const lonRad = THREE.MathUtils.degToRad(state.orbitLon);
-                const latRad = THREE.MathUtils.degToRad(state.orbitLat);
-                
-                const distance = state.zoomDistance;
-                const offsetX = distance * Math.sin(lonRad) * Math.cos(latRad);
-                const offsetY = distance * Math.sin(latRad);
-                const offsetZ = distance * Math.cos(lonRad) * Math.cos(latRad);
-                
-                camera.position.set(
-                    targetPos.x + offsetX,
-                    targetPos.y + offsetY,
-                    targetPos.z + offsetZ
-                );
-                
-                camera.lookAt(targetPos);
-            }
-        }
-
-        function getCurrentTargetPosition() {
-            return state.cameraTarget || getSphereWorldPosition(state.currentSphereIndex);
-        }
-        
-        function getSphereWorldPosition(index) {
-            const sphere = sphereGroups[index];
-            return sphere.position.clone();
-        }
-
-        // ============================================
-        // CAROUSEL NAVIGATION
-        // ============================================
-        function navigateCarousel(direction) {
-            if (state.isTransitioning || state.isInside) return;
-            
-            state.isTransitioning = true;
-            
-            const numSpheres = CONFIG.SPHERES.length;
-            const prevIndex = state.currentSphereIndex;
-            
-            // Update index with wrap
-            state.currentSphereIndex += direction;
-            if (state.currentSphereIndex < 0) {
-                state.currentSphereIndex = numSpheres - 1;
-            } else if (state.currentSphereIndex >= numSpheres) {
-                state.currentSphereIndex = 0;
-            }
-            
-            // Animate camera to new sphere
-            const startPos = getSphereWorldPosition(prevIndex);
-            const endPos = getSphereWorldPosition(state.currentSphereIndex);
-            const startTime = performance.now();
-            
-            function animateCarousel(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / CONFIG.CAROUSEL_DURATION, 1);
-                
-                // Smooth easing
-                const eased = 1 - Math.pow(1 - progress, 3);
-                
-                // Interpolate target position
-                state.cameraTarget = new THREE.Vector3().lerpVectors(startPos, endPos, eased);
-                
-                // Update camera to orbit around interpolated position
-                const lonRad = THREE.MathUtils.degToRad(state.orbitLon);
-                const latRad = THREE.MathUtils.degToRad(state.orbitLat);
-                const distance = state.zoomDistance;
-                
-                const offsetX = distance * Math.sin(lonRad) * Math.cos(latRad);
-                const offsetY = distance * Math.sin(latRad);
-                const offsetZ = distance * Math.cos(lonRad) * Math.cos(latRad);
-                
-                camera.position.set(
-                    state.cameraTarget.x + offsetX,
-                    state.cameraTarget.y + offsetY,
-                    state.cameraTarget.z + offsetZ
-                );
-                camera.lookAt(state.cameraTarget);
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animateCarousel);
-                } else {
-                    state.isTransitioning = false;
-                    state.cameraTarget = null;
-                }
-            }
-            
-            requestAnimationFrame(animateCarousel);
-        }
-
-        // ============================================
-        // VIDEO CONTROLS
-        // ============================================
-        function startVideosForSphere(sphereIndex) {
-            const sphere = sphereGroups[sphereIndex];
-            const nodes = sphere.userData.nodes;
-            
-            nodes.forEach(node => {
-                const { video, videoTexture } = node.userData;
-                
-                // Enable video texture
-                node.material.map = videoTexture;
-                node.material.color.setHex(0xffffff);  // White to show true video colors
-                node.material.opacity = node.userData.insideOpacity;
-                node.material.needsUpdate = true;
-                
-                // Load video but don't play - user must click
-                video.load();
-            });
-        }
-        
-        function stopVideosForSphere(sphereIndex) {
-            const sphere = sphereGroups[sphereIndex];
-            const nodes = sphere.userData.nodes;
-            
-            nodes.forEach(node => {
-                const { video, originalColor } = node.userData;
-                
-                // Disable video texture, restore original look
-                node.material.map = null;
-                node.material.color.copy(originalColor);
-                node.material.opacity = node.userData.baseOpacity;
-                node.material.needsUpdate = true;
-                
-                // Pause video
-                video.pause();
-            });
-        }
-        
-        function updateVideoTextures() {
-            // Update all active video textures
-            if (state.isInside) {
-                const sphere = sphereGroups[state.currentSphereIndex];
-                const nodes = sphere.userData.nodes;
-                
-                nodes.forEach(node => {
-                    if (node.userData.videoTexture) {
-                        node.userData.videoTexture.needsUpdate = true;
-                    }
-                });
-            }
-        }
-
-        // ============================================
-        // VIEW TRANSITION - Enter/Exit Sphere
-        // ============================================
-        function toggleView() {
-            if (state.isTransitioning) return;
-            
-            state.isTransitioning = true;
-            state.isInside = !state.isInside;
-            
-            const spherePos = getSphereWorldPosition(state.currentSphereIndex);
-            
-            const startDistance = state.zoomDistance;
-            const endDistance = state.isInside ? 0 : CONFIG.CAMERA.distance;
-            
-            const startFOV = camera.fov;
-            const endFOV = state.isInside ? CONFIG.CAMERA.insideFov : CONFIG.CAMERA.fov;
-            
-            // Start or stop videos based on direction
-            if (state.isInside) {
-                startVideosForSphere(state.currentSphereIndex);
-            }
-            
-            const startTime = performance.now();
-            
-            function animateTransition(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / CONFIG.TRANSITION_DURATION, 1);
-                
-                // Custom easing - slow start, fast middle, slow end
-                let eased;
-                if (progress < 0.2) {
-                    eased = 2.5 * progress * progress;
-                } else if (progress < 0.8) {
-                    eased = 0.1 + (progress - 0.2) * 1.33;
-                } else {
-                    const t = (progress - 0.8) / 0.2;
-                    eased = 0.9 + 0.1 * (1 - Math.pow(1 - t, 2));
-                }
-                
-                // Update zoom distance
-                state.zoomDistance = startDistance + (endDistance - startDistance) * eased;
-                
-                // Update FOV
-                camera.fov = startFOV + (endFOV - startFOV) * eased;
-                camera.updateProjectionMatrix();
-                
-                // Update camera position based on current state
-                const lonRad = THREE.MathUtils.degToRad(state.orbitLon);
-                const latRad = THREE.MathUtils.degToRad(state.orbitLat);
-                const distance = state.zoomDistance;
-                
-                if (distance > 0.1) {
-                    // Still outside - orbit position
-                    const offsetX = distance * Math.sin(lonRad) * Math.cos(latRad);
-                    const offsetY = distance * Math.sin(latRad);
-                    const offsetZ = distance * Math.cos(lonRad) * Math.cos(latRad);
-                    
-                    camera.position.set(
-                        spherePos.x + offsetX,
-                        spherePos.y + offsetY,
-                        spherePos.z + offsetZ
-                    );
-                    camera.lookAt(spherePos);
-                } else {
-                    // At center - look outward
-                    camera.position.set(spherePos.x, spherePos.y, spherePos.z);
-                    
-                    const lookX = Math.sin(lonRad) * Math.cos(latRad);
-                    const lookY = Math.sin(latRad);
-                    const lookZ = Math.cos(lonRad) * Math.cos(latRad);
-                    
-                    camera.lookAt(
-                        spherePos.x + lookX,
-                        spherePos.y + lookY,
-                        spherePos.z + lookZ
-                    );
-                }
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animateTransition);
-                } else {
-                    state.isTransitioning = false;
-                    
-                    // Stop videos when exiting
-                    if (!state.isInside) {
-                        stopVideosForSphere(state.currentSphereIndex);
-                    }
-                }
-            }
-            
-            requestAnimationFrame(animateTransition);
-        }
-
-        // ============================================
-        // EVENT HANDLERS
-        // ============================================
-        function setupEventListeners() {
-            const canvas = renderer.domElement;
-            
-            canvas.addEventListener('mousedown', onPointerDown);
-            canvas.addEventListener('mousemove', onPointerMove);
-            canvas.addEventListener('mouseup', onPointerUp);
-            canvas.addEventListener('mouseleave', onPointerUp);
-            canvas.addEventListener('click', onClick);
-            canvas.addEventListener('wheel', onWheel, { passive: false });
-            
-            canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-            canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-            canvas.addEventListener('touchend', onTouchEnd);
-            
-            window.addEventListener('keydown', onKeyDown);
-            window.addEventListener('resize', onResize);
-        }
-
-        function onPointerDown(e) {
-            state.isDragging = true;
-            state.dragStartX = e.clientX;
-            state.dragStartY = e.clientY;
-            state.lastX = e.clientX;
-            state.lastY = e.clientY;
-            state.velocityLon = 0;
-            state.velocityLat = 0;
-        }
-
-        function onPointerMove(e) {
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            
-            if (state.isDragging) {
-                const deltaX = e.clientX - state.lastX;
-                const deltaY = e.clientY - state.lastY;
-                
-                // Camera orbits, so dragging moves the view
-                state.orbitLon += deltaX * 0.3;
-                state.orbitLat -= deltaY * 0.3;
-                state.orbitLat = Math.max(-85, Math.min(85, state.orbitLat));
-                
-                state.velocityLon = deltaX * 0.05;
-                state.velocityLat = -deltaY * 0.05;
-                
-                state.lastX = e.clientX;
-                state.lastY = e.clientY;
-            }
-        }
-
-        function onPointerUp() {
-            state.isDragging = false;
-        }
-
-        function onClick(e) {
-            // Only register as click if we didn't drag much
-            const dragDistance = Math.sqrt(
-                Math.pow(e.clientX - state.dragStartX, 2) + 
-                Math.pow(e.clientY - state.dragStartY, 2)
-            );
-            
-            if (dragDistance > 10) return; // Was a drag, not a click
-            
-            // Only handle clicks when inside a sphere
-            if (!state.isInside || state.isTransitioning) return;
-            
-            // Raycast to find clicked node
-            raycaster.setFromCamera(mouse, camera);
-            const currentSphere = sphereGroups[state.currentSphereIndex];
-            const currentNodes = currentSphere.userData.nodes;
-            const intersects = raycaster.intersectObjects(currentNodes);
-            
-            if (intersects.length > 0) {
-                const clickedNode = intersects[0].object;
-                const video = clickedNode.userData.video;
-                
-                if (video) {
-                    if (video.paused) {
-                        // Pause all other videos first
-                        currentNodes.forEach(node => {
-                            if (node.userData.video && node !== clickedNode) {
-                                node.userData.video.pause();
-                            }
-                        });
-                        // Play this video (unmuted)
-                        video.muted = false;
-                        video.play().catch(e => console.log('Play failed:', e));
-                    } else {
-                        video.pause();
-                    }
-                }
-            }
-        }
-
-        function onTouchStart(e) {
-            e.preventDefault();
-            if (e.touches.length === 1) {
-                state.isDragging = true;
-                state.dragStartX = e.touches[0].clientX;
-                state.dragStartY = e.touches[0].clientY;
-                state.lastX = e.touches[0].clientX;
-                state.lastY = e.touches[0].clientY;
-                state.velocityLon = 0;
-                state.velocityLat = 0;
-            }
-        }
-
-        function onTouchMove(e) {
-            e.preventDefault();
-            if (e.touches.length === 1 && state.isDragging) {
-                const deltaX = e.touches[0].clientX - state.lastX;
-                const deltaY = e.touches[0].clientY - state.lastY;
-                
-                state.orbitLon += deltaX * 0.3;
-                state.orbitLat -= deltaY * 0.3;
-                state.orbitLat = Math.max(-85, Math.min(85, state.orbitLat));
-                
-                state.velocityLon = deltaX * 0.05;
-                state.velocityLat = -deltaY * 0.05;
-                
-                state.lastX = e.touches[0].clientX;
-                state.lastY = e.touches[0].clientY;
-            }
-        }
-
-        function onTouchEnd(e) {
-            state.isDragging = false;
-            
-            // Check if it was a tap (not a drag)
-            const touch = e.changedTouches[0];
-            const dragDistance = Math.sqrt(
-                Math.pow(touch.clientX - state.dragStartX, 2) + 
-                Math.pow(touch.clientY - state.dragStartY, 2)
-            );
-            
-            if (dragDistance > 10) return; // Was a drag, not a tap
-            
-            // Only handle taps when inside a sphere
-            if (!state.isInside || state.isTransitioning) return;
-            
-            // Update mouse position for raycast
-            mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-            
-            // Raycast to find tapped node
-            raycaster.setFromCamera(mouse, camera);
-            const currentSphere = sphereGroups[state.currentSphereIndex];
-            const currentNodes = currentSphere.userData.nodes;
-            const intersects = raycaster.intersectObjects(currentNodes);
-            
-            if (intersects.length > 0) {
-                const tappedNode = intersects[0].object;
-                const video = tappedNode.userData.video;
-                
-                if (video) {
-                    if (video.paused) {
-                        // Pause all other videos first
-                        currentNodes.forEach(node => {
-                            if (node.userData.video && node !== tappedNode) {
-                                node.userData.video.pause();
-                            }
-                        });
-                        // Play this video (unmuted)
-                        video.muted = false;
-                        video.play().catch(e => console.log('Play failed:', e));
-                    } else {
-                        video.pause();
-                    }
-                }
-            }
-        }
-
-        function onWheel(e) {
-            e.preventDefault();
-            if (state.isInside || state.isTransitioning) return;
-            
-            state.zoomDistance += e.deltaY * 0.05;
-            state.zoomDistance = Math.max(25, Math.min(80, state.zoomDistance));
-        }
-
-        function onKeyDown(e) {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                toggleView();
-            } else if (e.code === 'ArrowLeft') {
-                e.preventDefault();
-                navigateCarousel(-1);
-            } else if (e.code === 'ArrowRight') {
-                e.preventDefault();
-                navigateCarousel(1);
-            }
-        }
-
-        function onResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        // ============================================
-        // ANIMATION LOOP
-        // ============================================
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            // Apply momentum to look-around
-            if (!state.isDragging && !state.isTransitioning) {
-                state.orbitLon += state.velocityLon;
-                state.orbitLat += state.velocityLat;
-                state.velocityLon *= 0.95;
-                state.velocityLat *= 0.95;
-            }
-            
-            // Update camera position (if not in a transition animation)
-            if (!state.isTransitioning) {
-                updateCamera();
-            }
-            
-            // Update video textures when inside
-            if (state.isInside) {
-                updateVideoTextures();
-            }
-            
-            // Rotate each sphere on its own axis (gentle idle spin) - only when outside
-            if (!state.isInside) {
-                sphereGroups.forEach(sphere => {
-                    sphere.rotation.y += 0.001;
-                });
-            }
-            
-            // Raycasting for hover
-            if (!state.isDragging && !state.isTransitioning) {
-                raycaster.setFromCamera(mouse, camera);
-                
-                const currentSphere = sphereGroups[state.currentSphereIndex];
-                const currentNodes = currentSphere.userData.nodes;
-                
-                const intersects = raycaster.intersectObjects(currentNodes);
-                
-                const nodeInfo = document.getElementById('node-info');
-                const infoTitle = document.getElementById('info-title');
-                const infoSubtitle = document.querySelector('.node-info-subtitle');
-                
-                if (intersects.length > 0) {
-                    const hoveredNode = intersects[0].object;
-                    
-                    if (state.hoveredNode !== hoveredNode) {
-                        // Reset previous hover (only change opacity if outside)
-                        if (state.hoveredNode && !state.isInside) {
-                            state.hoveredNode.material.opacity = state.hoveredNode.userData.baseOpacity;
-                        }
-                        
-                        state.hoveredNode = hoveredNode;
-                        
-                        // Only change opacity on hover when outside
-                        if (!state.isInside) {
-                            hoveredNode.material.opacity = hoveredNode.userData.hoverOpacity;
-                        }
-                        
-                        infoTitle.textContent = `${hoveredNode.userData.sphereName}-${String(hoveredNode.userData.id).padStart(3, '0')}`;
-                        infoSubtitle.textContent = `Sphere ${hoveredNode.userData.sphereName} · Node ${hoveredNode.userData.id}`;
-                        nodeInfo.classList.add('visible');
-                    }
-                } else {
-                    if (state.hoveredNode) {
-                        if (!state.isInside) {
-                            state.hoveredNode.material.opacity = state.hoveredNode.userData.baseOpacity;
-                        }
-                        state.hoveredNode = null;
-                    }
-                    nodeInfo.classList.remove('visible');
+                    nodeInfoEl.classList.remove('visible');
                 }
             }
             
