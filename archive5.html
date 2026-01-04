@@ -153,6 +153,8 @@
             
             // Interaction
             isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
             lastX: 0,
             lastY: 0,
             hoveredNode: null,
@@ -541,11 +543,8 @@
                 node.material.opacity = node.userData.insideOpacity;
                 node.material.needsUpdate = true;
                 
-                // Start video playback
-                video.play().catch(e => {
-                    // Autoplay might be blocked, that's okay
-                    console.log('Video autoplay blocked, user interaction needed');
-                });
+                // Load video but don't play - user must click
+                video.load();
             });
         }
         
@@ -684,11 +683,12 @@
             canvas.addEventListener('mousemove', onPointerMove);
             canvas.addEventListener('mouseup', onPointerUp);
             canvas.addEventListener('mouseleave', onPointerUp);
+            canvas.addEventListener('click', onClick);
             canvas.addEventListener('wheel', onWheel, { passive: false });
             
             canvas.addEventListener('touchstart', onTouchStart, { passive: false });
             canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-            canvas.addEventListener('touchend', onPointerUp);
+            canvas.addEventListener('touchend', onTouchEnd);
             
             window.addEventListener('keydown', onKeyDown);
             window.addEventListener('resize', onResize);
@@ -696,6 +696,8 @@
 
         function onPointerDown(e) {
             state.isDragging = true;
+            state.dragStartX = e.clientX;
+            state.dragStartY = e.clientY;
             state.lastX = e.clientX;
             state.lastY = e.clientY;
             state.velocityLon = 0;
@@ -727,10 +729,52 @@
             state.isDragging = false;
         }
 
+        function onClick(e) {
+            // Only register as click if we didn't drag much
+            const dragDistance = Math.sqrt(
+                Math.pow(e.clientX - state.dragStartX, 2) + 
+                Math.pow(e.clientY - state.dragStartY, 2)
+            );
+            
+            if (dragDistance > 10) return; // Was a drag, not a click
+            
+            // Only handle clicks when inside a sphere
+            if (!state.isInside || state.isTransitioning) return;
+            
+            // Raycast to find clicked node
+            raycaster.setFromCamera(mouse, camera);
+            const currentSphere = sphereGroups[state.currentSphereIndex];
+            const currentNodes = currentSphere.userData.nodes;
+            const intersects = raycaster.intersectObjects(currentNodes);
+            
+            if (intersects.length > 0) {
+                const clickedNode = intersects[0].object;
+                const video = clickedNode.userData.video;
+                
+                if (video) {
+                    if (video.paused) {
+                        // Pause all other videos first
+                        currentNodes.forEach(node => {
+                            if (node.userData.video && node !== clickedNode) {
+                                node.userData.video.pause();
+                            }
+                        });
+                        // Play this video (unmuted)
+                        video.muted = false;
+                        video.play().catch(e => console.log('Play failed:', e));
+                    } else {
+                        video.pause();
+                    }
+                }
+            }
+        }
+
         function onTouchStart(e) {
             e.preventDefault();
             if (e.touches.length === 1) {
                 state.isDragging = true;
+                state.dragStartX = e.touches[0].clientX;
+                state.dragStartY = e.touches[0].clientY;
                 state.lastX = e.touches[0].clientX;
                 state.lastY = e.touches[0].clientY;
                 state.velocityLon = 0;
@@ -753,6 +797,53 @@
                 
                 state.lastX = e.touches[0].clientX;
                 state.lastY = e.touches[0].clientY;
+            }
+        }
+
+        function onTouchEnd(e) {
+            state.isDragging = false;
+            
+            // Check if it was a tap (not a drag)
+            const touch = e.changedTouches[0];
+            const dragDistance = Math.sqrt(
+                Math.pow(touch.clientX - state.dragStartX, 2) + 
+                Math.pow(touch.clientY - state.dragStartY, 2)
+            );
+            
+            if (dragDistance > 10) return; // Was a drag, not a tap
+            
+            // Only handle taps when inside a sphere
+            if (!state.isInside || state.isTransitioning) return;
+            
+            // Update mouse position for raycast
+            mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            
+            // Raycast to find tapped node
+            raycaster.setFromCamera(mouse, camera);
+            const currentSphere = sphereGroups[state.currentSphereIndex];
+            const currentNodes = currentSphere.userData.nodes;
+            const intersects = raycaster.intersectObjects(currentNodes);
+            
+            if (intersects.length > 0) {
+                const tappedNode = intersects[0].object;
+                const video = tappedNode.userData.video;
+                
+                if (video) {
+                    if (video.paused) {
+                        // Pause all other videos first
+                        currentNodes.forEach(node => {
+                            if (node.userData.video && node !== tappedNode) {
+                                node.userData.video.pause();
+                            }
+                        });
+                        // Play this video (unmuted)
+                        video.muted = false;
+                        video.play().catch(e => console.log('Play failed:', e));
+                    } else {
+                        video.pause();
+                    }
+                }
             }
         }
 
