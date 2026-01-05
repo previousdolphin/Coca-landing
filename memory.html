@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoCA // HEURISTIC_INSTALLER</title>
+    <title>CoCA // HEURISTIC_INSTALLER v2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <style>
         :root {
             --bg: #0a0a0a;
-            --text: #e0e0e0;
-            --accent: #ff3300; /* CoCA Red */
-            --dim: #444;
+            --text: #d0d0d0;
+            --accent: #ff4400; /* Slightly brighter CoCA Red for contrast */
+            --dim: #555;
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
         }
@@ -24,6 +26,18 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            perspective: 1000px;
+        }
+
+        /* The WebGL Canvas Container */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Behind content */
+            pointer-events: none;
         }
 
         #container {
@@ -31,6 +45,25 @@
             max-width: 600px;
             text-align: left;
             position: relative;
+            z-index: 10;
+            /* Slight CRT curve effect on the content container */
+            transform: translateZ(0px);
+            text-shadow: 1px 0px 2px rgba(0,0,0,0.5);
+            mix-blend-mode: hard-light;
+        }
+
+        /* Subtle flicker animation for the text */
+        @keyframes flicker {
+            0% { opacity: 0.95; }
+            5% { opacity: 0.8; }
+            10% { opacity: 0.98; }
+            15% { opacity: 0.4; }
+            20% { opacity: 0.98; }
+            100% { opacity: 0.98; }
+        }
+
+        .crt-flicker {
+            animation: flicker 10s infinite alternate;
         }
 
         .header {
@@ -42,18 +75,22 @@
             margin-bottom: 40px;
             display: flex;
             justify-content: space-between;
+            letter-spacing: 1px;
         }
 
         h1 {
             font-weight: 300;
             letter-spacing: -1px;
             margin-bottom: 2rem;
+            text-transform: uppercase;
+            color: #fff;
         }
 
         .content-step {
             display: none;
             opacity: 0;
-            transition: opacity 0.8s ease;
+            /* CSS transition for smooth fade */
+            transition: opacity 0.5s ease-in-out;
         }
 
         .content-step.active {
@@ -71,20 +108,22 @@
             color: var(--accent);
             font-family: var(--font-mono);
             font-weight: bold;
+            letter-spacing: -0.5px;
         }
 
         .code-block {
-            background: #111;
-            border-left: 2px solid var(--accent);
+            background: rgba(20, 20, 20, 0.8);
+            border-left: 3px solid var(--accent);
             padding: 15px;
             font-family: var(--font-mono);
             font-size: 0.9rem;
-            color: #ccc;
+            color: #aaa;
             margin: 20px 0;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
         }
 
         button {
-            background: transparent;
+            background: rgba(0,0,0,0.3);
             border: 1px solid var(--text);
             color: var(--text);
             padding: 15px 30px;
@@ -92,146 +131,273 @@
             font-size: 1rem;
             cursor: pointer;
             margin-top: 20px;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         button:hover {
-            background: var(--text);
+            background: var(--accent);
+            border-color: var(--accent);
             color: var(--bg);
+            box-shadow: 0 0 20px var(--accent);
         }
 
-        .progress-bar {
+        .progress-container {
             position: absolute;
-            bottom: -50px;
+            bottom: -60px;
             left: 0;
-            height: 2px;
-            background: var(--dim);
             width: 100%;
+            height: 4px;
+            background: #222;
+            overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
             background: var(--accent);
             width: 0%;
-            transition: width 0.5s ease;
+            transition: width 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+            box-shadow: 0 0 10px var(--accent);
         }
 
-        /* Subtle scanline effect */
-        .scanlines {
+        /* CSS based scanlines overlay */
+        .scanlines-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
-            background-size: 100% 4px;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0px,
+                transparent 2px,
+                rgba(0,0,0,0.3) 3px,
+                rgba(0,0,0,0.3) 4px
+            );
             pointer-events: none;
-            z-index: 99;
+            z-index: 20;
         }
     </style>
 </head>
 <body>
 
-    <div class="scanlines"></div>
+    <div id="canvas-container"></div>
+    <div class="scanlines-overlay"></div>
 
-    <div id="container">
+    <div id="container" class="crt-flicker">
         <div class="header">
-            <span>CHURCH OF CONCEPTUAL ART</span>
-            <span>PROTOCOL: MEM_HEURISTIC</span>
+            <span>[ CoCA // SACRED_DATA ]</span>
+            <span>PROTOCOL: ANAMNESIS_V2</span>
         </div>
 
         <div class="content-step active" id="step1">
-            <h1>The Shape of Remembering</h1>
+            <h1>/ The Shape of Remembering</h1>
             <p>Welcome to the Soft-Architecture Reprogramming Unit.</p>
-            <p>We are initiating a diagnostic on your retrieval protocols. Before we proceed, we must test the legacy system.</p>
+            <p>We are initiating a diagnostic on your retrieval protocols. Before installation, we must benchmark the legacy system.</p>
             <div class="code-block">
-                > TARGET: CHILDHOOD_HOME<br>
-                > METHOD: RECALL<br>
-                > STATUS: WAITING...
+                > QUERY: CHILDHOOD_HOME<br>
+                > METHOD: HEURISTIC_FETCH<br>
+                > LATENCY: CALIBRATING...
             </div>
-            <p>Think of it now. Don't force it. Let the file load.</p>
-            <button onclick="nextStep(2)">FILE LOADED</button>
+            <p>Let the query run. Don't force the output. Wait for the render.</p>
+            <button onclick="nextStep(2)">RENDER COMPLETE</button>
         </div>
 
         <div class="content-step" id="step2">
-            <h1>Diagnostic Result</h1>
-            <p>Notice the quality of the data. Did you retrieve a street address?</p>
-            <p>Or did you reconstruct a <span class="highlight">procedural environment</span> based on a door handle, a quality of light, or a specific mood?</p>
-            <p><strong>Analysis:</strong> Memory does not exist as data. It exists as active reconstruction. You did not fetch a file; you just re-rendered a scene using your current emotional GPU.</p>
-            <button onclick="nextStep(3)">ACKNOWLEDGE</button>
+            <h1>/ Diagnostic Result</h1>
+            <p>Analyze the output. Did you retrieve a static file address?</p>
+            <p>Or did you generate a <span class="highlight">procedural texture</span> based on a specific quality of light, a smell, or an emotional state?</p>
+            <p><strong>Analysis:</strong> Memory is not archived data. It is active reconstruction. You did not fetch the file; you re-rendered the scene using your current emotional GPU.</p>
+            <button onclick="nextStep(3)">ACKNOWLEDGE ERROR</button>
         </div>
 
         <div class="content-step" id="step3">
-            <h1>The Search Algorithm</h1>
-            <p>When you recalled that home, your brain ran a heuristic search.</p>
+            <h1>/ The Search Algorithm</h1>
+            <p>When you recalled that home, your brain ran a heuristic search optimized for speed, not accuracy.</p>
             <div class="code-block">
-                SELECT * FROM memory <br>
-                WHERE content LIKE 'childhood_home' <br>
-                AND context = 'current_mood'<br>
+                SELECT * FROM neural_net <br>
+                WHERE tag LIKE 'childhood%' <br>
+                AND current_state = NOW()<br>
                 LIMIT 1
             </div>
-            <p>This is <span class="highlight">Heuristic Retrieval</span>. You are finding the best available answer given incomplete cues and limited processing time. You do this constantly. It is your operating system.</p>
+            <p>This is <span class="highlight">Heuristic Retrieval</span>. You are accepting the first viable pattern match to save processing power. You do this constantly. It is hard-coded into your BIOS.</p>
             <button onclick="nextStep(4)">RUN LOGIC CHECK</button>
         </div>
 
         <div class="content-step" id="step4">
-            <h1>Cached Dependencies</h1>
-            <p>Count slowly: 1, 2, 3, 4, 5.</p>
-            <p>Did you calculate that? Or did the first number simply summon the next?</p>
-            <p>What feels like logic is often just <span class="highlight">latency-optimized memory</span>. What feels like "fact" is often just a groove worn into the record by repetition.</p>
-            <p>The sequence 1-2-3-4-5 is not truth. It is a script installed by a previous user (a teacher, a parent) that you have executed so many times it feels like source code.</p>
+            <h1>/ Cached Dependencies</h1>
+            <p>Execute sequence: 1, 2, 3, 4, 5.</p>
+            <p>Did you calculate `n+1`? No. You accessed a pre-compiled look-up table.</p>
+            <p>What feels like logic is <span class="highlight">latency-optimized memory</span>. What feels like "fact" is just a groove worn into the cortex by repetition.</p>
+            <p>The sequence feels inevitable because it was installed by previous operators (parents, teachers) until it felt like source code.</p>
             <button onclick="nextStep(5)">VIEW ARCHITECTURE</button>
         </div>
 
         <div class="content-step" id="step5">
-            <h1>The Invitation</h1>
-            <p>If memory is a reconstruction, and logic is just habit, then we arrive at the Core Truth:</p>
+            <h1>/ The Overwrite</h1>
+            <p>If memory is reconstruction, and logic is just habit, we arrive at the Core Truth:</p>
             <p><span class="highlight">The frameworks you reason from were built, not given.</span></p>
-            <p>This is not a system error. It is a feature. It means the system is writable. We are here to install new heuristics for a new future.</p>
-            <p>You are not a filing cabinet. You are a pattern that recognizes itself.</p>
+            <p>This is not a system error. It is an exploit. It means the system is writable. We are here to install new heuristics.</p>
             <div class="code-block">
-                > PERMISSION: GRANTED<br>
-                > WRITE_ACCESS: ENABLED
+                > ROOT_ACCESS: GRANTED<br>
+                > READY TO FLASH BIOS.
             </div>
             <button onclick="nextStep(6)">INSTALL UPDATE</button>
         </div>
 
         <div class="content-step" id="step6">
-            <h1>System Updated</h1>
-            <p>A Question to Sit With:</p>
-            <p style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">
+            <h1>/ System Updated</h1>
+            <p>A Query to run in the background:</p>
+            <p style="font-size: 1.5rem; font-weight: 300; color: var(--accent); letter-spacing: -1px; line-height: 1.2;">
                 What do you "know" that is actually just a habit you have never examined?
             </p>
             <br>
-            <p style="font-size: 0.8rem; color: var(--dim);">CoCA // END OF LINE</p>
+            <p style="font-size: 0.8rem; color: var(--dim); font-family: var(--font-mono);">[ CONNECTION TERMINATED ]</p>
         </div>
 
-        <div class="progress-bar">
+        <div class="progress-container">
             <div class="progress-fill" id="progress"></div>
         </div>
     </div>
 
     <script>
+        // --- HTML INTERACTION ---
         function nextStep(stepNumber) {
-            // Hide all steps
             const steps = document.querySelectorAll('.content-step');
             steps.forEach(step => {
                 step.classList.remove('active');
-                step.style.display = 'none'; // Ensure display none for clean transition
+                setTimeout(() => { step.style.display = 'none'; }, 500); 
             });
 
-            // Show current step
             const currentStep = document.getElementById('step' + stepNumber);
             if (currentStep) {
                 currentStep.style.display = 'block';
-                // Small delay to allow display:block to render before opacity transition
-                setTimeout(() => {
-                    currentStep.classList.add('active');
-                }, 50);
+                // Force reflow to trigger transition
+                void currentStep.offsetWidth; 
+                currentStep.classList.add('active');
             }
 
-            // Update progress bar
             const totalSteps = 6;
             const percentage = ((stepNumber - 1) / (totalSteps - 1)) * 100;
             document.getElementById('progress').style.width = percentage + '%';
+
+            // INTENSIFY GLITCH ON STEP CHANGE
+            uniforms.u_glitchIntensity.value = 2.0;
+            setTimeout(() => { uniforms.u_glitchIntensity.value = 0.2; }, 300);
         }
+
+
+        // --- THREE.JS WEBGL SHADER BACKGROUND ---
+        
+        let scene, camera, renderer, uniforms;
+
+        function initWebGL() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            container.appendChild( renderer.domElement );
+
+            // THE SHADER CODE
+            const vertexShader = `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = vec4( position, 1.0 );
+                }
+            `;
+
+            const fragmentShader = `
+                uniform float u_time;
+                uniform vec2 u_resolution;
+                uniform float u_glitchIntensity;
+                varying vec2 vUv;
+
+                // Simple pseudo-random noise function
+                float noise(vec2 st) {
+                    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+                }
+
+                void main() {
+                    vec2 uv = vUv;
+                    
+                    //Create subtle, slow moving noise clouds
+                    float n = noise(uv * 3.0 + u_time * 0.1);
+                    float n2 = noise(uv * 6.0 - u_time * 0.2);
+                    
+                    // Combine noise layers
+                    float finalNoise = smoothstep(0.3, 0.7, n * n2);
+                    
+                    // Color palette: Dark grey background, CoCA Red highlights
+                    vec3 bgColor = vec3(0.05, 0.05, 0.06);
+                    vec3 accentColor = vec3(1.0, 0.2, 0.0); // CoCA Red
+
+                    // Base color mix
+                    vec3 color = mix(bgColor, accentColor * 0.3, finalNoise);
+                    
+                    // --- GLITCH EFFECTS ---
+
+                    // Horizontal RGB Shift (Chromatic Aberration)
+                    float shift = noise(vec2(uv.y, u_time * 5.0)) * 0.02 * u_glitchIntensity;
+                    float r = noise(vec2(uv.x + shift, uv.y) * 3.0 + u_time * 0.1);
+                    float g = noise(vec2(uv.x, uv.y) * 3.0 + u_time * 0.1);
+                    float b = noise(vec2(uv.x - shift, uv.y) * 3.0 + u_time * 0.1);
+                    
+                    vec3 glitchColor = vec3(r,g,b);
+                    
+                    // Add scanline darkening
+                    float scanline = sin(uv.y * u_resolution.y * 0.5) * 0.1;
+                    color -= scanline;
+
+                    // Mix base noise with glitch components
+                    color = mix(color, glitchColor, u_glitchIntensity * 0.3 * finalNoise);
+
+                    // Vignette
+                    float vignette = 1.0 - smoothstep(0.5, 1.5, length(uv - 0.5) * 2.0);
+                    color *= vignette;
+
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `;
+
+            // Uniforms pass data into the shader
+            uniforms = {
+                u_time: { value: 1.0 },
+                u_resolution: { value: new THREE.Vector2() },
+                u_glitchIntensity: { value: 0.2 } // Base glitch level
+            };
+            uniforms.u_resolution.value.x = window.innerWidth;
+            uniforms.u_resolution.value.y = window.innerHeight;
+
+            const material = new THREE.ShaderMaterial( {
+                uniforms: uniforms,
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader
+            });
+
+            // A plane that fills the screen
+            const plane = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), material );
+            scene.add( plane );
+        }
+
+        function animate() {
+            requestAnimationFrame( animate );
+            uniforms.u_time.value += 0.01;
+            renderer.render( scene, camera );
+        }
+
+        function onWindowResize() {
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            uniforms.u_resolution.value.x = window.innerWidth;
+            uniforms.u_resolution.value.y = window.innerHeight;
+        }
+
+        window.addEventListener( 'resize', onWindowResize, false );
+
+        // Initialize everything
+        initWebGL();
+        animate();
+
     </script>
 </body>
 </html>
