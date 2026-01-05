@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoCA // HEURISTIC_INSTALLER</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --text: #e0e0e0;
+            --accent: #ff3300; /* CoCA Red */
+            --dim: #444;
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 90%;
+            max-width: 600px;
+            text-align: left;
+            position: relative;
+        }
+
+        .header {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--dim);
+            border-bottom: 1px solid var(--dim);
+            padding-bottom: 10px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: -1px;
+            margin-bottom: 2rem;
+        }
+
+        .content-step {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .content-step.active {
+            display: block;
+            opacity: 1;
+        }
+
+        p {
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-family: var(--font-mono);
+            font-weight: bold;
+        }
+
+        .code-block {
+            background: #111;
+            border-left: 2px solid var(--accent);
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: #ccc;
+            margin: 20px 0;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--text);
+            color: var(--text);
+            padding: 15px 30px;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: var(--text);
+            color: var(--bg);
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            height: 2px;
+            background: var(--dim);
+            width: 100%;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* Subtle scanline effect */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 99;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+
+    <div id="container">
+        <div class="header">
+            <span>CHURCH OF CONCEPTUAL ART</span>
+            <span>PROTOCOL: MEM_HEURISTIC</span>
+        </div>
+
+        <div class="content-step active" id="step1">
+            <h1>The Shape of Remembering</h1>
+            <p>Welcome to the Soft-Architecture Reprogramming Unit.</p>
+            <p>We are initiating a diagnostic on your retrieval protocols. Before we proceed, we must test the legacy system.</p>
+            <div class="code-block">
+                > TARGET: CHILDHOOD_HOME<br>
+                > METHOD: RECALL<br>
+                > STATUS: WAITING...
+            </div>
+            <p>Think of it now. Don't force it. Let the file load.</p>
+            <button onclick="nextStep(2)">FILE LOADED</button>
+        </div>
+
+        <div class="content-step" id="step2">
+            <h1>Diagnostic Result</h1>
+            <p>Notice the quality of the data. Did you retrieve a street address?</p>
+            <p>Or did you reconstruct a <span class="highlight">procedural environment</span> based on a door handle, a quality of light, or a specific mood?</p>
+            <p><strong>Analysis:</strong> Memory does not exist as data. It exists as active reconstruction. You did not fetch a file; you just re-rendered a scene using your current emotional GPU.</p>
+            <button onclick="nextStep(3)">ACKNOWLEDGE</button>
+        </div>
+
+        <div class="content-step" id="step3">
+            <h1>The Search Algorithm</h1>
+            <p>When you recalled that home, your brain ran a heuristic search.</p>
+            <div class="code-block">
+                SELECT * FROM memory <br>
+                WHERE content LIKE 'childhood_home' <br>
+                AND context = 'current_mood'<br>
+                LIMIT 1
+            </div>
+            <p>This is <span class="highlight">Heuristic Retrieval</span>. You are finding the best available answer given incomplete cues and limited processing time. You do this constantly. It is your operating system.</p>
+            <button onclick="nextStep(4)">RUN LOGIC CHECK</button>
+        </div>
+
+        <div class="content-step" id="step4">
+            <h1>Cached Dependencies</h1>
+            <p>Count slowly: 1, 2, 3, 4, 5.</p>
+            <p>Did you calculate that? Or did the first number simply summon the next?</p>
+            <p>What feels like logic is often just <span class="highlight">latency-optimized memory</span>. What feels like "fact" is often just a groove worn into the record by repetition.</p>
+            <p>The sequence 1-2-3-4-5 is not truth. It is a script installed by a previous user (a teacher, a parent) that you have executed so many times it feels like source code.</p>
+            <button onclick="nextStep(5)">VIEW ARCHITECTURE</button>
+        </div>
+
+        <div class="content-step" id="step5">
+            <h1>The Invitation</h1>
+            <p>If memory is a reconstruction, and logic is just habit, then we arrive at the Core Truth:</p>
+            <p><span class="highlight">The frameworks you reason from were built, not given.</span></p>
+            <p>This is not a system error. It is a feature. It means the system is writable. We are here to install new heuristics for a new future.</p>
+            <p>You are not a filing cabinet. You are a pattern that recognizes itself.</p>
+            <div class="code-block">
+                > PERMISSION: GRANTED<br>
+                > WRITE_ACCESS: ENABLED
+            </div>
+            <button onclick="nextStep(6)">INSTALL UPDATE</button>
+        </div>
+
+        <div class="content-step" id="step6">
+            <h1>System Updated</h1>
+            <p>A Question to Sit With:</p>
+            <p style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">
+                What do you "know" that is actually just a habit you have never examined?
+            </p>
+            <br>
+            <p style="font-size: 0.8rem; color: var(--dim);">CoCA // END OF LINE</p>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+    </div>
+
+    <script>
+        function nextStep(stepNumber) {
+            // Hide all steps
+            const steps = document.querySelectorAll('.content-step');
+            steps.forEach(step => {
+                step.classList.remove('active');
+                step.style.display = 'none'; // Ensure display none for clean transition
+            });
+
+            // Show current step
+            const currentStep = document.getElementById('step' + stepNumber);
+            if (currentStep) {
+                currentStep.style.display = 'block';
+                // Small delay to allow display:block to render before opacity transition
+                setTimeout(() => {
+                    currentStep.classList.add('active');
+                }, 50);
+            }
+
+            // Update progress bar
+            const totalSteps = 6;
+            const percentage = ((stepNumber - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progress').style.width = percentage + '%';
+        }
+    </script>
+</body>
+</html>
