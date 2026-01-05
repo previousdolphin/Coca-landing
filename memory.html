@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoCA // HEURISTIC_INSTALLER v2</title>
+    <title>CoCA // HEURISTIC_INSTALLER v2.1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         :root {
             --bg: #0a0a0a;
             --text: #d0d0d0;
-            --accent: #ff4400; /* Slightly brighter CoCA Red for contrast */
+            --accent: #ff4400;
             --dim: #555;
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
@@ -36,7 +36,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1; /* Behind content */
+            z-index: -1; 
             pointer-events: none;
         }
 
@@ -46,13 +46,11 @@
             text-align: left;
             position: relative;
             z-index: 10;
-            /* Slight CRT curve effect on the content container */
             transform: translateZ(0px);
             text-shadow: 1px 0px 2px rgba(0,0,0,0.5);
             mix-blend-mode: hard-light;
         }
 
-        /* Subtle flicker animation for the text */
         @keyframes flicker {
             0% { opacity: 0.95; }
             5% { opacity: 0.8; }
@@ -89,7 +87,6 @@
         .content-step {
             display: none;
             opacity: 0;
-            /* CSS transition for smooth fade */
             transition: opacity 0.5s ease-in-out;
         }
 
@@ -134,6 +131,9 @@
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 1px;
+            /* Ensure button is clickable above everything */
+            position: relative; 
+            z-index: 30; 
         }
 
         button:hover {
@@ -161,7 +161,7 @@
             box-shadow: 0 0 10px var(--accent);
         }
 
-        /* CSS based scanlines overlay */
+        /* Scanlines - pointer events none is crucial here */
         .scanlines-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -261,27 +261,42 @@
     <script>
         // --- HTML INTERACTION ---
         function nextStep(stepNumber) {
-            const steps = document.querySelectorAll('.content-step');
-            steps.forEach(step => {
-                step.classList.remove('active');
-                setTimeout(() => { step.style.display = 'none'; }, 500); 
+            const allSteps = document.querySelectorAll('.content-step');
+            const nextStepEl = document.getElementById('step' + stepNumber);
+
+            // 1. Hide all active steps EXCEPT the new one
+            allSteps.forEach(step => {
+                if(step !== nextStepEl && step.classList.contains('active')) {
+                    step.classList.remove('active');
+                    // Wait for fade out, then set display none
+                    setTimeout(() => { 
+                        if(!step.classList.contains('active')) { // Check again to be safe
+                            step.style.display = 'none'; 
+                        }
+                    }, 500);
+                }
             });
 
-            const currentStep = document.getElementById('step' + stepNumber);
-            if (currentStep) {
-                currentStep.style.display = 'block';
-                // Force reflow to trigger transition
-                void currentStep.offsetWidth; 
-                currentStep.classList.add('active');
+            // 2. Show the new step
+            if (nextStepEl) {
+                // Remove display:none immediately so it exists in DOM
+                nextStepEl.style.display = 'block';
+                // Force a reflow (browser paint) so the transition catches the opacity change
+                void nextStepEl.offsetWidth; 
+                // Add the active class to trigger fade-in
+                nextStepEl.classList.add('active');
             }
 
+            // Update progress bar
             const totalSteps = 6;
             const percentage = ((stepNumber - 1) / (totalSteps - 1)) * 100;
             document.getElementById('progress').style.width = percentage + '%';
 
-            // INTENSIFY GLITCH ON STEP CHANGE
-            uniforms.u_glitchIntensity.value = 2.0;
-            setTimeout(() => { uniforms.u_glitchIntensity.value = 0.2; }, 300);
+            // TRIGGER GLITCH
+            if(uniforms) {
+                uniforms.u_glitchIntensity.value = 2.0;
+                setTimeout(() => { uniforms.u_glitchIntensity.value = 0.2; }, 300);
+            }
         }
 
 
@@ -291,7 +306,8 @@
 
         function initWebGL() {
             const container = document.getElementById('canvas-container');
-            
+            if(!container) return; // safety check
+
             scene = new THREE.Scene();
             camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
             renderer = new THREE.WebGLRenderer({ alpha: true });
@@ -313,7 +329,6 @@
                 uniform float u_glitchIntensity;
                 varying vec2 vUv;
 
-                // Simple pseudo-random noise function
                 float noise(vec2 st) {
                     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
                 }
@@ -321,23 +336,16 @@
                 void main() {
                     vec2 uv = vUv;
                     
-                    //Create subtle, slow moving noise clouds
                     float n = noise(uv * 3.0 + u_time * 0.1);
                     float n2 = noise(uv * 6.0 - u_time * 0.2);
                     
-                    // Combine noise layers
                     float finalNoise = smoothstep(0.3, 0.7, n * n2);
                     
-                    // Color palette: Dark grey background, CoCA Red highlights
                     vec3 bgColor = vec3(0.05, 0.05, 0.06);
-                    vec3 accentColor = vec3(1.0, 0.2, 0.0); // CoCA Red
+                    vec3 accentColor = vec3(1.0, 0.2, 0.0); 
 
-                    // Base color mix
                     vec3 color = mix(bgColor, accentColor * 0.3, finalNoise);
                     
-                    // --- GLITCH EFFECTS ---
-
-                    // Horizontal RGB Shift (Chromatic Aberration)
                     float shift = noise(vec2(uv.y, u_time * 5.0)) * 0.02 * u_glitchIntensity;
                     float r = noise(vec2(uv.x + shift, uv.y) * 3.0 + u_time * 0.1);
                     float g = noise(vec2(uv.x, uv.y) * 3.0 + u_time * 0.1);
@@ -345,14 +353,11 @@
                     
                     vec3 glitchColor = vec3(r,g,b);
                     
-                    // Add scanline darkening
                     float scanline = sin(uv.y * u_resolution.y * 0.5) * 0.1;
                     color -= scanline;
 
-                    // Mix base noise with glitch components
                     color = mix(color, glitchColor, u_glitchIntensity * 0.3 * finalNoise);
 
-                    // Vignette
                     float vignette = 1.0 - smoothstep(0.5, 1.5, length(uv - 0.5) * 2.0);
                     color *= vignette;
 
@@ -360,11 +365,10 @@
                 }
             `;
 
-            // Uniforms pass data into the shader
             uniforms = {
                 u_time: { value: 1.0 },
                 u_resolution: { value: new THREE.Vector2() },
-                u_glitchIntensity: { value: 0.2 } // Base glitch level
+                u_glitchIntensity: { value: 0.2 } 
             };
             uniforms.u_resolution.value.x = window.innerWidth;
             uniforms.u_resolution.value.y = window.innerHeight;
@@ -375,26 +379,26 @@
                 fragmentShader: fragmentShader
             });
 
-            // A plane that fills the screen
             const plane = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), material );
             scene.add( plane );
         }
 
         function animate() {
             requestAnimationFrame( animate );
-            uniforms.u_time.value += 0.01;
-            renderer.render( scene, camera );
+            if(uniforms) uniforms.u_time.value += 0.01;
+            if(renderer && scene && camera) renderer.render( scene, camera );
         }
 
         function onWindowResize() {
-            renderer.setSize( window.innerWidth, window.innerHeight );
-            uniforms.u_resolution.value.x = window.innerWidth;
-            uniforms.u_resolution.value.y = window.innerHeight;
+            if(renderer && uniforms) {
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                uniforms.u_resolution.value.x = window.innerWidth;
+                uniforms.u_resolution.value.y = window.innerHeight;
+            }
         }
 
         window.addEventListener( 'resize', onWindowResize, false );
 
-        // Initialize everything
         initWebGL();
         animate();
 
