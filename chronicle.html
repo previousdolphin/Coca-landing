@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE CHRONICLE | UNSUBSCRIBE LLC</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --fg: #e0e0e0;
+            --accent: #ff3333; /* The Color of Urgent Administration */
+            --foil-gold: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --foil-silver: linear-gradient(45deg, #999999, #ffffff, #444444, #dddddd);
+            --mono: "Courier New", Courier, monospace;
+            --border: 2px solid var(--fg);
+        }
+
+        * {
+            box-sizing: border-box;
+            cursor: crosshair;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: var(--mono);
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+            overflow-x: hidden;
+            text-transform: uppercase;
+        }
+
+        /* UTILITIES */
+        .u-flex { display: flex; justify-content: space-between; align-items: flex-start; }
+        .u-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .u-border-bottom { border-bottom: var(--border); }
+        .u-border-top { border-top: var(--border); }
+        .u-pad { padding: 1.5rem; }
+        .u-danger { color: var(--accent); }
+        .u-foil { 
+            background: var(--foil-gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+            text-shadow: 0px 0px 5px rgba(191, 149, 63, 0.3);
+        }
+        
+        /* HEADER */
+        header {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+            border-bottom: var(--border);
+            padding: 1rem;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* HERO SECTION - THE ACCUMULATOR */
+        .accumulator {
+            min-height: 80vh;
+            display: grid;
+            grid-template-columns: 3fr 2fr; /* Content vs Visual */
+            border-bottom: var(--border);
+        }
+
+        .data-panel {
+            padding: 4rem 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: var(--border);
+        }
+
+        .visual-panel {
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin: 0;
+            line-height: 0.9;
+            letter-spacing: -2px;
+        }
+
+        .stat-block {
+            margin-top: 3rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .price-tag {
+            font-size: 5rem;
+            font-weight: bold;
+            color: var(--fg);
+        }
+
+        /* THE BOOK VISUAL */
+        .book-spine {
+            width: 120px;
+            background: #111;
+            border: 1px solid #333;
+            box-shadow: -10px 10px 20px rgba(0,0,0,0.8);
+            position: relative;
+            transition: height 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotateY(-15deg);
+        }
+
+        .spine-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            color: #444; /* Default dull */
+            font-size: 1.2rem;
+            letter-spacing: 5px;
+            white-space: nowrap;
+        }
+
+        /* If actively growing */
+        .book-spine.active {
+            border: 1px solid var(--fg);
+            box-shadow: 0 0 30px rgba(255,255,255,0.1);
+        }
+        .book-spine.active .spine-text {
+            background: var(--foil-gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* CONTROLS */
+        .controls {
+            margin-top: 4rem;
+        }
+
+        button.claim-btn {
+            background: var(--fg);
+            color: var(--bg);
+            border: none;
+            font-family: var(--mono);
+            font-size: 1.5rem;
+            padding: 1.5rem 3rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid var(--fg);
+        }
+
+        button.claim-btn:hover {
+            background: var(--bg);
+            color: var(--fg);
+        }
+
+        button.claim-btn:disabled {
+            background: #333;
+            color: #555;
+            border-color: #333;
+            cursor: not-allowed;
+        }
+
+        .risk-meter {
+            height: 4px;
+            background: #333;
+            width: 100%;
+            margin-top: 1rem;
+            position: relative;
+        }
+        
+        .risk-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 1s linear;
+        }
+
+        /* THE LEDGER (HISTORY) */
+        .ledger-section {
+            padding: 4rem 2rem;
+        }
+
+        .ledger-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1.2rem;
+            text-align: left;
+        }
+
+        .ledger-table th {
+            border-bottom: 2px solid var(--fg);
+            padding: 1rem;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .ledger-table td {
+            border-bottom: 1px solid #333;
+            padding: 1.5rem 1rem;
+        }
+
+        .status-burned {
+            text-decoration: line-through;
+            color: #444;
+        }
+
+        .tag-burned {
+            background: var(--accent);
+            color: black;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+
+        .tag-archived {
+            background: #333;
+            color: #fff;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+
+        /* MOBILE TWEAKS */
+        @media (max-width: 768px) {
+            .accumulator { grid-template-columns: 1fr; }
+            .data-panel { border-right: none; border-bottom: var(--border); }
+            .visual-panel { height: 300px; }
+            h1 { font-size: 2.5rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div id="clock">00:00:00</div>
+        <div>COCA / UNSUBSCRIBE LLC</div>
+        <div>NYC, NY</div>
+    </header>
+
+    <main>
+        <section class="accumulator">
+            <div class="data-panel">
+                <div>
+                    <div class="u-flex">
+                        <span class="stat-label">CURRENT VOLUME:</span>
+                        <span class="stat-label u-danger" id="risk-status">STATUS: ACCUMULATING</span>
+                    </div>
+                    <h1>THE CHRONICLE<br>OF UNCLAIMED<br>TIME.</h1>
+                    
+                    <div class="u-grid stat-block">
+                        <div>
+                            <span class="stat-label">PAGES (DAYS LOST)</span>
+                            <span class="stat-value" id="page-count">00</span>
+                        </div>
+                        <div>
+                            <span class="stat-label">CURRENT WEIGHT</span>
+                            <span class="stat-value" id="weight-display">0.0 LBS</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-block">
+                        <span class="stat-label">CURRENT PRICE (100 USD / DAY)</span>
+                        <div class="price-tag u-foil" id="price-display">$0.00</div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="risk-meter">
+                        <div class="risk-fill" id="risk-bar"></div>
+                    </div>
+                    <span class="stat-label" style="margin-top:5px; text-align:right;">CHURCH INTERVENTION THRESHOLD</span>
+                    
+                    <button class="claim-btn" id="claim-btn" onclick="attemptPurchase()">
+                        CLAIM VOLUME 004
+                    </button>
+                    <p style="font-size: 0.7rem; margin-top: 1rem; opacity: 0.5;">
+                        WARNING: BY CLAIMING THIS VOLUME, YOU RESET THE TIMELINE. ALL ACCUMULATED DAYS WILL BE BOUND INTO A PHYSICAL ARTIFACT AND SHIPPED TO YOU.
+                    </p>
+                </div>
+            </div>
+
+            <div class="visual-panel">
+                <div class="book-spine active" id="book-spine">
+                    <span class="spine-text" id="spine-date-range">JAN 01 - JAN 08</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ledger-section">
+            <div class="u-border-bottom" style="margin-bottom: 2rem; padding-bottom: 1rem;">
+                <span class="stat-label">ARCHIVE ACCESS</span>
+                <h2>THE LEDGER OF PREVIOUS VOLUMES</h2>
+            </div>
+
+            <table class="ledger-table">
+                <thead>
+                    <tr>
+                        <th>VOL.</th>
+                        <th>OWNER</th>
+                        <th>DATES ENCLOSED</th>
+                        <th>PAGES</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>003</td>
+                        <td>J. THOMAS DO</td>
+                        <td>DEC 28 - DEC 31, 2025</td>
+                        <td>04</td>
+                        <td>ARCHIVED <span class="tag-archived">SOLD</span></td>
+                    </tr>
+                    <tr class="status-burned">
+                        <td>002</td>
+                        <td>[NO CLAIMANT]</td>
+                        <td>NOV 01 - DEC 27, 2025</td>
+                        <td>56</td>
+                        <td>UNSUBSCRIBED <span class="tag-burned">BURNED BY CHURCH</span></td>
+                    </tr>
+                    <tr>
+                        <td>001</td>
+                        <td>P. PISSARRO</td>
+                        <td>OCT 15 - OCT 31, 2025</td>
+                        <td>16</td>
+                        <td>ARCHIVED <span class="tag-archived">SOLD</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer class="u-pad u-border-top" style="margin-top: 4rem; text-align: center; font-size: 0.7rem; color: #555;">
+        <p>A JOINT VENTURE OF UNSUBSCRIBE LLC AND THE CHURCH OF CONCEPTUAL ART.</p>
+        <p>TIME IS A FINITE RESOURCE. CONSUME RESPONSIBLY.</p>
+        <p>&copy; 2026</p>
+    </footer>
+
+    <script>
+        // CONFIGURATION
+        const LAST_SOLD_DATE = new Date('2025-12-31T00:00:00'); // Mock last sale
+        const PRICE_PER_DAY = 100;
+        const INTERVENTION_LIMIT = 45; // Days before the Church burns the book
+        
+        function updateSystem() {
+            const now = new Date();
+            
+            // 1. CLOCK
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false });
+
+            // 2. CALCULATE DIFF
+            const diffTime = Math.abs(now - LAST_SOLD_DATE);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            // 3. UPDATE DOM
+            document.getElementById('page-count').innerText = diffDays.toString().padStart(2, '0');
+            
+            const totalPrice = diffDays * PRICE_PER_DAY;
+            document.getElementById('price-display').innerText = '$' + totalPrice.toLocaleString() + '.00';
+
+            // Weight calculation (approx 0.05 lbs per page + 0.5 cover)
+            const weight = (0.5 + (diffDays * 0.05)).toFixed(1);
+            document.getElementById('weight-display').innerText = weight + " LBS";
+
+            // Date Range
+            const options = { month: 'short', day: 'numeric' };
+            const startStr = LAST_SOLD_DATE.toLocaleDateString('en-US', options).toUpperCase();
+            const endStr = now.toLocaleDateString('en-US', options).toUpperCase();
+            document.getElementById('spine-date-range').innerText = `${startStr} - ${endStr}`;
+
+            // 4. VISUAL GROWTH (Scale height of spine based on days, maxing at 60 days)
+            const growthPercentage = Math.min(diffDays / 60, 1);
+            const minHeight = 50; // pixels
+            const maxHeight = 600; // pixels
+            const currentHeight = minHeight + (growthPercentage * (maxHeight - minHeight));
+            document.getElementById('book-spine').style.height = `${currentHeight}px`;
+
+            // 5. RISK METER
+            const riskPercent = Math.min((diffDays / INTERVENTION_LIMIT) * 100, 100);
+            document.getElementById('risk-bar').style.width = `${riskPercent}%`;
+
+            if (diffDays >= INTERVENTION_LIMIT) {
+                document.getElementById('risk-status').innerText = "STATUS: INTERVENTION IMMINENT";
+                document.getElementById('risk-status').style.textShadow = "0 0 10px red";
+                document.getElementById('claim-btn').innerText = "SAVE THIS VOLUME";
+                document.getElementById('claim-btn').style.borderColor = "red";
+                document.getElementById('claim-btn').style.color = "red";
+            }
+        }
+
+        function attemptPurchase() {
+            alert("SYSTEM ERROR:\n\nYOU ARE ATTEMPTING TO PURCHASE TIME THAT HAS ALREADY PASSED.\n\nPLEASE CONNECT WALLET TO FINALIZE TRANSACTION.");
+        }
+
+        // INIT
+        setInterval(updateSystem, 1000);
+        updateSystem();
+
+    </script>
+</body>
+</html>
