@@ -7,436 +7,401 @@
     <style>
         :root {
             --bg: #050505;
-            --fg: #e0e0e0;
-            --accent: #ff3333; 
-            --dim: #444444;
-            --border-color: #333333;
+            --fg: #f0f0f0;
+            --dim: #666;
+            --accent: #ff4400; /* International Orange (Aerospace/Warning) */
             
             /* Typography */
-            --font-main: "Courier New", Courier, monospace;
-            --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            --font-mono: "Courier New", Courier, monospace;
+            --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
             
-            /* Spacing */
-            --pad: clamp(1rem, 3vw, 2rem);
-            --border: 1px solid var(--border-color);
+            /* Spacing - The "Breathing Room" */
+            --space-xs: 2vh;
+            --space-sm: 5vh;
+            --space-md: 10vh;
+            --space-lg: 20vh;
+            
+            --gutter: max(2rem, 5vw);
         }
 
-        * {
-            box-sizing: border-box;
+        /* RESET & BASE */
+        * { box-sizing: border-box; }
+        
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
             background-color: var(--bg);
             color: var(--fg);
-            font-family: var(--font-main);
+            font-family: var(--font-mono);
             margin: 0;
             padding: 0;
-            line-height: 1.5;
+            line-height: 1.6;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* --- TYPOGRAPHY UTILS --- */
-        h1, h2, h3 {
-            font-family: var(--font-display);
+        /* TYPOGRAPHY SYSTEM */
+        h1, h2, h3, h4 {
+            font-family: var(--font-sans);
             font-weight: 700;
-            text-transform: uppercase;
             margin: 0;
-            line-height: 0.9;
+            text-transform: uppercase;
+            line-height: 0.95;
+            letter-spacing: -0.02em;
         }
 
-        h1 { font-size: clamp(2.5rem, 8vw, 6rem); letter-spacing: -2px; }
-        h2 { font-size: clamp(1.5rem, 4vw, 3rem); letter-spacing: -1px; }
-        h3 { font-size: 1rem; color: var(--dim); letter-spacing: 1px; margin-bottom: 0.5rem; }
+        h1 { font-size: clamp(3rem, 10vw, 8rem); }
+        h2 { font-size: clamp(2rem, 5vw, 4rem); margin-bottom: var(--space-xs); }
+        h3 { font-size: 1.2rem; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 1rem; }
+        
+        p {
+            font-size: clamp(1rem, 1.5vw, 1.25rem);
+            max-width: 35ch; /* Optimal reading width */
+            margin-bottom: 2rem;
+            color: #ccc;
+        }
 
-        .u-mono { font-family: var(--font-main); text-transform: uppercase; }
-        .u-danger { color: var(--accent); }
+        .highlight { color: #fff; border-bottom: 1px solid var(--accent); }
         .u-dim { color: var(--dim); }
-        
-        /* --- LAYOUT UTILS --- */
-        .grid-split {
-            display: grid;
-            grid-template-columns: 1fr;
-            border-bottom: var(--border);
-        }
-        
-        @media (min-width: 900px) {
-            .grid-split { grid-template-columns: 1.2fr 0.8fr; }
-        }
 
-        .section-pad { padding: var(--pad); }
-        .border-right { border-right: var(--border); }
-        .border-top { border-top: var(--border); }
-        .border-bottom { border-bottom: var(--border); }
-
-        /* --- HEADER --- */
+        /* HEADER */
         header {
+            padding: 2rem var(--gutter);
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 1rem var(--pad);
-            border-bottom: var(--border);
-            font-size: 0.75rem;
-            position: sticky;
+            position: fixed;
             top: 0;
-            background: var(--bg);
-            z-index: 100;
+            width: 100%;
+            mix-blend-mode: difference;
+            z-index: 1000;
+            font-size: 0.8rem;
+            text-transform: uppercase;
         }
 
-        /* --- HERO SECTION (THE ACCUMULATOR) --- */
-        .hero-content {
+        /* HERO SECTION */
+        .hero {
+            min-height: 100vh;
+            padding: var(--space-md) var(--gutter);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            min-height: 60vh;
+            justify-content: center;
+            border-bottom: 1px solid #222;
         }
 
-        .live-stats {
-            margin-top: 3rem;
+        .hero-stats {
+            margin-top: var(--space-sm);
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 2rem;
         }
 
-        .big-number {
-            font-size: clamp(2rem, 5vw, 4rem);
-            font-family: var(--font-display);
-            font-weight: bold;
-            display: block;
-        }
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-val { font-family: var(--font-sans); font-size: 4rem; font-weight: bold; line-height: 1; }
+        .stat-label { font-size: 0.8rem; color: var(--dim); margin-top: 0.5rem; text-transform: uppercase; }
 
-        .price-display {
-            font-size: clamp(3rem, 6vw, 5rem);
-            color: var(--fg);
-            margin-top: 1rem;
-            display: block;
-            font-family: var(--font-display);
-        }
-
-        /* --- THE SPINE VISUAL --- */
-        .spine-container {
+        /* THE MANIFESTO (Philosophy) */
+        .manifesto {
+            padding: var(--space-md) var(--gutter);
             background: #0a0a0a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            min-height: 400px; /* Mobile height */
-        }
-        
-        @media (min-width: 900px) {
-            .spine-container { min-height: auto; border-left: var(--border); }
         }
 
-        .spine-object {
-            width: clamp(60px, 10vw, 140px);
-            background: #151515;
-            border: 1px solid #444;
-            box-shadow: -15px 15px 30px rgba(0,0,0,0.9);
-            transition: height 0.5s ease;
+        .text-block {
+            margin-bottom: var(--space-sm);
+            border-left: 2px solid var(--accent);
+            padding-left: 2rem;
+        }
+
+        /* THE BOOKSHELF (Archive) */
+        .bookshelf-section {
+            padding: var(--space-md) var(--gutter);
+            border-top: 1px solid #222;
+            border-bottom: 1px solid #222;
+            overflow: hidden;
+        }
+
+        .shelf-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 400px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            /* Hide Scrollbar */
+            -ms-overflow-style: none;  
+            scrollbar-width: none;  
+        }
+        .shelf-container::-webkit-scrollbar { display: none; }
+
+        .spine {
+            border: 1px solid #333;
+            background: #111;
+            color: #555;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
+            cursor: help;
+            flex-shrink: 0; /* Don't squash books */
+        }
+
+        .spine:hover {
+            background: #222;
+            color: #fff;
+            transform: translateY(-20px);
+        }
+
+        .spine.active-vol {
+            border: 1px solid var(--fg);
+            background: #000;
+            color: var(--fg);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .spine.burnt {
+            background: #1a0505;
+            border: 1px solid #300;
+            height: 50% !important; /* Burnt books are smaller/destroyed */
+            align-items: flex-end;
         }
 
         .spine-text {
             writing-mode: vertical-rl;
             text-orientation: mixed;
             transform: rotate(180deg);
-            color: var(--fg);
-            font-size: 0.9rem;
-            letter-spacing: 3px;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
             white-space: nowrap;
         }
 
-        /* --- THE STORY (PROTOCOL) --- */
-        .protocol-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-        }
-
-        @media (min-width: 768px) {
-            .protocol-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-
-        .protocol-item {
-            padding: var(--pad);
-            border-bottom: var(--border);
-        }
-        
-        @media (min-width: 768px) {
-            .protocol-item { border-right: var(--border); border-bottom: none; }
-            .protocol-item:last-child { border-right: none; }
-        }
-
-        .step-num {
-            font-size: 3rem;
-            font-family: var(--font-display);
-            color: var(--dim);
-            opacity: 0.3;
-            margin-bottom: 1rem;
-            display: block;
-        }
-
-        p.explanation {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            max-width: 30ch;
-        }
-
-        /* --- THE LEDGER --- */
-        .ledger-row {
-            display: grid;
-            grid-template-columns: 1fr;
-            border-bottom: 1px solid #222;
-            padding: 1rem var(--pad);
-            font-size: 0.9rem;
-        }
-
-        @media (min-width: 768px) {
-            .ledger-row { grid-template-columns: 0.5fr 2fr 1fr 1fr; }
-        }
-
-        .ledger-header {
-            color: var(--dim);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* --- INTERACTIVE --- */
-        .action-area {
-            padding: var(--pad);
+        /* PRODUCT VISUAL (The Stack) */
+        .product-visual {
+            margin: var(--space-sm) 0;
+            padding: 2rem;
             background: #111;
             text-align: center;
         }
+        
+        .stack-desc {
+            font-size: 0.9rem;
+            color: var(--dim);
+            margin-top: 1rem;
+        }
 
-        button.cta {
+        /* FOOTER / CTA */
+        .cta-section {
+            padding: var(--space-lg) var(--gutter);
+            text-align: center;
+        }
+
+        button.main-btn {
             background: transparent;
             color: var(--fg);
             border: 2px solid var(--fg);
-            padding: 1.5rem 2rem;
-            font-family: var(--font-display);
+            font-family: var(--font-sans);
+            font-size: clamp(1rem, 3vw, 2rem);
             font-weight: 700;
-            font-size: clamp(1rem, 2vw, 1.5rem);
+            padding: 2rem 4rem;
             text-transform: uppercase;
-            cursor: pointer;
-            width: 100%;
-            max-width: 600px;
-            transition: all 0.2s;
+            cursor: default; /* For coming soon */
+            transition: 0.3s;
         }
-
-        button.cta:hover {
+        
+        button.main-btn:hover {
             background: var(--fg);
             color: var(--bg);
         }
 
-        .ticker-tape {
-            white-space: nowrap;
-            overflow: hidden;
-            border-bottom: var(--border);
-            padding: 0.5rem 0;
-            font-size: 0.8rem;
-            background: var(--accent);
-            color: #000;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
 
-    <div class="ticker-tape">
-        <marquee scrollamount="10">
-            SYSTEM STATUS: ACCUMULATING // INTERVENTION THRESHOLD: 45 DAYS // CURRENT VALUE RISING // TIME IS DEBT // TIME IS DEBT // TIME IS DEBT
-        </marquee>
-    </div>
-
     <header>
-        <div>COCA / UNSUBSCRIBE LLC</div>
-        <div id="clock">00:00:00</div>
+        <div>The Chronicle</div>
+        <div id="live-clock">00:00:00</div>
     </header>
 
-    <main>
-        <section class="grid-split">
-            <div class="hero-content section-pad">
-                <div>
-                    <h3>CURRENT VOLUME</h3>
-                    <h1>THE CHRONICLE<br>OF UNCLAIMED<br>TIME.</h1>
-                </div>
-
-                <div class="live-stats">
-                    <div>
-                        <h3>PAGES (DAYS LOST)</h3>
-                        <span class="big-number" id="page-count">00</span>
-                    </div>
-                    <div>
-                        <h3>CURRENT WEIGHT</h3>
-                        <span class="big-number" id="weight-display">0.0 LBS</span>
-                    </div>
-                </div>
-
-                <div style="margin-top: 3rem;">
-                    <h3>CURRENT PRICE (100 USD / PAGE)</h3>
-                    <span class="price-display" id="price-display">$0.00</span>
-                </div>
+    <section class="hero">
+        <h3>Volume 004 : Status Open</h3>
+        <h1>The Ledger of<br>Unclaimed Time.</h1>
+        
+        <div class="hero-stats">
+            <div class="stat-item">
+                <span class="stat-val" id="page-count">00</span>
+                <span class="stat-label">Pages Accumulated</span>
             </div>
-
-            <div class="spine-container">
-                <div class="spine-object" id="spine-visual">
-                    <span class="spine-text" id="spine-dates">JAN 01 - JAN 08</span>
-                </div>
+            <div class="stat-item">
+                <span class="stat-val" id="price-display">$0</span>
+                <span class="stat-label">Current Price (100 USD/Day)</span>
             </div>
-        </section>
-
-        <section class="border-bottom">
-            <div class="section-pad">
-                <h2>THE PROTOCOL</h2>
+            <div class="stat-item">
+                <span class="stat-val" id="weight-display">0.0</span>
+                <span class="stat-label">LBS (Raw Paper Weight)</span>
             </div>
-            <div class="protocol-grid">
-                
-                <div class="protocol-item">
-                    <span class="step-num">01</span>
-                    <h3>THE ACCUMULATION</h3>
-                    <p class="explanation">
-                        We mint one physical book at a time. Every day that passes without a buyer adds <strong>1 Page</strong> to the book and <strong>$100</strong> to the price.
-                    </p>
-                    <br>
-                    <p class="explanation u-dim">
-                        If you buy today, you get a 1-page pamphlet ($100). If you wait 30 days, you get a 30-page hardcover ($3,000).
-                    </p>
-                </div>
+        </div>
+    </section>
 
-                <div class="protocol-item">
-                    <span class="step-num">02</span>
-                    <h3>THE ARTIFACT</h3>
-                    <p class="explanation">
-                        When purchased, the timeline freezes. We print the dates on the spine, bind the pages in leather, and ship the volume to the claimant.
-                    </p>
-                    <br>
-                    <p class="explanation u-dim">
-                        Your purchase resets the clock. The next volume begins at Page 1 the following morning.
-                    </p>
-                </div>
-
-                <div class="protocol-item">
-                    <span class="step-num">03</span>
-                    <h3>THE PURGE</h3>
-                    <p class="explanation">
-                        If a volume reaches <strong>45 Pages</strong> ($4,500) without a buyer, the Church intervenes.
-                    </p>
-                    <br>
-                    <p class="explanation u-danger">
-                        We purchase the book ourselves and burn it on livestream. Those days are permanently deleted from the archive.
-                    </p>
-                </div>
-
-            </div>
-        </section>
-
-        <section>
-            <div class="section-pad border-bottom">
-                <h2>ARCHIVE LEDGER</h2>
-                <p class="u-dim" style="max-width: 500px;">
-                    A PUBLIC RECORD OF WHO OWNS WHICH SLICE OF HISTORY.
-                </p>
-            </div>
-
-            <div class="ledger-row ledger-header u-dim" style="border-bottom: 2px solid #333;">
-                <span>VOL</span>
-                <span>OWNER</span>
-                <span>PAGES</span>
-                <span>STATUS</span>
-            </div>
-
-            <div class="ledger-row">
-                <span class="u-dim">003</span>
-                <span>JESSE THOMAS DO</span>
-                <span>4 PAGES</span>
-                <span class="u-dim">ARCHIVED / PRIVATE COLLECTION</span>
-            </div>
-
-            <div class="ledger-row" style="opacity: 0.5;">
-                <span class="u-dim">002</span>
-                <span style="text-decoration: line-through;">NO CLAIMANT</span>
-                <span>56 PAGES</span>
-                <span class="u-danger">UNSUBSCRIBED / INCINERATED</span>
-            </div>
-
-            <div class="ledger-row">
-                <span class="u-dim">001</span>
-                <span>PAUL PISSARRO</span>
-                <span>16 PAGES</span>
-                <span class="u-dim">ARCHIVED / PRIVATE COLLECTION</span>
-            </div>
-        </section>
-
-        <section class="action-area border-top">
-            <h3 style="margin-bottom: 2rem;">VOLUME 004 IS AVAILABLE</h3>
-            <button class="cta" onclick="alert('THE CHRONICLE IS CURRENTLY IN PRE-LAUNCH. ACCESS COMING SOON.')">
-                COMING SOON
-            </button>
-            <p style="margin-top: 1rem; font-size: 0.8rem; color: #555;">
-                SECURE SERVER CONNECTION PENDING...
+    <section class="manifesto">
+        <div class="text-block">
+            <h3>The Mechanism</h3>
+            <h2>Financial Chicken played with a Printing Press.</h2>
+            <p>
+                We do not sell books. We sell the passage of time.
+                Every day that passes without a buyer, the book grows by 1 page.
+                The price increases by $100.
             </p>
-        </section>
+            <p>
+                It is a jackpot of neglect. The longer the world ignores this volume,
+                the more substantial—and expensive—it becomes.
+            </p>
+        </div>
 
-    </main>
+        <div class="text-block" style="margin-top: var(--space-sm);">
+            <h3>The Content</h3>
+            <h2>A Compendium of Deprecated Time.</h2>
+            <p>
+                This is not a journal. It is an evidentiary record. 
+                Each page corresponds to a missed day, printed with the 
+                <span class="highlight">authoritative public news wire</span> (Reuters/AP) 
+                from that specific 24-hour cycle.
+            </p>
+            <p>
+                When you purchase, you own the physical proof of what happened
+                while no one was watching.
+            </p>
+        </div>
 
-    <footer class="section-pad" style="text-align: center; font-size: 0.75rem; color: #444; margin-top: 2rem;">
-        &copy; 2026 CHURCH OF CONCEPTUAL ART / UNSUBSCRIBE LLC. <br>
-        NEW YORK, NY.
-    </footer>
+        <div class="text-block" style="margin-top: var(--space-sm);">
+            <h3>The Risk</h3>
+            <h2>The Great Deprecation.</h2>
+            <p>
+                If a volume reaches 45 Pages ($4,500) without a claimant, 
+                <span class="highlight" style="color:var(--accent); border-color:var(--accent);">The Church intervenes.</span>
+            </p>
+            <p>
+                We purchase the book. We incinerate it. 
+                The record of those days is permanently unsubscribed from the archive.
+                Deleted history.
+            </p>
+        </div>
+    </section>
+
+    <section class="bookshelf-section">
+        <h3>The Archive</h3>
+        <p class="u-dim">VISUALIZATION OF PREVIOUS VOLUMES</p>
+        
+        <div class="shelf-container" id="bookshelf">
+            <div class="spine" style="width: 20px; height: 100px;">
+                <span class="spine-text">VOL 001</span>
+            </div>
+            <div class="spine" style="width: 60px; height: 250px;">
+                <span class="spine-text">VOL 002</span>
+            </div>
+            <div class="spine burnt" style="width: 80px;">
+                <span class="spine-text" style="color:#500;">BURNED</span>
+            </div>
+            <div class="spine active-vol" id="active-spine" style="width: 40px; height: 180px;">
+                <span class="spine-text" style="color: var(--accent);">RECORDING...</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <p style="margin: 0 auto; margin-bottom: 2rem; color: var(--accent);">
+            CURRENTLY ACCUMULATING DATA FROM: NEW YORK, NY
+        </p>
+        
+        <button class="main-btn">
+            Coming Soon
+        </button>
+        
+        <p class="u-dim" style="margin-top: 2rem; font-size: 0.8rem;">
+            © 2026 Unsubscribe LLC / Church of Conceptual Art
+        </p>
+    </section>
 
     <script>
-        // --- CONFIGURATION ---
-        // In a real app, this date comes from the server (last_transaction_timestamp)
+        // CONFIG
         const LAST_SOLD_DATE = new Date('2025-12-31T00:00:00'); 
         const PRICE_PER_DAY = 100;
         
         function updateSystem() {
             const now = new Date();
             
-            // 1. CLOCK
-            document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false }) + " EST";
+            // Clock
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('en-US', {hour12: false});
 
-            // 2. CALCULATE DIFF
+            // Math
             const diffTime = Math.abs(now - LAST_SOLD_DATE);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
             
-            // 3. UPDATE DOM
+            // Update Stats
             document.getElementById('page-count').innerText = diffDays.toString().padStart(2, '0');
+            document.getElementById('price-display').innerText = '$' + (diffDays * PRICE_PER_DAY).toLocaleString();
             
-            const totalPrice = diffDays * PRICE_PER_DAY;
-            document.getElementById('price-display').innerText = '$' + totalPrice.toLocaleString();
+            // Weight (Raw paper stack logic)
+            // A standard sheet of newsprint is light, but let's assume heavy archival paper
+            const weight = (diffDays * 0.1).toFixed(1); 
+            document.getElementById('weight-display').innerText = weight;
 
-            // Weight calculation (approx 0.05 lbs per page + 0.5 cover base)
-            const weight = (0.5 + (diffDays * 0.05)).toFixed(1);
-            document.getElementById('weight-display').innerText = weight + " LBS";
-
-            // Date Range String
-            const options = { month: 'short', day: 'numeric' };
-            const startStr = LAST_SOLD_DATE.toLocaleDateString('en-US', options).toUpperCase();
-            const endStr = now.toLocaleDateString('en-US', options).toUpperCase();
-            document.getElementById('spine-dates').innerText = `${startStr} - ${endStr}`;
-
-            // 4. VISUAL GROWTH 
-            // We scale the height based on days. 
-            // Minimum visual height: 200px. Max visual height: 500px (or 80% of container).
-            // Logic: 1 day = 0%, 45 days = 100% growth.
-            const maxDays = 45; 
-            const growthFactor = Math.min(diffDays / maxDays, 1);
-            
-            // Base height + (growth * variable)
-            const minHeight = 150; 
-            const variableHeight = 350;
-            const currentHeight = minHeight + (growthFactor * variableHeight);
-            
-            document.getElementById('spine-visual').style.height = `${currentHeight}px`;
+            // Update Active Spine on Bookshelf
+            const activeSpine = document.getElementById('active-spine');
+            // Max height 350px for the shelf
+            const height = Math.min(100 + (diffDays * 5), 350); 
+            const width = Math.min(20 + (diffDays * 2), 100);
+            activeSpine.style.height = height + 'px';
+            activeSpine.style.width = width + 'px';
         }
 
-        // INIT
+        // Generate some fake history for the bookshelf
+        function initBookshelf() {
+            const shelf = document.getElementById('bookshelf');
+            shelf.innerHTML = ''; // Clear
+
+            // Mock Data: [Pages, Status]
+            const history = [
+                {pages: 5, status: 'sold'},
+                {pages: 12, status: 'sold'},
+                {pages: 2, status: 'sold'},
+                {pages: 45, status: 'burnt'}, // The big burnt one
+                {pages: 8, status: 'sold'},
+                {pages: 1, status: 'sold'},
+                {pages: 21, status: 'sold'},
+            ];
+
+            history.forEach((vol, index) => {
+                const div = document.createElement('div');
+                div.className = `spine ${vol.status === 'burnt' ? 'burnt' : ''}`;
+                
+                // Visual math
+                const height = vol.status === 'burnt' ? 150 : 100 + (vol.pages * 5);
+                const width = 20 + (vol.pages * 1.5);
+                
+                div.style.height = `${height}px`;
+                div.style.width = `${width}px`;
+
+                const span = document.createElement('span');
+                span.className = 'spine-text';
+                span.innerText = vol.status === 'burnt' ? 'UNSUBSCRIBED' : `VOL 00${index+1}`;
+                
+                div.appendChild(span);
+                shelf.appendChild(div);
+            });
+
+            // Add the "Active" one at the end
+            const activeDiv = document.createElement('div');
+            activeDiv.id = 'active-spine';
+            activeDiv.className = 'spine active-vol';
+            activeDiv.innerHTML = '<span class="spine-text" style="color:var(--accent)">RECORDING</span>';
+            shelf.appendChild(activeDiv);
+        }
+
+        initBookshelf();
         setInterval(updateSystem, 1000);
         updateSystem();
+
     </script>
 </body>
 </html>
