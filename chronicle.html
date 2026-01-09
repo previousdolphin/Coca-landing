@@ -6,366 +6,398 @@
     <title>THE CHRONICLE | UNSUBSCRIBE LLC</title>
     <style>
         :root {
-            --bg: #000000;
+            --bg: #050505;
             --fg: #e0e0e0;
-            --accent: #ff3333; /* The Color of Urgent Administration */
-            --foil-gold: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            --foil-silver: linear-gradient(45deg, #999999, #ffffff, #444444, #dddddd);
-            --mono: "Courier New", Courier, monospace;
-            --border: 2px solid var(--fg);
+            --accent: #ff3333; 
+            --dim: #444444;
+            --border-color: #333333;
+            
+            /* Typography */
+            --font-main: "Courier New", Courier, monospace;
+            --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            
+            /* Spacing */
+            --pad: clamp(1rem, 3vw, 2rem);
+            --border: 1px solid var(--border-color);
         }
 
         * {
             box-sizing: border-box;
-            cursor: crosshair;
         }
 
         body {
             background-color: var(--bg);
             color: var(--fg);
-            font-family: var(--mono);
+            font-family: var(--font-main);
             margin: 0;
             padding: 0;
-            line-height: 1.4;
+            line-height: 1.5;
             overflow-x: hidden;
-            text-transform: uppercase;
         }
 
-        /* UTILITIES */
-        .u-flex { display: flex; justify-content: space-between; align-items: flex-start; }
-        .u-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-        .u-border-bottom { border-bottom: var(--border); }
-        .u-border-top { border-top: var(--border); }
-        .u-pad { padding: 1.5rem; }
+        /* --- TYPOGRAPHY UTILS --- */
+        h1, h2, h3 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin: 0;
+            line-height: 0.9;
+        }
+
+        h1 { font-size: clamp(2.5rem, 8vw, 6rem); letter-spacing: -2px; }
+        h2 { font-size: clamp(1.5rem, 4vw, 3rem); letter-spacing: -1px; }
+        h3 { font-size: 1rem; color: var(--dim); letter-spacing: 1px; margin-bottom: 0.5rem; }
+
+        .u-mono { font-family: var(--font-main); text-transform: uppercase; }
         .u-danger { color: var(--accent); }
-        .u-foil { 
-            background: var(--foil-gold);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: bold;
-            text-shadow: 0px 0px 5px rgba(191, 149, 63, 0.3);
+        .u-dim { color: var(--dim); }
+        
+        /* --- LAYOUT UTILS --- */
+        .grid-split {
+            display: grid;
+            grid-template-columns: 1fr;
+            border-bottom: var(--border);
         }
         
-        /* HEADER */
+        @media (min-width: 900px) {
+            .grid-split { grid-template-columns: 1.2fr 0.8fr; }
+        }
+
+        .section-pad { padding: var(--pad); }
+        .border-right { border-right: var(--border); }
+        .border-top { border-top: var(--border); }
+        .border-bottom { border-bottom: var(--border); }
+
+        /* --- HEADER --- */
         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem var(--pad);
+            border-bottom: var(--border);
+            font-size: 0.75rem;
             position: sticky;
             top: 0;
             background: var(--bg);
             z-index: 100;
-            border-bottom: var(--border);
-            padding: 1rem;
-            font-size: 0.8rem;
-            display: flex;
-            justify-content: space-between;
         }
 
-        /* HERO SECTION - THE ACCUMULATOR */
-        .accumulator {
-            min-height: 80vh;
-            display: grid;
-            grid-template-columns: 3fr 2fr; /* Content vs Visual */
-            border-bottom: var(--border);
-        }
-
-        .data-panel {
-            padding: 4rem 2rem;
+        /* --- HERO SECTION (THE ACCUMULATOR) --- */
+        .hero-content {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            border-right: var(--border);
+            min-height: 60vh;
         }
 
-        .visual-panel {
+        .live-stats {
+            margin-top: 3rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .big-number {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-family: var(--font-display);
+            font-weight: bold;
+            display: block;
+        }
+
+        .price-display {
+            font-size: clamp(3rem, 6vw, 5rem);
+            color: var(--fg);
+            margin-top: 1rem;
+            display: block;
+            font-family: var(--font-display);
+        }
+
+        /* --- THE SPINE VISUAL --- */
+        .spine-container {
             background: #0a0a0a;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
             position: relative;
-            perspective: 1000px;
+            min-height: 400px; /* Mobile height */
+        }
+        
+        @media (min-width: 900px) {
+            .spine-container { min-height: auto; border-left: var(--border); }
         }
 
-        h1 {
-            font-size: 4rem;
-            margin: 0;
-            line-height: 0.9;
-            letter-spacing: -2px;
-        }
-
-        .stat-block {
-            margin-top: 3rem;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            opacity: 0.6;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-
-        .stat-value {
-            font-size: 3rem;
-            font-weight: bold;
-        }
-
-        .price-tag {
-            font-size: 5rem;
-            font-weight: bold;
-            color: var(--fg);
-        }
-
-        /* THE BOOK VISUAL */
-        .book-spine {
-            width: 120px;
-            background: #111;
-            border: 1px solid #333;
-            box-shadow: -10px 10px 20px rgba(0,0,0,0.8);
-            position: relative;
+        .spine-object {
+            width: clamp(60px, 10vw, 140px);
+            background: #151515;
+            border: 1px solid #444;
+            box-shadow: -15px 15px 30px rgba(0,0,0,0.9);
             transition: height 0.5s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            transform: rotateY(-15deg);
+            position: relative;
         }
 
         .spine-text {
             writing-mode: vertical-rl;
             text-orientation: mixed;
-            color: #444; /* Default dull */
-            font-size: 1.2rem;
-            letter-spacing: 5px;
+            transform: rotate(180deg);
+            color: var(--fg);
+            font-size: 0.9rem;
+            letter-spacing: 3px;
             white-space: nowrap;
         }
 
-        /* If actively growing */
-        .book-spine.active {
-            border: 1px solid var(--fg);
-            box-shadow: 0 0 30px rgba(255,255,255,0.1);
-        }
-        .book-spine.active .spine-text {
-            background: var(--foil-gold);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* --- THE STORY (PROTOCOL) --- */
+        .protocol-grid {
+            display: grid;
+            grid-template-columns: 1fr;
         }
 
-        /* CONTROLS */
-        .controls {
-            margin-top: 4rem;
+        @media (min-width: 768px) {
+            .protocol-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
-        button.claim-btn {
-            background: var(--fg);
-            color: var(--bg);
-            border: none;
-            font-family: var(--mono);
-            font-size: 1.5rem;
-            padding: 1.5rem 3rem;
-            text-transform: uppercase;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid var(--fg);
-        }
-
-        button.claim-btn:hover {
-            background: var(--bg);
-            color: var(--fg);
-        }
-
-        button.claim-btn:disabled {
-            background: #333;
-            color: #555;
-            border-color: #333;
-            cursor: not-allowed;
-        }
-
-        .risk-meter {
-            height: 4px;
-            background: #333;
-            width: 100%;
-            margin-top: 1rem;
-            position: relative;
+        .protocol-item {
+            padding: var(--pad);
+            border-bottom: var(--border);
         }
         
-        .risk-fill {
-            height: 100%;
-            background: var(--accent);
-            width: 0%;
-            transition: width 1s linear;
+        @media (min-width: 768px) {
+            .protocol-item { border-right: var(--border); border-bottom: none; }
+            .protocol-item:last-child { border-right: none; }
         }
 
-        /* THE LEDGER (HISTORY) */
-        .ledger-section {
-            padding: 4rem 2rem;
+        .step-num {
+            font-size: 3rem;
+            font-family: var(--font-display);
+            color: var(--dim);
+            opacity: 0.3;
+            margin-bottom: 1rem;
+            display: block;
         }
 
-        .ledger-table {
+        p.explanation {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            max-width: 30ch;
+        }
+
+        /* --- THE LEDGER --- */
+        .ledger-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            border-bottom: 1px solid #222;
+            padding: 1rem var(--pad);
+            font-size: 0.9rem;
+        }
+
+        @media (min-width: 768px) {
+            .ledger-row { grid-template-columns: 0.5fr 2fr 1fr 1fr; }
+        }
+
+        .ledger-header {
+            color: var(--dim);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- INTERACTIVE --- */
+        .action-area {
+            padding: var(--pad);
+            background: #111;
+            text-align: center;
+        }
+
+        button.cta {
+            background: transparent;
+            color: var(--fg);
+            border: 2px solid var(--fg);
+            padding: 1.5rem 2rem;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            text-transform: uppercase;
+            cursor: pointer;
             width: 100%;
-            border-collapse: collapse;
-            font-size: 1.2rem;
-            text-align: left;
+            max-width: 600px;
+            transition: all 0.2s;
         }
 
-        .ledger-table th {
-            border-bottom: 2px solid var(--fg);
-            padding: 1rem;
+        button.cta:hover {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        .ticker-tape {
+            white-space: nowrap;
+            overflow: hidden;
+            border-bottom: var(--border);
+            padding: 0.5rem 0;
             font-size: 0.8rem;
-            opacity: 0.7;
-        }
-
-        .ledger-table td {
-            border-bottom: 1px solid #333;
-            padding: 1.5rem 1rem;
-        }
-
-        .status-burned {
-            text-decoration: line-through;
-            color: #444;
-        }
-
-        .tag-burned {
             background: var(--accent);
-            color: black;
-            padding: 2px 6px;
-            font-size: 0.7rem;
-            margin-left: 10px;
+            color: #000;
+            font-weight: bold;
         }
-
-        .tag-archived {
-            background: #333;
-            color: #fff;
-            padding: 2px 6px;
-            font-size: 0.7rem;
-            margin-left: 10px;
-        }
-
-        /* MOBILE TWEAKS */
-        @media (max-width: 768px) {
-            .accumulator { grid-template-columns: 1fr; }
-            .data-panel { border-right: none; border-bottom: var(--border); }
-            .visual-panel { height: 300px; }
-            h1 { font-size: 2.5rem; }
-        }
-
     </style>
 </head>
 <body>
 
+    <div class="ticker-tape">
+        <marquee scrollamount="10">
+            SYSTEM STATUS: ACCUMULATING // INTERVENTION THRESHOLD: 45 DAYS // CURRENT VALUE RISING // TIME IS DEBT // TIME IS DEBT // TIME IS DEBT
+        </marquee>
+    </div>
+
     <header>
-        <div id="clock">00:00:00</div>
         <div>COCA / UNSUBSCRIBE LLC</div>
-        <div>NYC, NY</div>
+        <div id="clock">00:00:00</div>
     </header>
 
     <main>
-        <section class="accumulator">
-            <div class="data-panel">
+        <section class="grid-split">
+            <div class="hero-content section-pad">
                 <div>
-                    <div class="u-flex">
-                        <span class="stat-label">CURRENT VOLUME:</span>
-                        <span class="stat-label u-danger" id="risk-status">STATUS: ACCUMULATING</span>
-                    </div>
+                    <h3>CURRENT VOLUME</h3>
                     <h1>THE CHRONICLE<br>OF UNCLAIMED<br>TIME.</h1>
-                    
-                    <div class="u-grid stat-block">
-                        <div>
-                            <span class="stat-label">PAGES (DAYS LOST)</span>
-                            <span class="stat-value" id="page-count">00</span>
-                        </div>
-                        <div>
-                            <span class="stat-label">CURRENT WEIGHT</span>
-                            <span class="stat-value" id="weight-display">0.0 LBS</span>
-                        </div>
-                    </div>
+                </div>
 
-                    <div class="stat-block">
-                        <span class="stat-label">CURRENT PRICE (100 USD / DAY)</span>
-                        <div class="price-tag u-foil" id="price-display">$0.00</div>
+                <div class="live-stats">
+                    <div>
+                        <h3>PAGES (DAYS LOST)</h3>
+                        <span class="big-number" id="page-count">00</span>
+                    </div>
+                    <div>
+                        <h3>CURRENT WEIGHT</h3>
+                        <span class="big-number" id="weight-display">0.0 LBS</span>
                     </div>
                 </div>
 
-                <div class="controls">
-                    <div class="risk-meter">
-                        <div class="risk-fill" id="risk-bar"></div>
-                    </div>
-                    <span class="stat-label" style="margin-top:5px; text-align:right;">CHURCH INTERVENTION THRESHOLD</span>
-                    
-                    <button class="claim-btn" id="claim-btn" onclick="attemptPurchase()">
-                        CLAIM VOLUME 004
-                    </button>
-                    <p style="font-size: 0.7rem; margin-top: 1rem; opacity: 0.5;">
-                        WARNING: BY CLAIMING THIS VOLUME, YOU RESET THE TIMELINE. ALL ACCUMULATED DAYS WILL BE BOUND INTO A PHYSICAL ARTIFACT AND SHIPPED TO YOU.
+                <div style="margin-top: 3rem;">
+                    <h3>CURRENT PRICE (100 USD / PAGE)</h3>
+                    <span class="price-display" id="price-display">$0.00</span>
+                </div>
+            </div>
+
+            <div class="spine-container">
+                <div class="spine-object" id="spine-visual">
+                    <span class="spine-text" id="spine-dates">JAN 01 - JAN 08</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="border-bottom">
+            <div class="section-pad">
+                <h2>THE PROTOCOL</h2>
+            </div>
+            <div class="protocol-grid">
+                
+                <div class="protocol-item">
+                    <span class="step-num">01</span>
+                    <h3>THE ACCUMULATION</h3>
+                    <p class="explanation">
+                        We mint one physical book at a time. Every day that passes without a buyer adds <strong>1 Page</strong> to the book and <strong>$100</strong> to the price.
+                    </p>
+                    <br>
+                    <p class="explanation u-dim">
+                        If you buy today, you get a 1-page pamphlet ($100). If you wait 30 days, you get a 30-page hardcover ($3,000).
                     </p>
                 </div>
-            </div>
 
-            <div class="visual-panel">
-                <div class="book-spine active" id="book-spine">
-                    <span class="spine-text" id="spine-date-range">JAN 01 - JAN 08</span>
+                <div class="protocol-item">
+                    <span class="step-num">02</span>
+                    <h3>THE ARTIFACT</h3>
+                    <p class="explanation">
+                        When purchased, the timeline freezes. We print the dates on the spine, bind the pages in leather, and ship the volume to the claimant.
+                    </p>
+                    <br>
+                    <p class="explanation u-dim">
+                        Your purchase resets the clock. The next volume begins at Page 1 the following morning.
+                    </p>
                 </div>
+
+                <div class="protocol-item">
+                    <span class="step-num">03</span>
+                    <h3>THE PURGE</h3>
+                    <p class="explanation">
+                        If a volume reaches <strong>45 Pages</strong> ($4,500) without a buyer, the Church intervenes.
+                    </p>
+                    <br>
+                    <p class="explanation u-danger">
+                        We purchase the book ourselves and burn it on livestream. Those days are permanently deleted from the archive.
+                    </p>
+                </div>
+
             </div>
         </section>
 
-        <section class="ledger-section">
-            <div class="u-border-bottom" style="margin-bottom: 2rem; padding-bottom: 1rem;">
-                <span class="stat-label">ARCHIVE ACCESS</span>
-                <h2>THE LEDGER OF PREVIOUS VOLUMES</h2>
+        <section>
+            <div class="section-pad border-bottom">
+                <h2>ARCHIVE LEDGER</h2>
+                <p class="u-dim" style="max-width: 500px;">
+                    A PUBLIC RECORD OF WHO OWNS WHICH SLICE OF HISTORY.
+                </p>
             </div>
 
-            <table class="ledger-table">
-                <thead>
-                    <tr>
-                        <th>VOL.</th>
-                        <th>OWNER</th>
-                        <th>DATES ENCLOSED</th>
-                        <th>PAGES</th>
-                        <th>STATUS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>003</td>
-                        <td>J. THOMAS DO</td>
-                        <td>DEC 28 - DEC 31, 2025</td>
-                        <td>04</td>
-                        <td>ARCHIVED <span class="tag-archived">SOLD</span></td>
-                    </tr>
-                    <tr class="status-burned">
-                        <td>002</td>
-                        <td>[NO CLAIMANT]</td>
-                        <td>NOV 01 - DEC 27, 2025</td>
-                        <td>56</td>
-                        <td>UNSUBSCRIBED <span class="tag-burned">BURNED BY CHURCH</span></td>
-                    </tr>
-                    <tr>
-                        <td>001</td>
-                        <td>P. PISSARRO</td>
-                        <td>OCT 15 - OCT 31, 2025</td>
-                        <td>16</td>
-                        <td>ARCHIVED <span class="tag-archived">SOLD</span></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="ledger-row ledger-header u-dim" style="border-bottom: 2px solid #333;">
+                <span>VOL</span>
+                <span>OWNER</span>
+                <span>PAGES</span>
+                <span>STATUS</span>
+            </div>
+
+            <div class="ledger-row">
+                <span class="u-dim">003</span>
+                <span>JESSE THOMAS DO</span>
+                <span>4 PAGES</span>
+                <span class="u-dim">ARCHIVED / PRIVATE COLLECTION</span>
+            </div>
+
+            <div class="ledger-row" style="opacity: 0.5;">
+                <span class="u-dim">002</span>
+                <span style="text-decoration: line-through;">NO CLAIMANT</span>
+                <span>56 PAGES</span>
+                <span class="u-danger">UNSUBSCRIBED / INCINERATED</span>
+            </div>
+
+            <div class="ledger-row">
+                <span class="u-dim">001</span>
+                <span>PAUL PISSARRO</span>
+                <span>16 PAGES</span>
+                <span class="u-dim">ARCHIVED / PRIVATE COLLECTION</span>
+            </div>
         </section>
+
+        <section class="action-area border-top">
+            <h3 style="margin-bottom: 2rem;">VOLUME 004 IS AVAILABLE</h3>
+            <button class="cta" onclick="alert('THE CHRONICLE IS CURRENTLY IN PRE-LAUNCH. ACCESS COMING SOON.')">
+                COMING SOON
+            </button>
+            <p style="margin-top: 1rem; font-size: 0.8rem; color: #555;">
+                SECURE SERVER CONNECTION PENDING...
+            </p>
+        </section>
+
     </main>
 
-    <footer class="u-pad u-border-top" style="margin-top: 4rem; text-align: center; font-size: 0.7rem; color: #555;">
-        <p>A JOINT VENTURE OF UNSUBSCRIBE LLC AND THE CHURCH OF CONCEPTUAL ART.</p>
-        <p>TIME IS A FINITE RESOURCE. CONSUME RESPONSIBLY.</p>
-        <p>&copy; 2026</p>
+    <footer class="section-pad" style="text-align: center; font-size: 0.75rem; color: #444; margin-top: 2rem;">
+        &copy; 2026 CHURCH OF CONCEPTUAL ART / UNSUBSCRIBE LLC. <br>
+        NEW YORK, NY.
     </footer>
 
     <script>
-        // CONFIGURATION
-        const LAST_SOLD_DATE = new Date('2025-12-31T00:00:00'); // Mock last sale
+        // --- CONFIGURATION ---
+        // In a real app, this date comes from the server (last_transaction_timestamp)
+        const LAST_SOLD_DATE = new Date('2025-12-31T00:00:00'); 
         const PRICE_PER_DAY = 100;
-        const INTERVENTION_LIMIT = 45; // Days before the Church burns the book
         
         function updateSystem() {
             const now = new Date();
             
             // 1. CLOCK
-            document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-US', { hour12: false }) + " EST";
 
             // 2. CALCULATE DIFF
             const diffTime = Math.abs(now - LAST_SOLD_DATE);
@@ -375,46 +407,36 @@
             document.getElementById('page-count').innerText = diffDays.toString().padStart(2, '0');
             
             const totalPrice = diffDays * PRICE_PER_DAY;
-            document.getElementById('price-display').innerText = '$' + totalPrice.toLocaleString() + '.00';
+            document.getElementById('price-display').innerText = '$' + totalPrice.toLocaleString();
 
-            // Weight calculation (approx 0.05 lbs per page + 0.5 cover)
+            // Weight calculation (approx 0.05 lbs per page + 0.5 cover base)
             const weight = (0.5 + (diffDays * 0.05)).toFixed(1);
             document.getElementById('weight-display').innerText = weight + " LBS";
 
-            // Date Range
+            // Date Range String
             const options = { month: 'short', day: 'numeric' };
             const startStr = LAST_SOLD_DATE.toLocaleDateString('en-US', options).toUpperCase();
             const endStr = now.toLocaleDateString('en-US', options).toUpperCase();
-            document.getElementById('spine-date-range').innerText = `${startStr} - ${endStr}`;
+            document.getElementById('spine-dates').innerText = `${startStr} - ${endStr}`;
 
-            // 4. VISUAL GROWTH (Scale height of spine based on days, maxing at 60 days)
-            const growthPercentage = Math.min(diffDays / 60, 1);
-            const minHeight = 50; // pixels
-            const maxHeight = 600; // pixels
-            const currentHeight = minHeight + (growthPercentage * (maxHeight - minHeight));
-            document.getElementById('book-spine').style.height = `${currentHeight}px`;
-
-            // 5. RISK METER
-            const riskPercent = Math.min((diffDays / INTERVENTION_LIMIT) * 100, 100);
-            document.getElementById('risk-bar').style.width = `${riskPercent}%`;
-
-            if (diffDays >= INTERVENTION_LIMIT) {
-                document.getElementById('risk-status').innerText = "STATUS: INTERVENTION IMMINENT";
-                document.getElementById('risk-status').style.textShadow = "0 0 10px red";
-                document.getElementById('claim-btn').innerText = "SAVE THIS VOLUME";
-                document.getElementById('claim-btn').style.borderColor = "red";
-                document.getElementById('claim-btn').style.color = "red";
-            }
-        }
-
-        function attemptPurchase() {
-            alert("SYSTEM ERROR:\n\nYOU ARE ATTEMPTING TO PURCHASE TIME THAT HAS ALREADY PASSED.\n\nPLEASE CONNECT WALLET TO FINALIZE TRANSACTION.");
+            // 4. VISUAL GROWTH 
+            // We scale the height based on days. 
+            // Minimum visual height: 200px. Max visual height: 500px (or 80% of container).
+            // Logic: 1 day = 0%, 45 days = 100% growth.
+            const maxDays = 45; 
+            const growthFactor = Math.min(diffDays / maxDays, 1);
+            
+            // Base height + (growth * variable)
+            const minHeight = 150; 
+            const variableHeight = 350;
+            const currentHeight = minHeight + (growthFactor * variableHeight);
+            
+            document.getElementById('spine-visual').style.height = `${currentHeight}px`;
         }
 
         // INIT
         setInterval(updateSystem, 1000);
         updateSystem();
-
     </script>
 </body>
 </html>
