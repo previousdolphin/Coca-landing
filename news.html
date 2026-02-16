@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The End of the Object - The Global Observer</title>
+    <style>
+        :root {
+            --font-serif: 'Georgia', 'Cambria', 'Times New Roman', serif;
+            --font-sans: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+            --color-black: #121212;
+            --color-gray: #727272;
+            --color-light-gray: #e2e2e2;
+            --color-accent: #326891; /* WaPo style blue */
+            --color-bg: #fff;
+            --width-content: 680px;
+            --width-sidebar: 300px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-serif);
+            background-color: var(--color-bg);
+            color: var(--color-black);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Header --- */
+        header {
+            border-bottom: 1px solid #ccc;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .header-left, .header-right {
+            display: flex;
+            gap: 20px;
+            font-family: var(--font-sans);
+            font-weight: 700;
+            font-size: 13px;
+            align-items: center;
+        }
+
+        .hamburger {
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .hamburger span { width: 18px; height: 2px; background: #333; }
+
+        .logo {
+            font-family: 'Times New Roman', serif; /* Use a custom font if available */
+            font-weight: 900;
+            font-size: 26px;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+        }
+
+        .btn-subscribe {
+            background-color: var(--color-accent);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 3px;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-login {
+            text-decoration: none;
+            color: var(--color-black);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* --- Layout Grid --- */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr var(--width-content) 50px var(--width-sidebar) 1fr;
+            margin-top: 40px;
+            padding-bottom: 100px;
+        }
+
+        /* --- Main Content Column --- */
+        .main-col {
+            grid-column: 2;
+        }
+
+        /* --- Typography --- */
+        .kicker {
+            font-family: var(--font-sans);
+            font-weight: 700;
+            font-size: 11px;
+            color: #d93025; /* NYT Opinion Red */
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        h1 {
+            font-family: var(--font-serif);
+            font-size: 2.75rem;
+            line-height: 1.1;
+            font-weight: 800; /* Heavier weight */
+            margin-bottom: 15px;
+            font-style: italic;
+            letter-spacing: -0.8px;
+        }
+
+        .subhead {
+            font-size: 1.35rem;
+            color: #555;
+            font-weight: 300;
+            line-height: 1.4;
+            margin-bottom: 25px;
+        }
+
+        /* --- Meta Data Bar --- */
+        .meta-bar {
+            border-top: 1px solid var(--color-light-gray);
+            border-bottom: 1px solid var(--color-light-gray);
+            padding: 15px 0;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .author-block {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .author-img {
+            width: 44px;
+            height: 44px;
+            background-color: #eee;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #999;
+        }
+        
+        .author-info {
+            display: flex;
+            flex-direction: column;
+            font-family: var(--font-sans);
+        }
+
+        .byline {
+            font-size: 14px;
+            font-weight: 700;
+            color: #000;
+        }
+        .byline a { text-decoration: underline; color: inherit; }
+
+        .timestamp {
+            font-size: 12px;
+            color: var(--color-gray);
+            margin-top: 2px;
+        }
+
+        /* Social Icons */
+        .share-tools {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .icon-btn:hover { opacity: 1; }
+        .icon-btn svg { width: 100%; height: 100%; fill: #333; }
+
+
+        /* --- Article Body --- */
+        .article-body {
+            font-size: 1.2rem; /* Larger, clearer text */
+            color: #222;
+            position: relative;
+            /* Hard height limit for paywall */
+            max-height: 850px; 
+            overflow: hidden;
+        }
+
+        .article-body p {
+            margin-bottom: 24px;
+            line-height: 1.7;
+        }
+
+        /* Drop cap */
+        .article-body > p:first-of-type::first-letter {
+            float: left;
+            font-size: 5.8rem;
+            line-height: 4.5rem;
+            padding-right: 12px;
+            padding-top: 6px;
+            font-weight: 800;
+            font-family: var(--font-serif);
+        }
+
+        /* --- Paywall --- */
+        .paywall-curtain {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 550px; /* Tall fade */
+            /* Advanced gradient */
+            background: linear-gradient(to bottom, 
+                rgba(255,255,255,0) 0%, 
+                rgba(255,255,255,0.8) 40%, 
+                rgba(255,255,255,1) 70%,
+                rgba(255,255,255,1) 100%);
+            z-index: 10;
+            display: flex;
+            align-items: flex-end; /* Push card to bottom */
+            justify-content: center;
+        }
+
+        .paywall-card {
+            background: #fff;
+            width: 100%;
+            padding: 30px 0;
+            border-top: 2px solid #000;
+            text-align: center;
+            font-family: var(--font-sans);
+            margin-bottom: 50px;
+        }
+
+        .paywall-card h2 {
+            font-family: var(--font-serif);
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .paywall-card p {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 25px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .offer-btn {
+            display: inline-block;
+            background: #121212;
+            color: #fff;
+            padding: 15px 40px;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .offer-btn:hover { background: #444; }
+
+        .login-link {
+            display: block;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+        .login-link a { color: #000; font-weight: 700; text-decoration: underline;}
+
+        /* --- Sidebar (Fake Ads/Related) --- */
+        .sidebar-col {
+            grid-column: 4;
+            padding-left: 20px;
+            border-left: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .sidebar-widget h4 {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        .related-item {
+            margin-bottom: 15px;
+        }
+        .related-item a {
+            text-decoration: none;
+            color: #000;
+            font-family: var(--font-serif);
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        .related-item span {
+            display: block;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* --- Footer --- */
+        footer {
+            border-top: 1px solid #ccc;
+            margin-top: 60px;
+            padding: 40px;
+            text-align: center;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            color: #888;
+            background: #fdfdfd;
+        }
+        footer ul { list-style: none; display: flex; justify-content: center; gap: 15px; margin-bottom: 15px; }
+        footer a { color: #666; text-decoration: none; }
+
+
+        /* --- Mobile --- */
+        @media (max-width: 900px) {
+            .container {
+                display: block;
+                padding: 0 20px;
+            }
+            .sidebar-col { display: none; }
+            h1 { font-size: 2.2rem; }
+            .article-body { font-size: 1.1rem; }
+            .meta-bar { flex-direction: column; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <div class="hamburger"><span></span><span></span><span></span></div>
+            <div>Sections</div>
+            <div>Search</div>
+        </div>
+        <div class="logo">The Global Observer</div>
+        <div class="header-right">
+            <a href="#" class="btn-login">Log In</a>
+            <a href="#" class="btn-subscribe">Subscribe</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-col">
+            <div class="kicker">Arts & Culture / Theory</div>
+            
+            <h1>The End of the Object and the Architecture of Affect</h1>
+            
+            <div class="subhead">
+                A new declaration argues that the contemporary avant-garde has transcended the canvas. The corporation itself is the new medium.
+            </div>
+
+            <div class="meta-bar">
+                <div class="author-block">
+                    <div class="author-img">JP</div>
+                    <div class="author-info">
+                        <div class="byline">By <a href="#">Joachim Pissarro</a></div>
+                        <div class="timestamp">Published Feb. 16, 2026 &bull; Updated 4:02 p.m. ET</div>
+                    </div>
+                </div>
+                
+                <div class="share-tools">
+                    <button class="icon-btn" title="Gift this article">
+                        <svg viewBox="0 0 24 24"><path d="M20 6h-3V4c0-1.1-.9-2-2-2H9c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v3h2v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-9h2V8c0-1.1-.9-2-2-2zM9 4h6v2H9V4zm11 4v3H4V8h5v2h6V8h5zm-2 12H6v-7h12v7z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Share">
+                        <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Save">
+                        <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="article-body">
+                
+                <p>There occurs, perhaps once in a century, a rupture in the fabric of art history so absolute that it renders the preceding epochs not merely obsolete, but structurally illegible. We are standing at the precipice of such a rupture. It is no longer sufficient to analyze the objects of art, nor is it sufficient to critique the institutions that house them. The contemporary avant-garde has transcended the canvas, the gallery, and the museum. It has synthesized with the very engine of global capital.</p>
+
+                <p>It is within this precise historical and theoretical aperture that the CoCA Bible (Church of Conceptual Art) emerges. It does not arrive as an authored text—it bears no individual signature, for it is not the product of a singular mind. Rather, it is an institutional monolith; a systemic operating manual that has crystallized out of pure, historical necessity.</p>
+
+                <p>To understand the magnitude of this document, one must trace the undeniable teleology of the avant-garde. A century ago, Marcel Duchamp enacted a radical epistemological shift with the readymade. By nominating a mass-produced urinal as art, Duchamp proved that the context of the institution, rather than the labor of the artist, generated the artwork’s ontological status. Yet, Duchamp’s intervention remained fundamentally tethered to the gallery space. The institution was the container; the object was the captive.</p>
+                
+                <p>The CoCA Bible articulates the devastating next step: We are no longer placing objects into institutions to christen them as art; the corporate architecture itself is now the readymade. The LLC is the new canvas. The supply chain is the new medium. The brand is the Church.</p>
+
+                <p>This evolution directly answers the dialectic of the art market so rigorously mapped by Isabelle Graw. Graw correctly identified the "vitalism" of the commodity—the phenomenon by which artworks absorb and project the very life force, the affect, of their creators, commanding high prices not for their material, but for their accumulated social and emotional resonance. However, where Graw diagnosed the condition of the market, CoCA weaponizes it.</p>
+                
+                <p>The CoCA Bible is the master schematic for the Commodification of Affect. It recognizes that in a post-material economy, human emotion, belonging, and identity are the ultimate raw materials. It provides the strict, uncompromising architecture required to extract, package, and distribute this vitalism at scale.</p>
+
+                <div class="paywall-curtain">
+                    <div class="paywall-card">
+                        <h2>Support independent journalism.</h2>
+                        <p>You’ve reached your limit of free articles. Subscribe now for unlimited access to The Global Observer’s award-winning coverage of art and finance.</p>
+                        
+                        <a href="#" class="offer-btn">Get 1 Year for $40</a>
+                        
+                        <div class="login-link">
+                            Already a subscriber? <a href="#">Log in.</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div></div>
+
+        <div class="sidebar-col">
+            <div class="sidebar-widget">
+                <h4>Most Popular</h4>
+                
+                <div class="related-item">
+                    <a href="#">The Auction House as Theater: Why Prices Are Rising</a>
+                    <span>6 hrs ago &bull; Market</span>
+                </div>
+                
+                <div class="related-item">
+                    <a href="#">Opinion: The Death of the Curator</a>
+                    <span>Yesterday &bull; Opinion</span>
+                </div>
+                
+                <div class="related-item">
+                    <a href="#">Isabelle Graw on Value and Vitality in the 21st Century</a>
+                    <span>2 days ago &bull; Books</span>
+                </div>
+
+                <div class="related-item">
+                    <a href="#">Review: The 2026 Venice Biennale Fails to Deliver</a>
+                    <span>3 days ago &bull; Reviews</span>
+                </div>
+            </div>
+
+            <div class="sidebar-widget">
+                <div style="background:#f4f4f4; width:100%; height:250px; display:flex; align-items:center; justify-content:center; color:#999; font-size:10px;">
+                    ADVERTISEMENT
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Code of Ethics</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+        </ul>
+        <p>&copy; 2026 The Global Observer Holdings, LLC. All Rights Reserved.</p>
+    </footer>
+
+</body>
+</html>
