@@ -375,8 +375,8 @@
                 THE DOCTRINE [$1200.00]
             </a>
 
-            <a href="https://buy.stripe.com/28E00cgjndfx8X5dSudwc01" class="link-btn" id="btn-tithe">
-                SECURE CHECKOUT [STRIPE]
+            <a href="https://buy.stripe.com/5kQ00c0kpejBflteWydwc00" class="link-btn" id="btn-tracksuit">
+                SWEATSUIT [$450.00]
             </a>
 
             <a href="#" class="link-btn" id="btn-confession">
@@ -518,16 +518,14 @@
             if(!triggerBtn.classList.contains('processing')) triggerBtn.innerText = "THE DOCTRINE [$1200.00]";
         });
 
-        // --- TITHE BUTTON LOGIC (Direct Stripe) ---
-        const titheBtn = document.getElementById('btn-tithe');
+        // --- TRACKSUIT BUTTON LOGIC ---
+        const tracksuitBtn = document.getElementById('btn-tracksuit');
         
-        titheBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            titheBtn.classList.add('wait');
-            titheBtn.innerText = "PROCESSING...";
-            setTimeout(() => {
-                window.location.href = "https://buy.stripe.com/28E00cgjndfx8X5dSudwc01";
-            }, 500);
+        tracksuitBtn.addEventListener('mouseover', () => {
+            tracksuitBtn.innerText = ">> PROCEED TO CHECKOUT <<";
+        });
+        tracksuitBtn.addEventListener('mouseout', () => {
+            tracksuitBtn.innerText = "SWEATSUIT [$450.00]";
         });
 
         // --- CONFESSION BUTTON LOGIC (Restored) ---
