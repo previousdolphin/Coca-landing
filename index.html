@@ -364,24 +364,29 @@
             <div class="bio">
                 <p>The Church of _______.</p>
                 <p>The Old Market is Dead. <span class="bio-highlight">We own the Deed.</span></p>
-                <p>Religious Organization, 501(c)(3) Entity.</p>
+                <p>THE DOCTRINE IS AVAILABLE. <span class="bio-highlight">LIMITED EDITION.</span></p>
+                <p style="font-size: 0.75rem; margin-top: 0.75rem; opacity: 0.7;">COCA LEATHER BIBLE. RED LETTER EDITION. 6.5" × 9.5". FUND THE PRECEDENT.</p>
                 <span class="arrow">↓</span>
             </div>
         </div>
 
         <div class="links-wrapper">
-            <a href="#" class="link-btn" id="btn-bible-trigger">
-                The Bible [Expand Data]
+            <a href="https://buy.stripe.com/28E00cgjndfx8X5dSudwc01" class="link-btn" id="btn-bible-trigger" style="border-color: var(--accent-color); color: var(--accent-color); box-shadow: 0 0 15px rgba(244, 0, 9, 0.2);">
+                THE DOCTRINE [$1200.00]
             </a>
 
-            <a href="#" class="link-btn" id="btn-tithe">
-                Tithe [Secure Donation Portal]
+            <a href="https://buy.stripe.com/28E00cgjndfx8X5dSudwc01" class="link-btn" id="btn-tithe">
+                SECURE CHECKOUT [STRIPE]
             </a>
 
             <a href="#" class="link-btn" id="btn-confession">
                 Confession [Interest Intake]
             </a>
         </div>
+        
+        <p style="font-size: 0.65rem; margin-top: 1rem; opacity: 0.5; letter-spacing: 0.1em;">
+            ONE-CLICK APPLE PAY AVAILABLE ON NEXT SCREEN
+        </p>
 
         <div class="confession-booth" id="form-container">
             <form action="https://formspree.io/f/xpwvrybv" method="POST">
@@ -505,65 +510,24 @@
         const closeBtn = document.getElementById('close-bible');
         const themeBtn = document.getElementById('theme-btn');
 
-        // Bible Trigger Animation
+        // Bible Trigger Animation (Direct Stripe Link)
         triggerBtn.addEventListener('mouseover', () => {
-            if(!triggerBtn.classList.contains('processing')) triggerBtn.innerText = ">> INITIALIZE UPLINK <<";
+            if(!triggerBtn.classList.contains('processing')) triggerBtn.innerText = ">> INITIATE PURCHASE <<";
         });
         triggerBtn.addEventListener('mouseout', () => {
-            if(!triggerBtn.classList.contains('processing')) triggerBtn.innerText = "The Bible [Expand Data]";
-        });
-        triggerBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            triggerBtn.classList.add('processing');
-            triggerBtn.innerText = "AUTHENTICATING...";
-            setTimeout(() => {
-                triggerBtn.classList.remove('processing');
-                triggerBtn.innerText = "ACCESS GRANTED";
-                lobby.classList.add('blur-out');
-                overlay.classList.add('active');
-            }, 800);
-        });
-        closeBtn.addEventListener('click', () => {
-            overlay.classList.remove('active');
-            lobby.classList.remove('blur-out');
-            triggerBtn.innerText = "The Bible [Expand Data]";
+            if(!triggerBtn.classList.contains('processing')) triggerBtn.innerText = "THE DOCTRINE [$1200.00]";
         });
 
-        // --- TITHE BUTTON LOGIC (Restored) ---
+        // --- TITHE BUTTON LOGIC (Direct Stripe) ---
         const titheBtn = document.getElementById('btn-tithe');
-        let titheClicks = 0; 
-
+        
         titheBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            titheClicks++;
-
-            // STATE 3: The Redirect (Click 6+)
-            if (titheClicks > 2) {
-                window.location.href = "https://www.nameofmy.com";
-                return;
-            }
-
-            // STATE 2: The Warning (Click 5)
-            if (titheClicks === 1) {
-                titheBtn.classList.remove('wait'); 
-                titheBtn.classList.add('locked');
-                titheBtn.innerText = "ARE YOU SURE???";
-                return;
-            }
-
-            // STATE 1: The Denial (Clicks 1-4)
-            if(titheBtn.classList.contains('wait')) return; 
-
-            const originalText = "Tithe [Secure Donation Portal]";
             titheBtn.classList.add('wait');
-            titheBtn.innerText = "KEEP YOUR MONEY... FOR NOW.";
-
+            titheBtn.innerText = "PROCESSING...";
             setTimeout(() => {
-                if (titheClicks < 3) {
-                    titheBtn.classList.remove('wait');
-                    titheBtn.innerText = originalText;
-                }
-            }, 3000);
+                window.location.href = "https://buy.stripe.com/28E00cgjndfx8X5dSudwc01";
+            }, 500);
         });
 
         // --- CONFESSION BUTTON LOGIC (Restored) ---
