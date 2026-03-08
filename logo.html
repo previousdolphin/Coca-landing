@@ -9,6 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Three.js SVG Loader -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/SVGLoader.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         body { 
@@ -68,15 +70,16 @@
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.65);
             backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             padding: 20px 30px;
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.2);
             color: white;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
             z-index: 20;
-            width: 300px;
+            width: 320px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
@@ -99,6 +102,30 @@
             font-size: 12px;
             letter-spacing: 1px;
             opacity: 0.9;
+            align-items: center;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        button.icon-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        button.icon-btn:hover {
+            background: rgba(255,255,255,0.2);
         }
 
         input[type=range] {
@@ -134,27 +161,33 @@
     <div id="hint-text">Spacebar or Triple-Tap to toggle UI</div>
     <div id="canvas-container"></div>
 
-    <!-- UI Controls -->
-    <div id="controls">
+    <!-- UI Controls (Hidden by default) -->
+    <div id="controls" class="hidden">
         <div class="control-group">
             <div class="control-header">
                 <span>BACKGROUND</span>
                 <span id="bg-label">RED</span>
             </div>
-            <!-- 0 = White, 50 = Red, 100 = Black -->
-            <input type="range" id="bg-slider" min="0" max="100" value="50">
+            <div class="slider-row">
+                <button id="play-color-btn" class="icon-btn" title="Auto-Phase Colors">
+                    <i data-lucide="play" id="play-icon" width="16" height="16"></i>
+                </button>
+                <input type="range" id="bg-slider" min="0" max="100" value="50" step="0.1">
+            </div>
         </div>
         <div class="control-group">
             <div class="control-header">
                 <span>EXTRUSION THICKNESS</span>
                 <span id="depth-label">1.0x</span>
             </div>
-            <!-- 0.1 to 3.0 scale -->
             <input type="range" id="depth-slider" min="0.1" max="3.0" step="0.1" value="1.0">
         </div>
     </div>
 
     <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
         let scene, camera, renderer, logoGroup;
         let baseScale = 1; 
         
@@ -164,9 +197,22 @@
         let rotationVelocity = { x: 0, y: 0.008 }; 
 
         // UI Toggle State
-        let isUiVisible = true;
+        let isUiVisible = false; // Changed to false by default
         let tapCount = 0;
         let lastTapTime = 0;
+
+        // Auto-phase State
+        let isAutoPhasing = false;
+        let phaseDirection = 1; // 1 for right, -1 for left
+        let currentBgValue = 50;
+
+        // DOM Elements
+        const bgSlider = document.getElementById('bg-slider');
+        const bgLabel = document.getElementById('bg-label');
+        const depthSlider = document.getElementById('depth-slider');
+        const depthLabel = document.getElementById('depth-label');
+        const playBtn = document.getElementById('play-color-btn');
+        const playIcon = document.getElementById('play-icon');
 
         init();
         animate();
@@ -182,13 +228,14 @@
 
             // 1. Scene Setup
             scene = new THREE.Scene();
+            updateBackgroundColor(currentBgValue); // Set initial background
 
             // 2. Camera Setup
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
             camera.position.set(0, 0, 800);
 
             // 3. Renderer Setup
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.outputEncoding = THREE.sRGBEncoding;
@@ -196,7 +243,7 @@
             container.appendChild(renderer.domElement);
 
             // 4. Lighting & Environment
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
 
             const dirLight1 = new THREE.DirectionalLight(0xffffff, 2.0);
@@ -306,52 +353,46 @@
             scene.add(logoGroup);
         }
 
-        // --- UI & Slider Logic ---
-        
-        function setupUIControls() {
-            const bgSlider = document.getElementById('bg-slider');
-            const bgLabel = document.getElementById('bg-label');
-            const depthSlider = document.getElementById('depth-slider');
-            const depthLabel = document.getElementById('depth-label');
+        // --- UI & Background Logic ---
 
-            function lerpColor(a, b, amount) {
-                const ah = parseInt(a.replace(/#/g, ''), 16),
-                      ar = ah >> 16, ag = ah >> 8 & 0xff, ab = ah & 0xff,
-                      bh = parseInt(b.replace(/#/g, ''), 16),
-                      br = bh >> 16, bg = bh >> 8 & 0xff, bb = bh & 0xff,
-                      rr = ar + amount * (br - ar),
-                      rg = ag + amount * (bg - ag),
-                      rb = ab + amount * (bb - ab);
-                return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).padStart(6, '0');
+        function updateBackgroundColor(val) {
+            let r, g, b;
+            let labelText = "";
+
+            if (val <= 50) {
+                // White (0) to Red (50)
+                // R stays 255. G and B go from 255 down to 0.
+                const t = val / 50; 
+                r = 255;
+                g = Math.round(255 * (1 - t));
+                b = Math.round(255 * (1 - t));
+                
+                labelText = t < 0.2 ? "WHITE" : (t > 0.95 ? "RED" : "LIGHT RED");
+            } else {
+                // Red (50) to Black (100)
+                // R goes from 255 down to 0. G and B stay 0.
+                const t = (val - 50) / 50; 
+                r = Math.round(255 * (1 - t));
+                g = 0;
+                b = 0;
+
+                labelText = t > 0.95 ? "BLACK" : "DARK RED";
             }
 
-            const colorWhite = '#ffffff';
-            const colorRedCenter = '#ff3333';
-            const colorRedEdge = '#b30000';
-            const colorBlack = '#000000';
-
+            scene.background = new THREE.Color(`rgb(${r}, ${g}, ${b})`);
+            bgLabel.innerText = labelText;
+        }
+        
+        function setupUIControls() {
+            // Background Slider
             bgSlider.addEventListener('input', (e) => {
-                const val = parseInt(e.target.value);
-                let currentCenter, currentEdge, labelText;
-
-                if (val <= 50) {
-                    const t = val / 50; 
-                    currentCenter = lerpColor(colorWhite, colorRedCenter, t);
-                    currentEdge = lerpColor(colorWhite, colorRedEdge, t);
-                    labelText = t < 0.2 ? "WHITE" : "LIGHT RED";
-                    if(val === 50) labelText = "RED";
-                } else {
-                    const t = (val - 50) / 50; 
-                    currentCenter = lerpColor(colorRedCenter, colorBlack, t);
-                    currentEdge = lerpColor(colorRedEdge, colorBlack, t);
-                    labelText = t > 0.8 ? "BLACK" : "DARK RED";
-                }
-
-                document.body.style.setProperty('--bg-center', currentCenter);
-                document.body.style.setProperty('--bg-edge', currentEdge);
-                bgLabel.innerText = labelText;
+                // If user manually adjusts slider, stop auto-phasing
+                if (isAutoPhasing) toggleAutoPhase();
+                currentBgValue = parseFloat(e.target.value);
+                updateBackgroundColor(currentBgValue);
             });
 
+            // Extrusion Thickness Slider
             depthSlider.addEventListener('input', (e) => {
                 const val = parseFloat(e.target.value);
                 depthLabel.innerText = val.toFixed(1) + 'x';
@@ -360,6 +401,21 @@
                     logoGroup.scale.set(baseScale, -baseScale, baseScale * val);
                 }
             });
+
+            // Play Button
+            playBtn.addEventListener('click', toggleAutoPhase);
+        }
+
+        function toggleAutoPhase() {
+            isAutoPhasing = !isAutoPhasing;
+            if (isAutoPhasing) {
+                // Change icon to pause
+                playIcon.setAttribute('data-lucide', 'pause');
+            } else {
+                // Change icon to play
+                playIcon.setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons(); // Re-render icon
         }
 
         // --- Interaction Handlers ---
@@ -395,6 +451,9 @@
         }
 
         function onPointerDown(e) {
+            // If clicking UI, do nothing here
+            if (e.target.closest('#controls')) return;
+
             isDragging = true;
             previousMousePosition = { x: e.clientX, y: e.clientY };
             rotationVelocity = { x: 0, y: 0 };
@@ -448,6 +507,7 @@
         function animate() {
             requestAnimationFrame(animate);
 
+            // Logo Rotation Physics
             if (logoGroup && !isDragging) {
                 logoGroup.rotation.x += rotationVelocity.x;
                 logoGroup.rotation.y += rotationVelocity.y;
@@ -464,8 +524,27 @@
                 }
             }
 
+            // Auto-Phase Background Color
+            if (isAutoPhasing) {
+                // Adjust speed of phase here
+                currentBgValue += 0.15 * phaseDirection;
+                
+                // Bounce back when hitting limits
+                if (currentBgValue >= 100) {
+                    currentBgValue = 100;
+                    phaseDirection = -1;
+                } else if (currentBgValue <= 0) {
+                    currentBgValue = 0;
+                    phaseDirection = 1;
+                }
+                
+                // Sync slider UI to internal value
+                bgSlider.value = currentBgValue;
+                updateBackgroundColor(currentBgValue);
+            }
+
             renderer.render(scene, camera);
         }
     </script>
 </body>
-</htm>
+</html>
