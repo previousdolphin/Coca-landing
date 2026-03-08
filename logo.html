@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoCA // CHROME_LOGO</title>
+    
+    <!-- Three.js Base -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js SVG Loader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/SVGLoader.js"></script>
+
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            /* CSS Variables for dynamic background blending */
+            --bg-center: #ff3333; 
+            --bg-edge: #b30000;
+            background: radial-gradient(circle at center, var(--bg-center) 0%, var(--bg-edge) 100%);
+            font-family: 'Courier New', Courier, monospace;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            cursor: grab;
+        }
+        
+        body:active {
+            cursor: grabbing;
+        }
+
+        #canvas-container { 
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+        }
+
+        #loading-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            letter-spacing: 4px;
+            z-index: 5;
+            font-weight: bold;
+        }
+
+        #hint-text {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+            letter-spacing: 2px;
+            z-index: 5;
+            pointer-events: none;
+            transition: opacity 2s ease;
+            text-transform: uppercase;
+        }
+
+        /* UI Controls Panel */
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            padding: 20px 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 20;
+            width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        #controls.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, 20px);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-text">LOADING_VECTOR_DATA...</div>
+    <div id="hint-text">Spacebar or Triple-Tap to toggle UI</div>
+    <div id="canvas-container"></div>
+
+    <!-- UI Controls -->
+    <div id="controls">
+        <div class="control-group">
+            <div class="control-header">
+                <span>BACKGROUND</span>
+                <span id="bg-label">RED</span>
+            </div>
+            <!-- 0 = White, 50 = Red, 100 = Black -->
+            <input type="range" id="bg-slider" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <div class="control-header">
+                <span>EXTRUSION THICKNESS</span>
+                <span id="depth-label">1.0x</span>
+            </div>
+            <!-- 0.1 to 3.0 scale -->
+            <input type="range" id="depth-slider" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, logoGroup;
+        let baseScale = 1; 
+        
+        // Interaction state
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let rotationVelocity = { x: 0, y: 0.008 }; 
+
+        // UI Toggle State
+        let isUiVisible = true;
+        let tapCount = 0;
+        let lastTapTime = 0;
+
+        init();
+        animate();
+
+        // Fade out hint text after a few seconds
+        setTimeout(() => {
+            const hint = document.getElementById('hint-text');
+            if (hint) hint.style.opacity = '0';
+        }, 4000);
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.set(0, 0, 800);
+
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            container.appendChild(renderer.domElement);
+
+            // 4. Lighting & Environment
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 2.0);
+            dirLight1.position.set(200, 300, 200);
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0xffffff, 1.0);
+            dirLight2.position.set(-200, -200, -200);
+            scene.add(dirLight2);
+
+            const envMap = createChromeEnvironmentMap();
+
+            // 5. The Chrome Material
+            const chromeMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                metalness: 1.0,     
+                roughness: 0.05,    
+                envMap: envMap,     
+                envMapIntensity: 2.0
+            });
+
+            // 6. Load and Extrude SVG
+            loadSVGLogo(chromeMaterial);
+
+            // 7. Event Listeners
+            window.addEventListener('resize', onWindowResize, false);
+            setupInteractionEvents();
+            setupUIControls();
+        }
+
+        function createChromeEnvironmentMap() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+            
+            const gradient = context.createLinearGradient(0, 0, 0, 512);
+            gradient.addColorStop(0.0, '#ffffff'); 
+            gradient.addColorStop(0.4, '#dddddd'); 
+            gradient.addColorStop(0.49, '#222222'); 
+            gradient.addColorStop(0.51, '#555555'); 
+            gradient.addColorStop(1.0, '#111111'); 
+
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 512, 512);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            return texture;
+        }
+
+        function loadSVGLogo(material) {
+            const loader = new THREE.SVGLoader();
+            loader.load(
+                'CoCA-Vector-redrawn-photoshop.svg',
+                function (data) {
+                    document.getElementById('loading-text').style.display = 'none';
+                    buildExtrudedLogo(data.paths, material);
+                },
+                undefined,
+                function (error) {
+                    console.error("SVG not found.");
+                    document.getElementById('loading-text').innerText = "SVG FILE NOT FOUND";
+                }
+            );
+        }
+
+        function buildExtrudedLogo(paths, material) {
+            logoGroup = new THREE.Group();
+
+            const extrudeSettings = {
+                depth: 30,          
+                bevelEnabled: true, 
+                bevelThickness: 3,
+                bevelSize: 1.5,
+                bevelSegments: 4,
+                curveSegments: 24   
+            };
+
+            for (let i = 0; i < paths.length; i++) {
+                const path = paths[i];
+                const shapes = THREE.SVGLoader.createShapes(path);
+
+                for (let j = 0; j < shapes.length; j++) {
+                    const shape = shapes[j];
+                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                    const mesh = new THREE.Mesh(geometry, material);
+                    logoGroup.add(mesh);
+                }
+            }
+
+            const boundingBox = new THREE.Box3().setFromObject(logoGroup);
+            const center = boundingBox.getCenter(new THREE.Vector3());
+            const size = boundingBox.getSize(new THREE.Vector3());
+
+            logoGroup.children.forEach(child => {
+                child.position.x -= center.x;
+                child.position.y -= center.y;
+                child.position.z -= center.z;
+            });
+
+            logoGroup.scale.y = -1;
+            const maxDim = Math.max(size.x, size.y);
+            baseScale = 350 / maxDim; 
+            
+            logoGroup.scale.set(baseScale, -baseScale, baseScale);
+            scene.add(logoGroup);
+        }
+
+        // --- UI & Slider Logic ---
+        
+        function setupUIControls() {
+            const bgSlider = document.getElementById('bg-slider');
+            const bgLabel = document.getElementById('bg-label');
+            const depthSlider = document.getElementById('depth-slider');
+            const depthLabel = document.getElementById('depth-label');
+
+            function lerpColor(a, b, amount) {
+                const ah = parseInt(a.replace(/#/g, ''), 16),
+                      ar = ah >> 16, ag = ah >> 8 & 0xff, ab = ah & 0xff,
+                      bh = parseInt(b.replace(/#/g, ''), 16),
+                      br = bh >> 16, bg = bh >> 8 & 0xff, bb = bh & 0xff,
+                      rr = ar + amount * (br - ar),
+                      rg = ag + amount * (bg - ag),
+                      rb = ab + amount * (bb - ab);
+                return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).padStart(6, '0');
+            }
+
+            const colorWhite = '#ffffff';
+            const colorRedCenter = '#ff3333';
+            const colorRedEdge = '#b30000';
+            const colorBlack = '#000000';
+
+            bgSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                let currentCenter, currentEdge, labelText;
+
+                if (val <= 50) {
+                    const t = val / 50; 
+                    currentCenter = lerpColor(colorWhite, colorRedCenter, t);
+                    currentEdge = lerpColor(colorWhite, colorRedEdge, t);
+                    labelText = t < 0.2 ? "WHITE" : "LIGHT RED";
+                    if(val === 50) labelText = "RED";
+                } else {
+                    const t = (val - 50) / 50; 
+                    currentCenter = lerpColor(colorRedCenter, colorBlack, t);
+                    currentEdge = lerpColor(colorRedEdge, colorBlack, t);
+                    labelText = t > 0.8 ? "BLACK" : "DARK RED";
+                }
+
+                document.body.style.setProperty('--bg-center', currentCenter);
+                document.body.style.setProperty('--bg-edge', currentEdge);
+                bgLabel.innerText = labelText;
+            });
+
+            depthSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                depthLabel.innerText = val.toFixed(1) + 'x';
+                
+                if (logoGroup) {
+                    logoGroup.scale.set(baseScale, -baseScale, baseScale * val);
+                }
+            });
+        }
+
+        // --- Interaction Handlers ---
+
+        function toggleUI() {
+            isUiVisible = !isUiVisible;
+            const controls = document.getElementById('controls');
+            if (isUiVisible) {
+                controls.classList.remove('hidden');
+            } else {
+                controls.classList.add('hidden');
+            }
+        }
+
+        function setupInteractionEvents() {
+            const el = renderer.domElement;
+            
+            el.addEventListener('mousedown', onPointerDown);
+            el.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('mouseup', onPointerUp);
+            
+            el.addEventListener('touchstart', (e) => onPointerDown(e.touches[0]), { passive: false });
+            el.addEventListener('touchmove', (e) => { e.preventDefault(); onPointerMove(e.touches[0]); }, { passive: false });
+            window.addEventListener('touchend', onPointerUp);
+
+            // Spacebar Toggle
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' || e.key === ' ') {
+                    e.preventDefault(); 
+                    toggleUI();
+                }
+            });
+        }
+
+        function onPointerDown(e) {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+            rotationVelocity = { x: 0, y: 0 };
+
+            // Triple Tap Logic
+            const currentTime = Date.now();
+            const tapLength = currentTime - lastTapTime;
+            
+            if (tapLength < 400 && tapLength > 0) {
+                tapCount++;
+            } else {
+                tapCount = 1;
+            }
+            lastTapTime = currentTime;
+            
+            if (tapCount === 3) {
+                toggleUI();
+                tapCount = 0; // Reset
+            }
+        }
+
+        function onPointerMove(e) {
+            if (isDragging && logoGroup) {
+                const deltaMove = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+
+                logoGroup.rotation.y += deltaMove.x * 0.01;
+                logoGroup.rotation.x += deltaMove.y * 0.01;
+
+                rotationVelocity.x = deltaMove.y * 0.001;
+                rotationVelocity.y = deltaMove.x * 0.001;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        }
+
+        function onPointerUp() {
+            isDragging = false;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Animation Loop ---
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (logoGroup && !isDragging) {
+                logoGroup.rotation.x += rotationVelocity.x;
+                logoGroup.rotation.y += rotationVelocity.y;
+
+                rotationVelocity.x *= 0.95;
+                rotationVelocity.y *= 0.95;
+
+                if (Math.abs(rotationVelocity.y) < 0.008) {
+                    rotationVelocity.y += 0.0002; 
+                }
+                
+                if (Math.abs(rotationVelocity.x) < 0.01) {
+                    logoGroup.rotation.x += (0 - logoGroup.rotation.x) * 0.05;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</htm>
