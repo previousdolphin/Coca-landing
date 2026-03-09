@@ -1,0 +1,238 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Ribbon Visualizer</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            overflow: hidden;
+            font-family: sans-serif;
+            color: white;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            backdrop-filter: blur(5px);
+            width: 300px;
+            z-index: 10;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+        .control-group input[type="file"] {
+            width: 100%;
+            font-size: 14px;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 18px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <h2>Visualizer Settings</h2>
+        
+        <div class="control-group">
+            <label for="audioUpload">Upload Audio (.mp3, .wav)</label>
+            <input type="file" id="audioUpload" accept="audio/*">
+        </div>
+
+        <div class="control-group">
+            <label>Number of Lines: <span id="valLines">12</span></label>
+            <input type="range" id="numLines" min="1" max="30" value="12">
+        </div>
+
+        <div class="control-group">
+            <label>Line Spacing: <span id="valSpacing">30</span></label>
+            <input type="range" id="lineSpacing" min="0" max="100" value="30">
+        </div>
+
+        <div class="control-group">
+            <label>Amplitude Boost: <span id="valBoost">2.5</span></label>
+            <input type="range" id="ampBoost" min="0.1" max="10" step="0.1" value="2.5">
+        </div>
+
+        <div class="control-group">
+            <label>Line Width: <span id="valWidth">2</span></label>
+            <input type="range" id="lineWidth" min="1" max="10" value="2">
+        </div>
+        
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="glowEffect" checked> Enable Glow Effect
+            </label>
+        </div>
+    </div>
+
+    <canvas id="visualizer"></canvas>
+
+    <script>
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize canvas to fill window
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Audio setup
+        let audioCtx, analyser, source;
+        let dataArray, bufferLength;
+        const audioInput = document.getElementById('audioUpload');
+        const audioElement = new Audio();
+
+        // UI Controls setup
+        const ui = {
+            numLines: document.getElementById('numLines'),
+            lineSpacing: document.getElementById('lineSpacing'),
+            ampBoost: document.getElementById('ampBoost'),
+            lineWidth: document.getElementById('lineWidth'),
+            glowEffect: document.getElementById('glowEffect')
+        };
+
+        // Update UI labels dynamically
+        Object.keys(ui).forEach(key => {
+            if (ui[key].type === 'range') {
+                ui[key].addEventListener('input', (e) => {
+                    document.getElementById('val' + key.charAt(0).toUpperCase() + key.slice(1)).innerText = e.target.value;
+                });
+            }
+        });
+
+        // Handle File Upload
+        audioInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Initialize Web Audio API on first user interaction
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048; 
+                bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                source = audioCtx.createMediaElementSource(audioElement);
+                source.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            }
+
+            // Load and play the file
+            const objectUrl = URL.createObjectURL(file);
+            audioElement.src = objectUrl;
+            audioElement.play();
+            
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+
+        // Animation Loop
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Dark background (use opacity for trailing/motion blur effect if desired)
+            ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Get current audio waveform data
+            if (analyser) {
+                analyser.getByteTimeDomainData(dataArray);
+            }
+
+            const lines = parseInt(ui.numLines.value);
+            const spacing = parseInt(ui.lineSpacing.value);
+            const boost = parseFloat(ui.ampBoost.value);
+            const width = parseInt(ui.lineWidth.value);
+            const glow = ui.glowEffect.checked;
+
+            const centerY = canvas.height / 2;
+            const phaseShift = time * 0.05;
+
+            // Draw the multi-strand ribbons
+            for (let i = 0; i < lines; i++) {
+                ctx.beginPath();
+                
+                // Color mapping (HSL creates the rainbow effect)
+                const hue = (i / lines) * 360;
+                ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                
+                const verticalOffset = (i - lines / 2) * spacing;
+
+                for (let x = 0; x < canvas.width; x++) {
+                    // Map x pixel to audio array index
+                    const audioIndex = Math.floor((x / canvas.width) * (bufferLength || 0));
+                    
+                    // Convert audio data (0-255) to a normalized wave (-1 to 1)
+                    let audioWave = 0;
+                    if (dataArray) {
+                        audioWave = ((dataArray[audioIndex] / 128.0) - 1.0) * boost;
+                    }
+
+                    // The math: Base flowing sine wave + audio modulation
+                    const t = (x / canvas.width) * Math.PI * 4;
+                    const baseWave = Math.sin(t + phaseShift + (i * 0.2)) * (canvas.height * 0.1);
+                    const modulatedAudio = audioWave * Math.cos(t + (i * 0.1)) * (canvas.height * 0.2);
+                    
+                    const y = centerY + baseWave + modulatedAudio + verticalOffset;
+
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+
+                // Draw glow (thicker, transparent line underneath)
+                if (glow) {
+                    ctx.lineWidth = width * 4;
+                    ctx.strokeStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
+                    ctx.stroke();
+                }
+
+                // Draw primary line
+                ctx.lineWidth = width;
+                ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                ctx.stroke();
+            }
+
+            time += 1;
+        }
+
+        // Start the loop
+        animate();
+    </script>
+</body>
+</html>
