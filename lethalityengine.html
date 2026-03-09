@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYS: LETHALITY ENGINE v3.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #09090b;
+        }
+        /* Custom scrollbar for the history list */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #18181b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3f3f46; 
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #52525b; 
+        }
+    </style>
+</head>
+<body class="min-h-screen text-zinc-300 font-mono text-sm p-2 sm:p-4 select-none uppercase">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 z-50 bg-zinc-950 flex items-center justify-center font-mono text-xs text-amber-500">
+        <div class="flex flex-col items-center gap-4">
+            <i data-lucide="activity" class="w-6 h-6 animate-pulse"></i>
+            <p class="tracking-widest">INITIALIZING LETHALITY ENGINE...</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="max-w-6xl mx-auto bg-zinc-950 border border-zinc-800 shadow-2xl relative hidden">
+        <!-- Corner Accents -->
+        <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-zinc-500"></div>
+        <div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-zinc-500"></div>
+        <div class="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-zinc-500"></div>
+        <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-zinc-500"></div>
+
+        <!-- Header -->
+        <header class="bg-zinc-900 border-b border-zinc-800 px-4 py-2 flex justify-between items-center text-[10px] tracking-[0.2em]">
+            <div class="flex items-center gap-4 text-zinc-400">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="lock" class="w-3 h-3 text-amber-500"></i>
+                    <span class="text-amber-500 font-bold">SECURE // CLAS: TS</span>
+                </div>
+                <span class="hidden sm:inline">SYS: LETHALITY ENGINE v3.1</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-zinc-500 hidden sm:inline" id="op-id-display">OP_ID: ANON</span>
+                <div class="flex items-center gap-2 text-green-500">
+                    <i data-lucide="radio" class="w-3 h-3 animate-pulse"></i>
+                    <span>LINK ACTIVE</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-[1px] bg-zinc-800">
+            <!-- Left Column: Target Params -->
+            <div class="lg:col-span-3 bg-zinc-950 p-6 space-y-6">
+                <div class="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                    <i data-lucide="terminal" class="w-3 h-3 text-zinc-500"></i>
+                    <h3 class="text-[10px] font-bold text-zinc-500 tracking-[0.2em]">TARGET PARAMS</h3>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">WIDTH (IN)</label>
+                        <input type="number" id="input-width" value="24" class="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 p-2 text-xs focus:border-amber-500 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">HEIGHT (IN)</label>
+                        <input type="number" id="input-height" value="36" class="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 p-2 text-xs focus:border-amber-500 focus:outline-none" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">MARKET POSITION</label>
+                    <select id="input-artist" class="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 p-2 text-xs focus:border-amber-500 outline-none appearance-none">
+                        <option value="emerging">EMERGING [x2.25]</option>
+                        <option value="midcareer" selected>MID-CAREER [x5.5]</option>
+                        <option value="established">ESTABLISHED [x12]</option>
+                        <option value="bluechip">BLUE-CHIP [x45]</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">DESIRABILITY INDEX</label>
+                    <select id="input-desirability" class="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 p-2 text-xs focus:border-amber-500 outline-none appearance-none">
+                        <option value="niche">NICHE [x0.8]</option>
+                        <option value="standard" selected>STANDARD [x1]</option>
+                        <option value="rising">HIGH HEAT [x1.8]</option>
+                        <option value="legendary">ICONIC [x3.5]</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">MACRO SENTIMENT</label>
+                    <div class="grid grid-cols-3 gap-[1px] bg-zinc-800 border border-zinc-800" id="sentiment-container">
+                        <!-- Buttons injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: Symbolic Vectors -->
+            <div class="lg:col-span-5 bg-zinc-950 p-6 flex flex-col border-l border-zinc-800/50">
+                <div class="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                    <i data-lucide="shield-alert" class="w-3 h-3 text-zinc-500"></i>
+                    <h3 class="text-[10px] font-bold text-zinc-500 tracking-[0.2em]">SYMBOLIC VECTORS</h3>
+                </div>
+                
+                <div class="space-y-6 flex-1">
+                    <div>
+                        <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">BINARY LETHALITY MODE (λ)</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2" id="philosophy-container">
+                            <!-- Buttons injected via JS -->
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">GRAW CELEBRITY CONSTANT (C)</label>
+                        <div class="grid grid-cols-3 gap-3 mt-2" id="celebrity-container">
+                             <!-- Buttons injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 p-3 border-l-2 border-amber-500 bg-amber-500/5 text-[9px] text-zinc-400 leading-relaxed uppercase">
+                    <span class="text-amber-500 font-bold block mb-1">DIALECTICAL NOTE:</span>
+                    LETHALITY (λ) PARADOXICALLY FUNCTIONS AS PRIMARY MARKET DRIVER BY INCREASING SYMBOLIC RARITY WITHIN THE GRAWIAN MODEL.
+                </div>
+            </div>
+
+            <!-- Right Column: Telemetry Output -->
+            <div class="lg:col-span-4 bg-zinc-950 p-6 border-l border-zinc-800/50 flex flex-col">
+                <div class="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                    <i data-lucide="activity" class="w-3 h-3 text-zinc-500"></i>
+                    <h3 class="text-[10px] font-bold text-zinc-500 tracking-[0.2em]">TELEMETRY OUTPUT</h3>
+                </div>
+
+                <div class="bg-[#0c0c0e] border border-zinc-800 p-6 mb-6 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.2)_50%)] bg-[length:100%_4px] pointer-events-none opacity-50 z-10"></div>
+                    <label class="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1.5">CALCULATED SYMBOLIC SUM</label>
+                    <div class="text-4xl sm:text-5xl font-light text-white my-2 flex items-start tracking-tighter relative z-20">
+                        <span class="text-xl text-zinc-600 mt-1 mr-2">$</span>
+                        <span id="output-median">0</span>
+                    </div>
+                    <div class="space-y-1 mt-6 relative z-20">
+                        <div class="flex justify-between text-[10px] border-b border-zinc-800/50 pb-1">
+                            <span class="text-zinc-500 uppercase">Spec Ceiling</span>
+                            <span class="text-amber-400 font-bold" id="output-high">$0</span>
+                        </div>
+                        <div class="flex justify-between text-[10px] pt-1">
+                            <span class="text-zinc-500 uppercase">Inst Floor</span>
+                            <span class="text-zinc-400" id="output-low">$0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <button id="btn-save" class="w-full bg-zinc-200 text-zinc-950 hover:bg-white py-3 px-4 font-bold tracking-[0.2em] text-[10px] transition-colors flex items-center justify-center gap-2 group">
+                        <i data-lucide="database" class="w-3 h-3 group-hover:animate-pulse"></i>
+                        COMMIT TO SECURE LEDGER
+                    </button>
+                    <button id="btn-export" class="w-full border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 py-3 px-4 font-bold tracking-[0.2em] text-[10px] transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="share-2" class="w-3 h-3"></i>
+                        EXPORT DATA STRING
+                    </button>
+                </div>
+
+                <div class="mt-8 flex-1 flex flex-col">
+                    <div class="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                        <i data-lucide="shield" class="w-3 h-3 text-zinc-500"></i>
+                        <h3 class="text-[10px] font-bold text-zinc-500 tracking-[0.2em]">GLOBAL LEDGER</h3>
+                    </div>
+                    <div class="flex-1 bg-zinc-900/50 border border-zinc-800 p-3 space-y-2 overflow-y-auto max-h-[150px]" id="history-container">
+                        <div class="text-[9px] text-zinc-600 text-center mt-4 uppercase">
+                            Awaiting Data Ingestion...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- Data Definitions ---
+        const ARTIST_FACTORS = {
+            emerging: { label: "Emerging", factor: 2.25 },
+            midcareer: { label: "Mid-Career", factor: 5.5 },
+            established: { label: "Established", factor: 12.0 },
+            bluechip: { label: "Blue-Chip", factor: 45.0 },
+        };
+
+        const DESIRABILITY_LEVELS = {
+            niche: { label: "Niche", multiplier: 0.8 },
+            standard: { label: "Standard", multiplier: 1.0 },
+            rising: { label: "High Heat", multiplier: 1.8 },
+            legendary: { label: "Iconic", multiplier: 3.5 },
+        };
+
+        const MARKET_MODIFIERS = {
+            bear: { label: "Contracting", multiplier: 0.82 },
+            stable: { label: "Stable", multiplier: 1.0 },
+            bull: { label: "Expanding", multiplier: 1.18 },
+        };
+
+        const LETHALITY_FACTORS = {
+            camus: { label: "Camus (Absurdist)", lethality: 2.1, desc: "High-friction lethality. Permanent act of revolt." },
+            adorno: { label: "Adorno (Dialectical)", lethality: 3.45, desc: "Ultimate lethality. Total resistance to culture." },
+        };
+
+        const GRAW_CELEBRITY_CONSTANT = {
+            obscure: { label: "Insular", constant: 1.0 },
+            notable: { label: "Notable", constant: 1.85 },
+            global: { label: "Megastar", constant: 4.2 },
+        };
+
+        // --- Application State ---
+        const state = {
+            width: 24,
+            height: 36,
+            artistLevel: "midcareer",
+            desirability: "standard",
+            marketSentiment: "stable",
+            philosophy: "camus",
+            celebrityTier: "notable",
+            valuation: { low: 0, high: 0, median: 0 },
+            history: [],
+            db: null,
+            user: null,
+            demoMode: false
+        };
+
+        // --- DOM Elements ---
+        const dom = {
+            width: document.getElementById('input-width'),
+            height: document.getElementById('input-height'),
+            artist: document.getElementById('input-artist'),
+            desirability: document.getElementById('input-desirability'),
+            sentimentContainer: document.getElementById('sentiment-container'),
+            philosophyContainer: document.getElementById('philosophy-container'),
+            celebrityContainer: document.getElementById('celebrity-container'),
+            outputMedian: document.getElementById('output-median'),
+            outputHigh: document.getElementById('output-high'),
+            outputLow: document.getElementById('output-low'),
+            btnSave: document.getElementById('btn-save'),
+            btnExport: document.getElementById('btn-export'),
+            historyContainer: document.getElementById('history-container'),
+            opIdDisplay: document.getElementById('op-id-display'),
+            loadingScreen: document.getElementById('loading-screen'),
+            mainApp: document.getElementById('main-app')
+        };
+
+        // --- Firebase Configuration ---
+        let firebaseConfig;
+        try {
+            firebaseConfig = typeof __firebase_config !== "undefined" ? JSON.parse(__firebase_config) : null;
+        } catch (e) {
+            firebaseConfig = null;
+        }
+        
+        if (!firebaseConfig) {
+            firebaseConfig = {
+                apiKey: "demo-api-key",
+                authDomain: "demo-app.firebaseapp.com",
+                projectId: "demo-app"
+            };
+            state.demoMode = true;
+        }
+        
+        const appId = typeof __app_id !== "undefined" ? __app_id : "art-valuation-2026-v3";
+
+        // --- Initialization ---
+        async function init() {
+            renderControls();
+            attachEventListeners();
+            calculateValuation();
+            await initFirebase();
+            
+            // Hide loading, show app
+            dom.loadingScreen.classList.add('hidden');
+            dom.mainApp.classList.remove('hidden');
+        }
+
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                state.db = getFirestore(app);
+                const auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    state.user = user;
+                    if (user) {
+                        dom.opIdDisplay.textContent = `OP_ID: ${user.uid.substring(0, 8)}`;
+                        if (!state.demoMode) {
+                            listenToHistory();
+                        }
+                    }
+                });
+            } catch (error) {
+                console.warn("Firebase initialization failed, falling back to local demo mode.", error);
+                state.demoMode = true;
+            }
+        }
+
+        function listenToHistory() {
+            if (!state.user || !state.db) return;
+            const historyPath = `artifacts/${appId}/public/data/valuations`;
+            
+            onSnapshot(collection(state.db, historyPath), (snapshot) => {
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                docs.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                state.history = docs.slice(0, 5);
+                renderHistory();
+            }, (error) => {
+                console.error("Telemetry sync lost.", error);
+            });
+        }
+
+        // --- Core Logic ---
+        function calculateValuation() {
+            const area = state.width * state.height;
+            const baseFactor = ARTIST_FACTORS[state.artistLevel].factor;
+            const desirabilityMod = DESIRABILITY_LEVELS[state.desirability].multiplier;
+            const marketMod = MARKET_MODIFIERS[state.marketSentiment].multiplier;
+
+            const lethalityVar = LETHALITY_FACTORS[state.philosophy].lethality;
+            const grawConstant = GRAW_CELEBRITY_CONSTANT[state.celebrityTier].constant;
+            const symbolicCapitalWeight = lethalityVar * grawConstant;
+
+            const median = area * baseFactor * desirabilityMod * marketMod * symbolicCapitalWeight;
+
+            state.valuation = {
+                low: median * 0.9,
+                high: median * 1.1,
+                median: median
+            };
+
+            updateOutputUI();
+        }
+
+        async function saveValuation() {
+            if (state.demoMode || !state.db || !state.user) {
+                // Local fallback
+                const demoEntry = {
+                    id: Math.random().toString(),
+                    dimensions: `${state.width}x${state.height}`,
+                    lethality: LETHALITY_FACTORS[state.philosophy].label,
+                    value: state.valuation.median,
+                    timestamp: { seconds: Date.now() / 1000 }
+                };
+                state.history = [demoEntry, ...state.history].slice(0, 5);
+                renderHistory();
+                return;
+            }
+
+            try {
+                const historyPath = `artifacts/${appId}/public/data/valuations`;
+                await addDoc(collection(state.db, historyPath), {
+                    dimensions: `${state.width}x${state.height}`,
+                    artist: ARTIST_FACTORS[state.artistLevel].label,
+                    lethality: LETHALITY_FACTORS[state.philosophy].label,
+                    value: state.valuation.median,
+                    timestamp: serverTimestamp(),
+                    userId: state.user.uid,
+                });
+            } catch (error) {
+                console.error("SYS.ERR: Commit failure.", error);
+            }
+        }
+
+        function copyDataString() {
+            const text = `SYS.VAL::${Math.round(state.valuation.median)}//L-VAR::${state.philosophy.toUpperCase()}//C-VAR::${state.celebrityTier.toUpperCase()}`;
+            const el = document.createElement("textarea");
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand("copy");
+            document.body.removeChild(el);
+        }
+
+        // --- Render Functions ---
+        function renderControls() {
+            // Market Sentiment
+            dom.sentimentContainer.innerHTML = Object.entries(MARKET_MODIFIERS).map(([k, v]) => {
+                const isActive = state.marketSentiment === k;
+                const activeClasses = isActive ? "bg-amber-500/20 text-amber-500 font-bold" : "bg-zinc-950 text-zinc-500 hover:bg-zinc-900";
+                return `<button data-key="${k}" class="sentiment-btn py-2 text-[9px] transition-colors ${activeClasses}">${k.substring(0, 4)}</button>`;
+            }).join('');
+
+            // Philosophy
+            dom.philosophyContainer.innerHTML = Object.entries(LETHALITY_FACTORS).map(([key, data]) => {
+                const isActive = state.philosophy === key;
+                const activeClasses = isActive ? "border-amber-500 bg-amber-500/5 shadow-[0_0_15px_rgba(245,158,11,0.1)]" : "border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:border-zinc-600";
+                const activeBadge = isActive ? `<div class="absolute top-0 right-0 p-1 bg-amber-500 text-black text-[8px] font-bold tracking-widest">ACTIVE</div>` : '';
+                return `
+                    <button data-key="${key}" class="philosophy-btn relative p-4 text-left border transition-all ${activeClasses}">
+                        ${activeBadge}
+                        <div class="text-xs font-bold mb-1">${data.label.toUpperCase()}</div>
+                        <div class="text-[10px] opacity-80 mb-3">${data.desc.toUpperCase()}</div>
+                        <div class="font-mono text-[10px] bg-zinc-950 inline-block px-2 py-1 border border-zinc-800">VAL: ${data.lethality.toFixed(2)}</div>
+                    </button>
+                `;
+            }).join('');
+
+            // Celebrity Tier
+            dom.celebrityContainer.innerHTML = Object.entries(GRAW_CELEBRITY_CONSTANT).map(([key, data]) => {
+                const isActive = state.celebrityTier === key;
+                const activeClasses = isActive ? "border-green-500 bg-green-500/5 text-green-400" : "border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:border-zinc-600";
+                return `
+                    <button data-key="${key}" class="celebrity-btn p-3 text-center border transition-all flex flex-col items-center gap-2 ${activeClasses}">
+                        <span class="text-[10px] font-bold">${data.label.toUpperCase()}</span>
+                        <span class="text-[9px] bg-zinc-950 px-2 py-0.5 border border-zinc-800/50">${data.constant.toFixed(2)}</span>
+                    </button>
+                `;
+            }).join('');
+            
+            attachDynamicListeners();
+        }
+
+        function updateOutputUI() {
+            dom.outputMedian.textContent = Math.round(state.valuation.median).toLocaleString();
+            dom.outputLow.textContent = `$${Math.round(state.valuation.low).toLocaleString()}`;
+            dom.outputHigh.textContent = `$${Math.round(state.valuation.high).toLocaleString()}`;
+        }
+
+        function renderHistory() {
+            if (state.history.length === 0) {
+                dom.historyContainer.innerHTML = `<div class="text-[9px] text-zinc-600 text-center mt-4 uppercase">Awaiting Data Ingestion...</div>`;
+                return;
+            }
+
+            dom.historyContainer.innerHTML = state.history.map(item => `
+                <div class="flex justify-between items-center text-[9px] border-b border-zinc-800/50 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
+                    <div>
+                        <span class="text-amber-500 mr-2">[${item.dimensions}]</span>
+                        <span class="text-zinc-400">${item.lethality ? item.lethality.split(" ")[0] : ''}</span>
+                    </div>
+                    <span class="font-bold text-zinc-300">$${Math.round(item.value).toLocaleString()}</span>
+                </div>
+            `).join('');
+        }
+
+        // --- Event Listeners ---
+        function attachEventListeners() {
+            dom.width.addEventListener('input', (e) => { state.width = Number(e.target.value) || 0; calculateValuation(); });
+            dom.height.addEventListener('input', (e) => { state.height = Number(e.target.value) || 0; calculateValuation(); });
+            dom.artist.addEventListener('change', (e) => { state.artistLevel = e.target.value; calculateValuation(); });
+            dom.desirability.addEventListener('change', (e) => { state.desirability = e.target.value; calculateValuation(); });
+            
+            dom.btnSave.addEventListener('click', saveValuation);
+            dom.btnExport.addEventListener('click', copyDataString);
+        }
+
+        function attachDynamicListeners() {
+            document.querySelectorAll('.sentiment-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    state.marketSentiment = e.currentTarget.dataset.key;
+                    renderControls();
+                    calculateValuation();
+                });
+            });
+            document.querySelectorAll('.philosophy-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    state.philosophy = e.currentTarget.dataset.key;
+                    renderControls();
+                    calculateValuation();
+                });
+            });
+            document.querySelectorAll('.celebrity-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    state.celebrityTier = e.currentTarget.dataset.key;
+                    renderControls();
+                    calculateValuation();
+                });
+            });
+        }
+
+        // Boot the app
+        init();
+    </script>
+</body>
+</html>
