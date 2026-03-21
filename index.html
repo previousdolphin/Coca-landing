@@ -42,8 +42,8 @@
             font-family: var(--font-main);
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: row; /* Split screen layout */
+            align-items: stretch;
             letter-spacing: 0.02em;
             position: relative;
             overflow-x: hidden;
@@ -51,20 +51,20 @@
         }
 
         /* Noise Filter Background */
-        body::before {
+        body::after {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
             pointer-events: none;
-            z-index: -1;
+            z-index: 999; /* Moved to overlay everything naturally */
         }
 
         /* --- THEME TOGGLE --- */
         .theme-toggle {
             position: fixed;
             top: 45px;
-            left: 20px;
+            right: 45px; /* Moved to right side to avoid covering the image */
             background: transparent;
             border: 1px solid var(--text-color);
             color: var(--text-color);
@@ -75,9 +75,40 @@
             z-index: 2000;
             text-transform: uppercase;
             opacity: 0.5;
-            transition: opacity 0.3s;
+            transition: opacity 0.3s, border-color 0.3s, color 0.3s;
         }
         .theme-toggle:hover { opacity: 1; border-color: var(--header-color); color: var(--header-color); }
+
+        /* --- SPREAD LAYOUT --- */
+        .hero-spread {
+            flex: 1 1 50%;
+            background-image: url('header.jpg'); /* <-- INSERT IMAGE FILENAME HERE */
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            border-right: var(--border-style);
+            transition: border-color 0.5s ease;
+        }
+        
+        /* Subtle tint over image to blend with active theme */
+        .hero-spread::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-color: var(--bg-color);
+            opacity: 0.15;
+            transition: background-color 0.5s ease;
+            pointer-events: none;
+        }
+
+        .lobby-wrapper {
+            flex: 1 1 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow-y: auto;
+        }
 
         /* --- LOBBY (LINKTREE) --- */
         .lobby-container {
@@ -87,7 +118,6 @@
             text-align: center;
             opacity: 0;
             animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            transition: filter 0.5s ease, opacity 0.5s ease;
             position: relative;
             z-index: 1;
         }
@@ -162,7 +192,7 @@
         /* --- FORM / CONFESSION BOOTH --- */
         .confession-booth {
             display: none; width: 100%; margin-top: 2rem;
-            border-top: 1px dashed var(--dim-color); padding-top: 2rem;
+            border-top: 1px dashed var(--border-style); padding-top: 2rem;
             opacity: 0; transition: opacity 1s ease; text-align: left;
         }
         .confession-booth.active { display: block; animation: ritualFadeIn 1s forwards; }
@@ -195,7 +225,7 @@
             opacity: 0; pointer-events: none; transform: scale(0.98);
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
-        /* Light mode adjustment for overlay background */
+        
         [data-theme="light"] .bible-overlay {
             background: rgba(244,244,240, 0.95);
         }
@@ -291,7 +321,21 @@
         }
 
         /* Mobile Adjustments */
-        @media (max-width: 768px) {
+        @media (max-width: 800px) {
+            body { flex-direction: column; }
+            .hero-spread {
+                flex: none;
+                width: 100vw;
+                height: 40vh;
+                border-right: none;
+                border-bottom: var(--border-style);
+            }
+            .lobby-wrapper { flex: none; height: auto; padding-top: 2rem; }
+            .theme-toggle { 
+                top: 15px; right: 15px; 
+                background: var(--bg-color);
+                border-radius: 4px; 
+            }
             .bible-container { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
             .bible-sidebar { display: none; } 
             .bible-content { padding: 40px 20px; }
@@ -311,58 +355,65 @@
 
     <button class="theme-toggle" id="theme-btn">[ ☀ LIGHT ]</button>
 
-    <div class="lobby-container" id="lobby">
-        
-        <div class="profile-section">
-            <div class="profile-container">
-                <div class="profile-pic"></div>
+    <!-- NEW SPREAD IMAGE CONTAINER -->
+    <div class="hero-spread"></div>
+
+    <!-- WRAPPER FOR LOBBY CENTERING -->
+    <div class="lobby-wrapper">
+        <div class="lobby-container" id="lobby">
+            
+            <div class="profile-section">
+                <div class="profile-container">
+                    <div class="profile-pic"></div>
+                </div>
+                
+                <div class="handle">
+                    <a href='https://www.instagram.com/churchofconceptualart' target="_blank" id="glitch-target">@ChurchOfConceptualArt</a>
+                </div>
+                
+                <div class="bio">
+                    <p><strong>THE DOCTRINE OF SEMIOTIC REVERSAL</strong></p>
+                    <p style="margin-top: 1rem;">The Church of Conceptual Art (CoCA) recognizes that certain corporate symbols have saturated the human environment to such a degree that they no longer belong exclusively to commerce.</p>
+                    <span class="arrow">↓</span>
+                </div>
+            </div>
+
+            <div class="links-wrapper">
+                <a href="#" class="link-btn" id="btn-doctrine-trigger">
+                    READ THE DOCTRINE
+                </a>
+
+                <a href="#" class="link-btn" id="btn-confession">
+                    Confession [Interest Intake]
+                </a>
             </div>
             
-            <div class="handle">
-                <a href='https://www.instagram.com/churchofconceptualart' target="_blank" id="glitch-target">@ChurchOfConceptualArt</a>
+            <div class="confession-booth" id="form-container">
+                <form action="https://formspree.io/f/xpwvrybv" method="POST">
+                    <div class="form-group">
+                        <label class="form-label">Identity (Optional)</label>
+                        <input type="text" name="name" class="form-input" placeholder="ENTER ALIAS">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Contact Frequency (Email)</label>
+                        <input type="email" name="email" class="form-input" placeholder="ENTER EMAIL" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confession / Inquiry</label>
+                        <textarea name="message" class="form-textarea" placeholder="SPEAK..."></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">TRANSMIT</button>
+                </form>
             </div>
-            
-            <div class="bio">
-                <p><strong>THE DOCTRINE OF SEMIOTIC REVERSAL</strong></p>
-                <p style="margin-top: 1rem;">The Church of Conceptual Art (CoCA) recognizes that certain corporate symbols have saturated the human environment to such a degree that they no longer belong exclusively to commerce.</p>
-                <span class="arrow">↓</span>
+
+            <div style="margin-top: 3rem; font-size: 0.6rem; color: var(--text-color); opacity: 0.5; text-transform: uppercase; line-height: 1.6;">
+                © 2026 CoCA. Structural Immunity.<br>
+                The Church of Conceptual Art is a registered 501(c)(3) non-profit organization.
             </div>
-        </div>
-
-        <div class="links-wrapper">
-            <a href="#" class="link-btn" id="btn-doctrine-trigger">
-                READ THE DOCTRINE
-            </a>
-
-            <a href="#" class="link-btn" id="btn-confession">
-                Confession [Interest Intake]
-            </a>
-        </div>
-        
-        <div class="confession-booth" id="form-container">
-            <form action="https://formspree.io/f/xpwvrybv" method="POST">
-                <div class="form-group">
-                    <label class="form-label">Identity (Optional)</label>
-                    <input type="text" name="name" class="form-input" placeholder="ENTER ALIAS">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Contact Frequency (Email)</label>
-                    <input type="email" name="email" class="form-input" placeholder="ENTER EMAIL" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Confession / Inquiry</label>
-                    <textarea name="message" class="form-textarea" placeholder="SPEAK..."></textarea>
-                </div>
-                <button type="submit" class="submit-btn">TRANSMIT</button>
-            </form>
-        </div>
-
-        <div style="margin-top: 3rem; font-size: 0.6rem; color: var(--text-color); opacity: 0.5; text-transform: uppercase; line-height: 1.6;">
-            © 2026 CoCA. Structural Immunity.<br>
-            The Church of Conceptual Art is a registered 501(c)(3) non-profit organization.
         </div>
     </div>
 
+    <!-- Overlay remains unchanged structurally -->
     <div class="bible-overlay" id="bible-overlay">
         <div class="bible-container">
             
