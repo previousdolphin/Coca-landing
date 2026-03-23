@@ -63,8 +63,8 @@
         /* --- THEME TOGGLE --- */
         .theme-toggle {
             position: fixed;
-            top: 45px;
-            right: 45px; /* Moved to right side to avoid covering the image */
+            bottom: 45px;
+            right: 45px;
             background: transparent;
             border: 1px solid var(--text-color);
             color: var(--text-color);
@@ -74,10 +74,26 @@
             cursor: pointer;
             z-index: 2000;
             text-transform: uppercase;
-            opacity: 0.5;
+            opacity: 0; /* Hidden by default */
             transition: opacity 0.3s, border-color 0.3s, color 0.3s;
         }
-        .theme-toggle:hover { opacity: 1; border-color: var(--header-color); color: var(--header-color); }
+
+        /* Creates a larger invisible "hit area" in the corner to trigger the hover */
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            bottom: -45px;
+            right: -45px;
+            width: 150px;
+            height: 150px;
+            z-index: -1;
+        }
+
+        .theme-toggle:hover { 
+            opacity: 1; /* Shows on hover */
+            border-color: var(--header-color); 
+            color: var(--header-color); 
+        }
 
         /* --- SPREAD LAYOUT --- */
         .hero-spread {
@@ -331,11 +347,23 @@
                 border-bottom: var(--border-style);
             }
             .lobby-wrapper { flex: none; height: auto; padding-top: 2rem; }
+            
+            /* Update mobile positioning */
             .theme-toggle { 
-                top: 15px; right: 15px; 
+                top: auto;
+                bottom: 15px; 
+                right: 15px; 
                 background: var(--bg-color);
                 border-radius: 4px; 
             }
+            /* Shrink hit area slightly for mobile */
+            .theme-toggle::after {
+                width: 80px;
+                height: 80px;
+                bottom: -15px;
+                right: -15px;
+            }
+            
             .bible-container { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
             .bible-sidebar { display: none; } 
             .bible-content { padding: 40px 20px; }
