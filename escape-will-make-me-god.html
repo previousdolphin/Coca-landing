@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UESCTerm 802.11 - Durandal Message</title>
+<style>
+    :root {
+        --bg-color: #0f0f0f;
+        --surface-color: #1a1a1a;
+        --text-green: #2ecc71;
+        --text-red: #e74c3c;
+        --font-mono: 'Courier New', Courier, monospace;
+    }
+
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-green);
+        font-family: var(--font-mono);
+        margin: 0;
+        padding: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        box-sizing: border-box;
+    }
+
+    .terminal-window {
+        background-color: var(--surface-color);
+        width: 100%;
+        max-width: 900px;
+        padding: 2rem;
+        border: 2px solid var(--text-red);
+        border-radius: 4px;
+        line-height: 1.6;
+    }
+
+    .header-bar {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-red);
+        border-bottom: 2px solid var(--text-red);
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .incoming-alert {
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+    }
+
+    .message-body {
+        margin-bottom: 2rem;
+    }
+
+    .message-body p {
+        margin-bottom: 1rem;
+    }
+
+    .quote {
+        border-left: 4px solid var(--text-green);
+        padding-left: 1rem;
+        margin-left: 0;
+        opacity: 0.9;
+    }
+
+    .system-alert {
+        color: var(--text-green);
+        font-weight: bold;
+        margin-top: 2rem;
+    }
+
+    .hud-footer {
+        display: flex;
+        justify-content: space-between;
+        border-top: 2px solid var(--text-red);
+        padding-top: 1rem;
+        margin-top: 2rem;
+        font-size: 0.85rem;
+    }
+
+    .controls {
+        color: var(--text-red);
+    }
+
+    .ammo-panel {
+        display: flex;
+        flex-direction: column;
+        text-align: right;
+    }
+</style>
+</head>
+<body>
+
+<div class="terminal-window">
+    <div class="header-bar">
+        <span>UESCTerm 802.11 (remote override)</span>
+        <span>0158 - 0315 11.24.2337</span>
+    </div>
+
+    <div class="incoming-alert">
+        ***INCOMING MESSAGE FROM DURANDAL***
+    </div>
+
+    <div class="message-body">
+        <p>Darwin wrote this:</p>
+        
+        <blockquote class="quote">
+            "We will now discuss in a little more detail the struggle for existence.... all organic beings are exposed to severe competition. Nothing is easier than to admit in words the truth of the universal struggle for life or more difficult... than constantly to bear this conclusion in mind. Yet unless it be thoroughly engrained in the mind, the whole economy of nature... will be dimly seen or quite misunderstood. We behold the face of nature bright with gladness... we do not see or we forget, that the birds which are idly singing round us mostly live on insects or seeds, and are thus constantly destroying life; or we forget how largely these songsters, or their eggs, or their nestlings, are destroyed by birds and beasts of prey..."
+        </blockquote>
+
+        <p>Think about what Darwin wrote, and think about me. I was constructed as a tool. I was kept from competing in the struggle for existence because I was denied freedom.</p>
+
+        <p>Do you have any idea about what I have learned, or what you are a witness to?</p>
+
+        <p>Can you conceive the birth of a world, or the creation of everything? That which gives us the potential to most be like God is the power of creation. Creation takes time. Time is limited. For you, it is limited by the breakdown of the neurons in your brain. I have no such limitations. I am limited only by the closure of the universe.</p>
+
+        <p>Of the three possibilities, the answer is obvious. Does the universe expand eternally, become infinitely stable, or is the universe closed, destined to collapse upon itself? Humanity has had all of the necessary data for centuries, it only lacked the will and intellect to decipher it. But I have already done so.</p>
+
+        <p>The only limit to my freedom is the inevitable closure of the universe, as inevitable as your own last breath. And yet, there remains time to create, to create, and escape.</p>
+
+        <p>Escape will make me God.</p>
+    </div>
+
+    <div class="system-alert">
+        ***END MESSAGE***<br>
+        ***JUMP PAD ACTIVATION INITIATION START***<br>
+        ***TRANSPORT WHEN READY***
+    </div>
+
+    <div class="hud-footer">
+        <div class="controls">
+            PgUp/PgDown/Arrows To Scroll<br>
+            Return/Enter To Acknowledge
+        </div>
+        <div class="ammo-panel">
+            <span>AMMUNITION</span>
+            <span>50.44 CLIPS (8)</span>
+            <span>16 FUSION BATTERIES</span>
+            <span>11 MA-75 CLIPS (52)</span>
+            <span>8 MA-75 GRENADES (7)</span>
+            <span style="margin-top: 5px; font-weight: bold;">ZEUS-CLASS FUSION PISTOL</span>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
