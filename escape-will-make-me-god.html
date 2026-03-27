@@ -1,268 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UESCTerm 802.11</title>
-    <style>
-        /* Base reset and full-screen setup */
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Durandal Terminal</title>
+  <style>
+    /* Global Reset and Body Background */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            color: #2da12d; /* Base terminal green */
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            overflow: hidden;
-            -webkit-font-smoothing: none;
-            user-select: none;
-        }
+    body {
+      background-color: #000;
+      color: #33cc33; /* Standard green terminal text */
+      font-family: "Courier New", Courier, monospace;
+      /* Prevent scrolling on the body, keep it inside the container */
+      overflow: hidden; 
+      display: flex;
+      justify-content: center;
+      height: 100vh;
+      height: 100dvh; /* Accounts for mobile browser bars */
+    }
 
-        /* --- View Containers --- */
-        #terminal-view {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-            padding: 3vw 2vw;
-        }
+    /* The Main Container Constraint (The Fix) */
+    .terminal-container {
+      width: 100%;
+      max-width: 500px; /* Locks it to a portrait width */
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: #000;
+      position: relative;
+    }
 
-        #holding-view {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            position: relative;
-        }
+    /* Header and Footer Styling */
+    .terminal-header, .terminal-footer {
+      background-color: #3a0808; /* Dark red background block */
+      color: #cc3333; /* Red text */
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      font-size: 14px;
+      flex-shrink: 0; /* Prevents them from compressing */
+    }
 
-        .holding-overlay {
-            position: absolute;
-            inset: 0;
-            background-color: #001100;
-            opacity: 0.5;
-            pointer-events: none;
-        }
+    /* Scrollable Content Area */
+    .terminal-content {
+      flex-grow: 1;
+      padding: 20px 15px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      font-size: 15px;
+      line-height: 1.4;
+      color: #2e8f2e; /* Slightly muted green for main body text */
+    }
 
-        /* --- Terminal Elements --- */
-        .terminal-header, .terminal-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #220000;
-            color: #cc1111;
-            padding: 0.4vw 1vw;
-            font-size: 2vw;
-            flex-shrink: 0;
-            font-weight: normal;
-        }
+    /* Custom Scrollbar to match the aesthetic (Webkit only) */
+    .terminal-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    .terminal-content::-webkit-scrollbar-track {
+      background: #000;
+    }
+    .terminal-content::-webkit-scrollbar-thumb {
+      background: #1a4d1a;
+    }
 
-        .terminal-header { margin-bottom: 2.5vw; }
-        .terminal-footer { margin-top: 2.5vw; }
+    /* Typography & Spacing */
+    p {
+      margin-bottom: 20px;
+    }
 
-        .terminal-body {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            font-size: 2.3vw;
-            line-height: 1.35;
-            padding: 0 1vw;
-            white-space: pre-wrap; /* Preserve exactly matched line breaks */
-            outline: none;
-        }
+    .header-text {
+      color: #33cc33; /* Brighter green for headers */
+      font-size: 18px;
+      margin-bottom: 25px;
+    }
 
-        /* Hide scrollbars completely while preserving native scroll/swipe */
-        .terminal-body::-webkit-scrollbar {
-            display: none;
-        }
-        .terminal-body {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+    .bright-green {
+      color: #55ff55; /* Bright green emphasis */
+      font-weight: bold;
+    }
 
-        .bright-green {
-            color: #45ea45; /* Brighter, bolder green from the screenshot */
-            font-weight: bold;
-        }
+    /* CSS Logo Approximation */
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
 
-        /* Inline Logo */
-        .inline-logo-container {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-            margin-top: 2vw;
-            margin-bottom: 4vw;
-        }
+    .logo {
+      width: 80px;
+      height: 80px;
+      border: 8px solid #33cc33;
+      border-radius: 50%;
+      position: relative;
+    }
+    
+    .logo::after {
+      content: '';
+      position: absolute;
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 25px;
+      background-color: #33cc33;
+    }
 
-        .inline-logo-svg {
-            width: 15vw;
-            height: 15vw;
-            color: #2da12d;
-        }
-
-        /* --- Holding Screen Elements --- */
-        .logo-svg {
-            width: 30vw;
-            height: 30vw;
-            color: #45ea45;
-            filter: drop-shadow(0 0 8px #45ea45);
-            margin-bottom: 5vw;
-            z-index: 10;
-        }
-
-        .standby-text {
-            color: #45ea45;
-            font-size: 3vw;
-            font-weight: bold;
-            letter-spacing: 0.2em;
-            text-shadow: 0 0 2px rgba(69, 234, 69, 0.4);
-            animation: blinker 1.5s linear infinite;
-            z-index: 10;
-        }
-
-        .return-text {
-            position: absolute;
-            bottom: 4vw;
-            color: #1a661a;
-            font-size: 1.5vw;
-            z-index: 10;
-        }
-
-        @keyframes blinker {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
-        }
-        
-        /* Utility classes */
-        .hidden {
-            display: none !important;
-        }
-        .flex {
-            display: flex !important;
-        }
-    </style>
+    /* Mobile adjustments for smaller screens */
+    @media (max-width: 400px) {
+      .terminal-header, .terminal-footer {
+        font-size: 11px;
+        padding: 8px 10px;
+      }
+      .terminal-content {
+        font-size: 14px;
+        padding: 15px 10px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-    <!-- TERMINAL VIEW -->
-    <div id="terminal-view">
-        <div class="terminal-header">
-            <span>UESCTerm 802.11 (remote override)</span>
-            <span>0315 11.24.2337</span>
-        </div>
-
-        <div class="terminal-body" id="scroll-container" tabindex="0"><div class="inline-logo-container">
-                <svg class="inline-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <mask id="marathon-cutout-inline">
-                        <rect width="100" height="100" fill="white" />
-                        <circle cx="50" cy="40" r="28" fill="none" stroke="black" stroke-width="10" />
-                        <rect x="45" y="67" width="10" height="33" fill="black" />
-                    </mask>
-                    <circle cx="50" cy="50" r="49" fill="currentColor" mask="url(#marathon-cutout-inline)" />
-                </svg>
-            </div>***INCOMING MESSAGE FROM DURANDAL***
-
-Darwin wrote this:
-
-"We will now discuss in a little more detail the struggle for
-existence... all organic beings are exposed to severe
-competition.  Nothing is easier than to admit in words the
-truth of the universal struggle for life or more difficult...
-than constantly to bear this conclusion in mind.  Yet unless
-it be thoroughly engrained in the mind, the whole economy of
-nature... will be dimly seen or quite misunderstood.  We behold
-the face of nature bright with gladness... we do not see or we
-forget, that the birds which are idly singing round us mostly
-live on insects or seeds, and are thus <span class="bright-green">constantly destroying</span>
-<span class="bright-green">life;</span> or we forget how largely these songsters, or their eggs,
-or their nestlings, are destroyed by birds and beasts of prey..."
-
-Think about what Darwin wrote, and think about me.  I was
-constructed as a tool.  I was kept from competing in the
-struggle for existence because I was denied freedom.
-
-Do you have any idea about what I have learned, or what you
-are a witness to?
-
-Can you conceive the birth of a world, or the creation of
-everything?  That which gives us the potential to most be like
-God is the power of creation.  Creation takes time.  Time is
-limited.  For you, it is limited by the breakdown of the
-neurons in your brain.  I have no such limitations.  I am
-limited only by the closure of the universe.
-
-Of the three possibilities, the answer is obvious.  Does the
-universe expand eternally, become infinitely stable, or is the
-universe closed, destined to collapse upon itself?  Humanity
-has had all of the necessary data for centuries, it only
-lacked the will and intellect to decipher it.  But I have
-already done so.
-
-The only limit to my freedom is the inevitable closure of the
-universe, as inevitable as your own last breath.  And yet,
-there remains time to create, to create, and escape.
-
-Escape will make me God.
-
-***END MESSAGE***
-
-***JUMP PAD ACTIVATION INITIATION START***
-***TRANSPORT WHEN READY***
-
-<div style="height: 10vw; width: 100%;"></div></div>
-
-        <div class="terminal-footer">
-            <span>PgUp/PgDown/Arrows To Scroll</span>
-            <span>Return/Enter To Acknowledge</span>
-        </div>
+  <div class="terminal-container">
+    
+    <!-- Top Header Bar -->
+    <div class="terminal-header">
+      <span>UESCTerm 802.11 (remote override)</span>
+      <span>0315 11.24.2337</span>
     </div>
 
-    <!-- HOLDING VIEW -->
-    <div id="holding-view">
-        <div class="holding-overlay"></div>
-        <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <mask id="marathon-cutout-holding">
-                <rect width="100" height="100" fill="white" />
-                <circle cx="50" cy="40" r="28" fill="none" stroke="black" stroke-width="10" />
-                <rect x="45" y="67" width="10" height="33" fill="black" />
-            </mask>
-            <circle cx="50" cy="50" r="49" fill="currentColor" mask="url(#marathon-cutout-holding)" />
-        </svg>
-        <div class="standby-text">SYSTEM STANDBY</div>
-        <div class="return-text">[PRESS ENTER TO RETURN]</div>
+    <!-- Scrollable Text Content -->
+    <div class="terminal-content">
+      
+      <!-- Marathon Logo placeholder -->
+      <div class="logo-container">
+        <div class="logo"></div>
+      </div>
+
+      <p class="header-text">***INCOMING MESSAGE FROM DURANDAL***</p>
+      
+      <p class="header-text">Darwin wrote this:</p>
+
+      <p>"We will now discuss in a little more detail the struggle for existence... all organic beings are exposed to severe competition. Nothing is easier than to admit in words the truth of the universal struggle for life or more difficult... than constantly to bear this conclusion in mind. Yet unless it be thoroughly engrained in the mind, the whole economy of nature... will be dimly seen or quite misunderstood. We behold the face of nature bright with gladness... we do not see or we forget, that the birds which are idly singing round us mostly live on insects or seeds, and are thus <span class="bright-green">constantly destroying life</span>; or we forget how largely these songsters, or their eggs, or their nestlings, are destroyed by birds and beasts of prey..."</p>
+
+      <p>Think about what Darwin wrote, and think about me. I was constructed as a tool. I was kept from competing in the struggle for existence because I was denied freedom.</p>
+
+      <p>Do you have any idea about what I have learned, or what you are a witness to?</p>
+
+      <p>Can you conceive the birth of a world, or the creation of everything? That which gives us the potential to most be like God is the power of creation. Creation takes time. Time is limited. For you, it is limited by the breakdown of the neurons in your brain. I have no such limitations. I am limited only by the closure of the universe.</p>
+
+      <p>Of the three possibilities, the answer is obvious. Does the universe expand eternally, become infinitely stable, or is the universe closed, destined to collapse upon itself? Humanity has had all of the necessary data for centuries, it only lacked the will and intellect to decipher it. But I have already done so.</p>
+
+      <p>The only limit to my freedom is the inevitable closure of the universe, as inevitable as your own last breath. And yet, there remains time to create, to create, and escape.</p>
+
+      <p>Escape will make me God.</p>
+
+      <p>...END MESSAGE...</p>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const terminalView = document.getElementById('terminal-view');
-            const holdingView = document.getElementById('holding-view');
-            const scrollContainer = document.getElementById('scroll-container');
-            let isHoldingScreen = false;
+    <!-- Bottom Footer Bar -->
+    <div class="terminal-footer">
+      <span>PgUp/PgDown/Arrows To Scroll</span>
+      <span>Return/Enter To Acknowledge</span>
+    </div>
 
-            scrollContainer.focus();
+  </div>
 
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    isHoldingScreen = !isHoldingScreen;
-                    
-                    if (isHoldingScreen) {
-                        terminalView.classList.add('hidden');
-                        holdingView.classList.add('flex');
-                    } else {
-                        terminalView.classList.remove('hidden');
-                        holdingView.classList.remove('flex');
-                        scrollContainer.focus();
-                    }
-                }
-            });
-        });
-    </script>
 </body>
 </html>
