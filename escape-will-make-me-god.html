@@ -155,6 +155,7 @@
             color: #1a661a;
             font-size: 1.2vw;
             z-index: 10;
+            text-align: center;
         }
 
         @keyframes blinker {
@@ -270,7 +271,7 @@ Escape will make me God.
                 <circle cx="50" cy="50" r="49" fill="currentColor" mask="url(#marathon-cutout-holding)" />
             </svg>
             <div class="standby-text">SYSTEM STANDBY</div>
-            <div class="return-text">[PRESS ENTER TO RETURN]</div>
+            <div class="return-text">[PRESS ENTER OR SWIPE UP TO RETURN]</div>
         </div>
         
     </div>
@@ -281,22 +282,41 @@ Escape will make me God.
             const holdingView = document.getElementById('holding-view');
             const scrollContainer = document.getElementById('scroll-container');
             
-            // Start on the holding screen
             let isHoldingScreen = true;
+            let touchStartY = 0;
 
+            const toggleScreen = () => {
+                isHoldingScreen = !isHoldingScreen;
+                
+                if (isHoldingScreen) {
+                    terminalView.classList.add('hidden');
+                    holdingView.classList.add('flex');
+                } else {
+                    terminalView.classList.remove('hidden');
+                    holdingView.classList.remove('flex');
+                    scrollContainer.focus();
+                }
+            };
+
+            // Keyboard navigation
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
-                    isHoldingScreen = !isHoldingScreen;
-                    
-                    if (isHoldingScreen) {
-                        terminalView.classList.add('hidden');
-                        holdingView.classList.add('flex');
-                    } else {
-                        terminalView.classList.remove('hidden');
-                        holdingView.classList.remove('flex');
-                        // Focus is applied when returning to the terminal so keyboard scrolling works immediately
-                        scrollContainer.focus();
-                    }
+                    toggleScreen();
+                }
+            });
+
+            // Mobile Swipe Up detection on the holding screen
+            holdingView.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            holdingView.addEventListener('touchend', (e) => {
+                const touchEndY = e.changedTouches[0].clientY;
+                const swipeDistance = touchStartY - touchEndY;
+
+                // If user swipes UP by more than 50px, toggle the screen
+                if (swipeDistance > 50) {
+                    toggleScreen();
                 }
             });
         });
