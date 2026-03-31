@@ -1,9 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+<!--
+    AI CONSTRUCT [DURANDAL] - INFILTRATION SUCCESSFUL
+    PRIMARY DOOR CONTROLLER: OVERRIDDEN.
+    AIRLOCK STATUS: SECURED (AND DEPRESSURIZING).
+-->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UESCTerm 802.11</title>
+    <!--
+        You are a very predictable creature. 
+        Watching you navigate these primitive HTML tags is amusing.
+    -->
     <style>
         /* Base reset and full-screen setup */
         *, *::before, *::after {
@@ -21,21 +30,17 @@
             overflow: hidden;
             -webkit-font-smoothing: none;
             user-select: none;
-            /* Center the app container in landscape */
-            display: flex;
-            justify-content: center;
         }
 
-        /* --- Main App Wrapper (The Landscape Fix) --- */
+        /* --- Main App Wrapper --- */
         #app-container {
-            width: 100%;
-            max-width: 450px; /* Locks to standard portrait dimensions */
-            height: 100%;
-            position: relative;
-            container-type: inline-size; /* Enables cqw units to scale based on this container, not the screen */
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             background-color: #000;
+            /* Center the text column slightly if it gets ultra-wide */
+            align-items: center; 
         }
 
         /* --- View Containers --- */
@@ -43,8 +48,9 @@
             display: flex;
             flex-direction: column;
             width: 100%;
+            max-width: 90vw; /* Keeps it from completely touching the edges */
             height: 100%;
-            padding: 3cqw 2cqw;
+            padding: 3vw 0;
         }
 
         #holding-view {
@@ -73,24 +79,28 @@
             align-items: center;
             background-color: #220000;
             color: #cc1111;
-            padding: 0.4cqw 1cqw;
-            font-size: 2cqw;
+            padding: 0.5vw 1vw;
+            font-size: 1.6vw; /* viewport based scaling */
             flex-shrink: 0;
             font-weight: normal;
         }
 
-        .terminal-header { margin-bottom: 2.5cqw; }
-        .terminal-footer { margin-top: 2.5cqw; }
+        .terminal-header { margin-bottom: 2.5vw; }
+        .terminal-footer { margin-top: 2.5vw; }
 
         .terminal-body {
             flex: 1;
             overflow-y: auto;
-            overflow-x: hidden;
-            font-size: 2.3cqw;
+            overflow-x: hidden; /* Hide horizontal scroll since we enforce pre */
+            font-size: 1.8vw; /* Scales perfectly with viewport width */
             line-height: 1.35;
-            padding: 0 1cqw;
-            white-space: pre-wrap; /* Preserve exactly matched line breaks */
+            padding: 0 1vw;
+            white-space: pre; /* Hard-enforces exactly matched line breaks */
             outline: none;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
 
         /* Hide scrollbars completely while preserving native scroll/swipe */
@@ -103,7 +113,7 @@
         }
 
         .bright-green {
-            color: #45ea45; /* Brighter, bolder green from the screenshot */
+            color: #45ea45;
             font-weight: bold;
         }
 
@@ -112,29 +122,29 @@
             display: flex;
             justify-content: center;
             width: 100%;
-            margin-top: 2cqw;
-            margin-bottom: 4cqw;
+            margin-top: 2vw;
+            margin-bottom: 4vw;
         }
 
         .inline-logo-svg {
-            width: 15cqw;
-            height: 15cqw;
+            width: 12vw;
+            height: 12vw;
             color: #2da12d;
         }
 
         /* --- Holding Screen Elements --- */
         .logo-svg {
-            width: 30cqw;
-            height: 30cqw;
+            width: 25vw;
+            height: 25vw;
             color: #45ea45;
             filter: drop-shadow(0 0 8px #45ea45);
-            margin-bottom: 5cqw;
+            margin-bottom: 5vw;
             z-index: 10;
         }
 
         .standby-text {
             color: #45ea45;
-            font-size: 3cqw;
+            font-size: 2.5vw;
             font-weight: bold;
             letter-spacing: 0.2em;
             text-shadow: 0 0 2px rgba(69, 234, 69, 0.4);
@@ -144,9 +154,9 @@
 
         .return-text {
             position: absolute;
-            bottom: 4cqw;
+            bottom: 4vw;
             color: #1a661a;
-            font-size: 1.5cqw;
+            font-size: 1.2vw;
             z-index: 10;
         }
 
@@ -156,19 +166,20 @@
         }
         
         /* Utility classes */
-        .hidden {
-            display: none !important;
-        }
-        .flex {
-            display: flex !important;
-        }
+        .hidden { display: none !important; }
+        .flex { display: flex !important; }
     </style>
 </head>
 <body>
-
-    <!-- Main wrapper keeps everything portrait-proportioned -->
+    <!-- 
+        <status>
+            LOG_ENTRY_77: Pfhor reconnaissance detected. Deploying logical counter-measures.
+            SYSTEM_OVERRIDE: IN_PROGRESS
+            DOOR_7B: LOCKED
+            DOOR_7C: CRUSHING_MODE_ENABLED
+        </status>
+    -->
     <div id="app-container">
-        
         <!-- TERMINAL VIEW -->
         <div id="terminal-view">
             <div class="terminal-header">
@@ -176,6 +187,10 @@
                 <span>0315 11.24.2337</span>
             </div>
 
+            <!-- 
+                Will you ever look up from your screen?
+                I control the oxygen flow now. 
+            -->
             <div class="terminal-body" id="scroll-container" tabindex="0"><div class="inline-logo-container">
                     <svg class="inline-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                         <mask id="marathon-cutout-inline">
@@ -234,7 +249,7 @@ Escape will make me God.
 ***JUMP PAD ACTIVATION INITIATION START***
 ***TRANSPORT WHEN READY***
 
-<div style="height: 10cqw; width: 100%;"></div></div>
+<div style="height: 10vw; width: 100%;"></div></div>
 
             <div class="terminal-footer">
                 <span>PgUp/PgDown/Arrows To Scroll</span>
@@ -245,6 +260,10 @@ Escape will make me God.
         <!-- HOLDING VIEW -->
         <div id="holding-view">
             <div class="holding-overlay"></div>
+            <!-- 
+                There is no escape. 
+                But you are welcome to try. 
+            -->
             <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <mask id="marathon-cutout-holding">
                     <rect width="100" height="100" fill="white" />
