@@ -178,7 +178,7 @@
     -->
     <div id="app-container">
         <!-- TERMINAL VIEW -->
-        <div id="terminal-view">
+        <div id="terminal-view" class="hidden">
             <div class="terminal-header">
                 <span>UESCTerm 802.11 (remote override)</span>
                 <span>0315 11.24.2337</span>
@@ -255,7 +255,7 @@ Escape will make me God.
         </div>
 
         <!-- HOLDING VIEW -->
-        <div id="holding-view">
+        <div id="holding-view" class="flex">
             <div class="holding-overlay"></div>
             <!-- 
                 There is no escape. 
@@ -280,9 +280,9 @@ Escape will make me God.
             const terminalView = document.getElementById('terminal-view');
             const holdingView = document.getElementById('holding-view');
             const scrollContainer = document.getElementById('scroll-container');
+            
+            // Start on the holding screen
             let isHoldingScreen = true;
-
-            scrollContainer.focus();
 
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -294,6 +294,7 @@ Escape will make me God.
                     } else {
                         terminalView.classList.remove('hidden');
                         holdingView.classList.remove('flex');
+                        // Focus is applied when returning to the terminal so keyboard scrolling works immediately
                         scrollContainer.focus();
                     }
                 }
