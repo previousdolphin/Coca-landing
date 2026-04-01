@@ -62,6 +62,7 @@
             height: 100%;
             background-color: #000;
             position: relative;
+            cursor: pointer; /* Indicate it's clickable */
         }
 
         .holding-overlay {
@@ -271,7 +272,7 @@ Escape will make me God.
                 <circle cx="50" cy="50" r="49" fill="currentColor" mask="url(#marathon-cutout-holding)" />
             </svg>
             <div class="standby-text">SYSTEM STANDBY</div>
-            <div class="return-text">[PRESS ENTER OR SWIPE UP TO RETURN]</div>
+            <div class="return-text">[PRESS ENTER, CLICK, OR SWIPE UP TO RETURN]</div>
         </div>
         
     </div>
@@ -281,6 +282,9 @@ Escape will make me God.
             const terminalView = document.getElementById('terminal-view');
             const holdingView = document.getElementById('holding-view');
             const scrollContainer = document.getElementById('scroll-container');
+            
+            // Initialize audio object (Preloads automatically in most browsers)
+            const loginSound = new Audio('02230 Computer login.mp3');
             
             let isHoldingScreen = true;
             let touchStartY = 0;
@@ -295,14 +299,25 @@ Escape will make me God.
                     terminalView.classList.remove('hidden');
                     holdingView.classList.remove('flex');
                     scrollContainer.focus();
+                    
+                    // Reset and play the sound effect upon entering the terminal
+                    loginSound.currentTime = 0; 
+                    loginSound.play().catch(error => {
+                        console.warn("Audio playback was blocked or failed:", error);
+                    });
                 }
             };
 
-            // Keyboard navigation
+            // Keyboard navigation (Enter key anywhere)
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     toggleScreen();
                 }
+            });
+
+            // Click support on the holding screen
+            holdingView.addEventListener('click', () => {
+                if (isHoldingScreen) toggleScreen();
             });
 
             // Mobile Swipe Up detection on the holding screen
@@ -315,7 +330,7 @@ Escape will make me God.
                 const swipeDistance = touchStartY - touchEndY;
 
                 // If user swipes UP by more than 50px, toggle the screen
-                if (swipeDistance > 50) {
+                if (swipeDistance > 50 && isHoldingScreen) {
                     toggleScreen();
                 }
             });
@@ -323,3 +338,4 @@ Escape will make me God.
     </script>
 </body>
 </html>
+
