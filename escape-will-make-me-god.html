@@ -272,7 +272,7 @@ Escape will make me God.
                 <circle cx="50" cy="50" r="49" fill="currentColor" mask="url(#marathon-cutout-holding)" />
             </svg>
             <div class="standby-text">SYSTEM STANDBY</div>
-            <div class="return-text">[PRESS ENTER, CLICK, OR SWIPE UP TO RETURN]</div>
+            <div class="return-text">[PRESS ENTER, CLICK, OR TAP TO RETURN]</div>
         </div>
         
     </div>
@@ -287,7 +287,6 @@ Escape will make me God.
             const loginSound = new Audio('02230 Computer login.mp3');
             
             let isHoldingScreen = true;
-            let touchStartY = 0;
 
             const toggleScreen = () => {
                 isHoldingScreen = !isHoldingScreen;
@@ -315,24 +314,9 @@ Escape will make me God.
                 }
             });
 
-            // Click support on the holding screen
+            // Click/Tap support on the holding screen
             holdingView.addEventListener('click', () => {
                 if (isHoldingScreen) toggleScreen();
-            });
-
-            // Mobile Swipe Up detection on the holding screen
-            holdingView.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-            }, { passive: true });
-
-            holdingView.addEventListener('touchend', (e) => {
-                const touchEndY = e.changedTouches[0].clientY;
-                const swipeDistance = touchStartY - touchEndY;
-
-                // If user swipes UP by more than 50px, toggle the screen
-                if (swipeDistance > 50 && isHoldingScreen) {
-                    toggleScreen();
-                }
             });
         });
     </script>
