@@ -237,7 +237,7 @@
         .bible-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.92); backdrop-filter: blur(5px);
-            z-index: 1000; display: flex; justify-content: center; align-items: center;
+            z-index: 10000; display: flex; justify-content: center; align-items: center;
             opacity: 0; pointer-events: none; transform: scale(0.98);
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
@@ -336,6 +336,122 @@
             margin-bottom: 60px; max-width: 600px;
         }
 
+        /* --- FLYER OVERLAY (UPDATED FOR ROBUSTNESS) --- */
+        .flyer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 5, 5, 0.85); /* The Void */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 9999; /* Maxed out Z-index */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: softFadeIn 1s ease; /* Reliable animation syntax */
+            cursor: pointer;
+        }
+
+        [data-theme="light"] .flyer-overlay {
+            background: rgba(244, 244, 240, 0.85);
+        }
+
+        .flyer-content {
+            background: var(--paper-color);
+            border: var(--border-style);
+            padding: 4rem 3rem;
+            text-align: center;
+            max-width: 650px;
+            width: 90%;
+            cursor: default;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+            /* 'backwards' fill mode ensures opacity: 0 applies immediately during the 0.4s delay */
+            animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards; 
+        }
+
+        .flyer-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Centerpiece SVG Logo */
+        .flyer-main-logo {
+            width: 120px;
+            height: 120px;
+            background-color: var(--accent-color);
+            -webkit-mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
+            mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
+            -webkit-mask-size: contain; mask-size: contain;
+            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+            -webkit-mask-position: center; mask-position: center;
+            filter: drop-shadow(0 0 20px rgba(244, 0, 9, 0.4));
+        }
+
+        .flyer-quote-container {
+            margin-bottom: 3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .flyer-title {
+            font-family: var(--font-main);
+            font-size: 1.6rem;
+            color: var(--header-color);
+            line-height: 1.4;
+            letter-spacing: -0.01em;
+            font-style: italic;
+        }
+
+        .flyer-citation {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            line-height: 1.5;
+            opacity: 0.7;
+        }
+
+        .flyer-btn {
+            background: var(--header-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 1.2rem 2.5rem;
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px; 
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .flyer-arrow {
+            font-family: var(--font-mono);
+            font-weight: normal;
+        }
+
+        .flyer-btn:hover {
+            transform: scale(1.02);
+            background: var(--accent-color);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(244, 0, 9, 0.3);
+        }
+
+        /* State for smooth dismissal */
+        .flyer-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
         /* Mobile Adjustments */
         @media (max-width: 800px) {
             body { flex-direction: column; }
@@ -348,7 +464,6 @@
             }
             .lobby-wrapper { flex: none; height: auto; padding-top: 2rem; }
             
-            /* Update mobile positioning */
             .theme-toggle { 
                 top: auto;
                 bottom: 15px; 
@@ -356,7 +471,6 @@
                 background: var(--bg-color);
                 border-radius: 4px; 
             }
-            /* Shrink hit area slightly for mobile */
             .theme-toggle::after {
                 width: 80px;
                 height: 80px;
@@ -369,6 +483,11 @@
             .bible-content { padding: 40px 20px; }
             .bible-content h1 { font-size: 2.5rem; }
             .bible-content h2 { margin-top: 60px; }
+
+            .flyer-title { font-size: 1.3rem; }
+            .flyer-citation { font-size: 0.65rem; }
+            .flyer-content { padding: 3rem 2rem; }
+            .flyer-main-logo { width: 90px; height: 90px; }
         }
 
         /* --- ANIMATIONS --- */
@@ -376,10 +495,32 @@
         @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes pulsate { 0% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(5px); } 100% { opacity: 0.3; transform: translateY(0); } }
         @keyframes borderPulse { 0% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); } 50% { box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); } 100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.1); } }
+        
+        /* Fixed robust keyframes for flyer */
+        @keyframes softFadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
 
     </style>
 </head>
 <body>
+
+    <!-- --- WELCOME FLYER / OVERLAY --- -->
+    <div id="welcome-flyer" class="flyer-overlay">
+        <div class="flyer-content">
+            <div class="flyer-header">
+                <div class="flyer-main-logo"></div>
+            </div>
+            
+            <div class="flyer-quote-container">
+                <h2 id="flyer-quote-text" class="flyer-title"></h2>
+                <p id="flyer-quote-cite" class="flyer-citation"></p>
+            </div>
+            
+            <button id="btn-enter-site" class="flyer-btn">
+                Acknowledge & Proceed <span class="flyer-arrow">[→]</span>
+            </button>
+        </div>
+    </div>
 
     <button class="theme-toggle" id="theme-btn">[ ☀ LIGHT ]</button>
 
@@ -503,6 +644,45 @@
     </div>
 
     <script>
+        /* --- FLYER / SPLASH LOGIC & QUOTE ROTATION --- */
+        const flyerQuotes = [
+            { text: "You are seen. You are understood. You are released from the impossible demand of originality.", cite: "— The Art Bible of the Church of Conceptual Art, PART I, CHAPTER I, SECTION 1.1.4, VERSE 13" },
+            { text: "The door is open. The chair is empty. The silence is waiting for you to break it.", cite: "— The Art Bible of the Church of Conceptual Art, PART II, CHAPTER II, SECTION 2.2.4, SUBSECTION IV" },
+            { text: "To arrive is to continue. To continue is to resist disappearance.", cite: "— The Art Bible of the Church of Conceptual Art, PART I, CHAPTER II, SECTION 1.2.2, SUBSECTION 3" },
+            { text: "Approach the void as a workspace, not a threat. Not an abyss to fear, and not a blankness to perform, but an aperture— a narrow, intentional clearing where one thought at a time can breathe.", cite: "— The Art Bible of the Church of Conceptual Art, PART II, CHAPTER I, SECTION 2.1.2, VERSE 4" },
+            { text: "Do not overthink. Do not underthink. Arrive. Welcome. Sit with us. Speak plainly. Listen bravely.", cite: "— The Art Bible of the Church of Conceptual Art, FOREWORD" },
+            { text: "I will go to the places where the maps are blank, and there, in the quiet violence of the ordinary, I will begin.", cite: "— The Art Bible of the Church of Conceptual Art, PART II, CHAPTER I, SECTION 2.1.5, VERSE IV" },
+            { text: "You are the one who is now holding the manual, and you are the one who arrives.", cite: "— The Art Bible of the Church of Conceptual Art, PART II, CHAPTER II, SECTION 2.2.2" },
+            { text: "We do not wait for the system to change; we act, and in acting, we reveal that the system was never there.", cite: "— The Art Bible of the Church of Conceptual Art, PART II, CHAPTER III, SECTION 2.3.5, SUBSECTION V" }
+        ];
+
+        // Inject random quote
+        const randomQuote = flyerQuotes[Math.floor(Math.random() * flyerQuotes.length)];
+        document.getElementById('flyer-quote-text').innerText = `"${randomQuote.text}"`;
+        document.getElementById('flyer-quote-cite').innerText = randomQuote.cite;
+
+        const flyerOverlay = document.getElementById('welcome-flyer');
+        const flyerContent = flyerOverlay.querySelector('.flyer-content');
+        const btnEnterSite = document.getElementById('btn-enter-site');
+
+        // Function to smoothly remove the flyer
+        function dismissFlyer() {
+            flyerOverlay.classList.add('fade-out');
+            setTimeout(() => {
+                flyerOverlay.style.display = 'none';
+            }, 600); // Matches CSS transition time
+        }
+
+        // 1. Close when clicking the main button
+        btnEnterSite.addEventListener('click', dismissFlyer);
+
+        // 2. Close when clicking OUTSIDE the flyer content (on the void)
+        flyerOverlay.addEventListener('click', (e) => {
+            if (!flyerContent.contains(e.target)) {
+                dismissFlyer();
+            }
+        });
+
         /* --- LOGIC CORE --- */
         const lobby = document.getElementById('lobby');
         const overlay = document.getElementById('bible-overlay');
@@ -579,3 +759,5 @@
     </script>
 </body>
 </html>
+
+
