@@ -47,6 +47,12 @@
             transition: background-color 0.5s ease, color 0.5s ease;
         }
 
+        /* Prevents text highlighting while dragging the logo */
+        body.is-dragging {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+        }
+
         /* Noise Filter Background */
         body::after {
             content: "";
@@ -57,9 +63,7 @@
             z-index: 999; 
         }
 
-        /* --- PRETEXT DYNAMIC FLOATER ENGINE (CSS PORT) --- */
-        /* Animatng these properties forces the text to live-reflow around the mask */
-        
+        /* --- PRETEXT DYNAMIC FLOATER BASE --- */
         .coca-floater {
             shape-outside: url("CoCA-Vector-redrawn-photoshop.svg");
             background-color: var(--accent-color);
@@ -68,56 +72,29 @@
             -webkit-mask-size: contain; mask-size: contain;
             -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
             -webkit-mask-position: center; mask-position: center;
-            opacity: 0.9;
+            opacity: 0.8;
             transition: opacity 0.3s;
+            cursor: grab;
+            /* Will-change optimizes the continuous layout reflow */
+            will-change: margin-top, width, height, shape-margin;
+        }
+
+        .coca-floater:active {
+            cursor: grabbing;
+            opacity: 1;
         }
 
         .coca-floater:hover { opacity: 1; }
 
-        /* Left-aligned variation (Flyer & Lobby) */
-        .coca-floater.left {
-            float: left;
-            margin-right: 20px;
-            animation: dynamicReflowSmall 12s ease-in-out infinite;
-        }
-
-        /* Right-aligned large variation (Bible Doctrine) */
-        .coca-floater.right {
-            float: right;
-            margin-left: 30px;
-            animation: dynamicReflowLarge 15s ease-in-out infinite;
-        }
-
-        /* The reflow math: Shift vertical alignment, expand/contract bounding box, and alter shape-margin */
-        @keyframes dynamicReflowSmall {
-            0% { margin-top: 0px; width: 110px; height: 110px; shape-margin: 10px; }
-            33% { margin-top: 40px; width: 130px; height: 130px; shape-margin: 20px; }
-            66% { margin-top: 15px; width: 95px; height: 95px; shape-margin: 5px; }
-            100% { margin-top: 0px; width: 110px; height: 110px; shape-margin: 10px; }
-        }
-
-        @keyframes dynamicReflowLarge {
-            0% { margin-top: 0px; width: 220px; height: 220px; shape-margin: 20px; }
-            33% { margin-top: 80px; width: 260px; height: 260px; shape-margin: 35px; }
-            66% { margin-top: 30px; width: 190px; height: 190px; shape-margin: 10px; }
-            100% { margin-top: 0px; width: 220px; height: 220px; shape-margin: 20px; }
-        }
+        .coca-floater.left { float: left; margin-right: 20px; }
+        .coca-floater.right { float: right; margin-left: 30px; }
 
         /* --- THEME TOGGLE --- */
         .theme-toggle {
-            position: fixed;
-            bottom: 45px;
-            right: 45px;
-            background: transparent;
-            border: 1px solid var(--text-color);
-            color: var(--text-color);
-            font-family: var(--font-mono);
-            font-size: 12px;
-            padding: 5px 10px;
-            cursor: pointer;
-            z-index: 2000;
-            text-transform: uppercase;
-            opacity: 0;
+            position: fixed; bottom: 45px; right: 45px; background: transparent;
+            border: 1px solid var(--text-color); color: var(--text-color);
+            font-family: var(--font-mono); font-size: 12px; padding: 5px 10px;
+            cursor: pointer; z-index: 2000; text-transform: uppercase; opacity: 0;
             transition: opacity 0.3s, border-color 0.3s, color 0.3s;
         }
 
@@ -126,36 +103,28 @@
             width: 150px; height: 150px; z-index: -1;
         }
 
-        .theme-toggle:hover { 
-            opacity: 1; border-color: var(--header-color); color: var(--header-color); 
-        }
+        .theme-toggle:hover { opacity: 1; border-color: var(--header-color); color: var(--header-color); }
 
         /* --- SPREAD LAYOUT --- */
         .hero-spread {
-            flex: 1 1 50%;
-            background-image: url('header.jpg');
-            background-size: cover;
-            background-position: left;
-            position: relative;
-            border-right: var(--border-style);
+            flex: 1 1 50%; background-image: url('header.jpg'); background-size: cover;
+            background-position: left; position: relative; border-right: var(--border-style);
         }
         
         .hero-spread::before {
-            content: ""; position: absolute; inset: 0;
-            background-color: var(--bg-color); opacity: 0.15;
-            transition: background-color 0.5s ease; pointer-events: none;
+            content: ""; position: absolute; inset: 0; background-color: var(--bg-color); 
+            opacity: 0.15; transition: background-color 0.5s ease; pointer-events: none;
         }
 
         .lobby-wrapper {
-            flex: 1 1 50%;
-            display: flex; justify-content: center; align-items: center;
+            flex: 1 1 50%; display: flex; justify-content: center; align-items: center;
             position: relative; overflow-y: auto;
         }
 
         /* --- LOBBY (MAIN PAGE) --- */
         .lobby-container {
-            width: 90%; max-width: 480px; padding: 3rem 1rem;
-            opacity: 0; animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            width: 90%; max-width: 480px; padding: 3rem 1rem; opacity: 0; 
+            animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             position: relative; z-index: 1; text-align: left;
         }
 
@@ -168,8 +137,7 @@
 
         .bio { 
             font-size: 0.95rem; line-height: 1.8; margin-bottom: 2.5rem; 
-            font-weight: 300; color: var(--text-color); opacity: 0.8; 
-            text-align: justify; /* Justified text makes the shape wrap pop out visually */
+            font-weight: 300; color: var(--text-color); opacity: 0.8; text-align: justify; 
         }
         .arrow { display: block; margin-top: 1.5rem; text-align: center; font-size: 1.2rem; animation: pulsate 2s infinite; color: var(--text-color); opacity: 0.5; }
 
@@ -180,8 +148,7 @@
             position: relative; display: block; text-decoration: none;
             color: var(--text-color); border: 1px solid var(--text-color); padding: 1.1rem;
             text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.15em;
-            transition: all 0.3s ease; overflow: hidden; background: rgba(0,0,0,0.05);
-            cursor: pointer; user-select: none;
+            transition: all 0.3s ease; overflow: hidden; background: rgba(0,0,0,0.05); cursor: pointer; user-select: none;
         }
 
         .link-btn::before {
@@ -206,9 +173,8 @@
 
         /* --- FORM / CONFESSION BOOTH --- */
         .confession-booth {
-            display: none; width: 100%; margin-top: 2rem;
-            border-top: 1px dashed var(--border-style); padding-top: 2rem;
-            opacity: 0; transition: opacity 1s ease; text-align: left;
+            display: none; width: 100%; margin-top: 2rem; border-top: 1px dashed var(--border-style); 
+            padding-top: 2rem; opacity: 0; transition: opacity 1s ease; text-align: left;
         }
         .confession-booth.active { display: block; animation: ritualFadeIn 1s forwards; }
 
@@ -284,7 +250,7 @@
 
         /* Overlay Content */
         .bible-content {
-            padding: 80px 100px; overflow-y: scroll; font-family: var(--font-mono); 
+            padding: 80px 100px; overflow-y: auto; font-family: var(--font-mono); 
             font-size: 14px; color: var(--text-color);
             scrollbar-width: thin; scrollbar-color: var(--accent-color) var(--bg-color);
         }
@@ -332,9 +298,7 @@
             animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards; 
         }
 
-        .flyer-quote-container {
-            margin-bottom: 3rem; text-align: justify;
-        }
+        .flyer-quote-container { margin-bottom: 3rem; text-align: justify; }
 
         .flyer-title {
             font-family: var(--font-main); font-size: 1.6rem; color: var(--header-color);
@@ -378,9 +342,6 @@
             .bible-content h1 { font-size: 2.5rem; }
             .bible-content h2 { margin-top: 60px; }
             
-            /* Disable animation on small mobile to prevent overflow bugs */
-            .coca-floater { animation: none !important; width: 80px !important; height: 80px !important; margin: 0 15px 5px 0 !important; }
-
             .flyer-title { font-size: 1.3rem; }
             .flyer-citation { font-size: 0.65rem; }
             .flyer-content { padding: 3rem 2rem; }
@@ -402,7 +363,8 @@
         <div class="flyer-content">
             
             <div class="flyer-quote-container">
-                <div class="coca-floater left"></div>
+                <!-- Physics Engine Hook -->
+                <div class="coca-floater left" data-size="110"></div>
                 
                 <h2 id="flyer-quote-text" class="flyer-title"></h2>
                 <p id="flyer-quote-cite" class="flyer-citation"></p>
@@ -428,7 +390,9 @@
             </div>
             
             <div class="bio">
-                <div class="coca-floater left"></div>
+                <!-- Physics Engine Hook -->
+                <div class="coca-floater left" data-size="110"></div>
+                
                 <p><strong>THE DOCTRINE OF SEMIOTIC REVERSAL</strong></p>
                 <p style="margin-top: 1rem;">The Church of Conceptual Art (CoCA) recognizes that certain corporate symbols have saturated the human environment to such a degree that they no longer belong exclusively to commerce. When a mark embeds itself into the collective unconscious, it becomes public domain on a spiritual level.</p>
                 <span class="arrow">↓</span>
@@ -494,7 +458,8 @@
 
             <main class="bible-content">
                 
-                <div class="coca-floater right"></div>
+                <!-- Physics Engine Hook (Large, Right Aligned) -->
+                <div class="coca-floater right" data-size="250" data-right="true"></div>
 
                 <header>
                     <h1>The Doctrine Of<br>Semiotic Reversal</h1>
@@ -528,6 +493,121 @@
     </div>
 
     <script>
+        /* --- PRETEXT JAVASCRIPT PHYSICS ENGINE --- */
+        class ReflowEngine {
+            constructor(el) {
+                this.el = el;
+                this.isRight = el.getAttribute('data-right') === 'true';
+                this.baseSize = parseInt(el.getAttribute('data-size')) || 110;
+                
+                this.baseY = 0;
+                this.y = 0;
+                this.velY = 0;
+                this.destY = 0;
+
+                this.size = this.baseSize;
+                this.velSize = 0;
+                this.destSize = this.baseSize;
+
+                this.tension = 0.08;
+                this.friction = 0.75;
+                this.timeOffset = Math.random() * 100;
+                this.isDragging = false;
+                
+                // Bind Events
+                this.el.addEventListener('mousedown', this.onDown.bind(this));
+                window.addEventListener('mousemove', this.onMove.bind(this));
+                window.addEventListener('mouseup', this.onUp.bind(this));
+                
+                this.el.addEventListener('touchstart', this.onDown.bind(this), {passive: false});
+                window.addEventListener('touchmove', this.onMove.bind(this), {passive: false});
+                window.addEventListener('touchend', this.onUp.bind(this));
+
+                // Kickstart
+                this.triggerDrop();
+                this.update();
+            }
+
+            // The violent drop-in that forces text to rapidly re-wrap
+            triggerDrop() {
+                this.y = 200; // Pushes massive margin top
+                this.size = 10; // Starts tiny
+                this.velY = -20; 
+                this.velSize = 0;
+            }
+
+            onDown(e) {
+                this.isDragging = true;
+                document.body.classList.add('is-dragging'); // Prevent text highlight
+                this.startY = e.touches ? e.touches[0].clientY : e.clientY;
+                this.startX = e.touches ? e.touches[0].clientX : e.clientX;
+                this.startBaseY = this.baseY;
+                this.startBaseSize = this.baseSize;
+            }
+
+            onMove(e) {
+                if (!this.isDragging) return;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                
+                const dy = clientY - this.startY;
+                let dx = clientX - this.startX;
+                
+                // If floated right, dragging left (negative dx) should increase size
+                if (this.isRight) dx = -dx;
+
+                this.baseY = Math.max(0, this.startBaseY + dy); 
+                
+                // Modulate scale based on drag, clamp to prevent breaking layout
+                const newSize = this.startBaseSize + (dx * 1.5);
+                this.baseSize = Math.max(50, Math.min(newSize, 450));
+            }
+
+            onUp() {
+                if(this.isDragging) {
+                    this.isDragging = false;
+                    document.body.classList.remove('is-dragging');
+                }
+            }
+
+            update() {
+                const time = (Date.now() / 1000) + this.timeOffset;
+                
+                // 1. Calculate Destinations
+                if (!this.isDragging) {
+                    // Idle Wander - breathes size and Y margin slowly
+                    this.destY = this.baseY + (Math.sin(time * 1.5) * 15);
+                    this.destSize = this.baseSize + (Math.cos(time * 1.2) * 12);
+                } else {
+                    // Lock to drag
+                    this.destY = this.baseY;
+                    this.destSize = this.baseSize;
+                }
+
+                // 2. Spring Physics Equation
+                this.velY += (this.destY - this.y) * this.tension;
+                this.velY *= this.friction;
+                this.y += this.velY;
+
+                this.velSize += (this.destSize - this.size) * this.tension;
+                this.velSize *= this.friction;
+                this.size += this.velSize;
+
+                // 3. Apply to DOM Layout
+                this.el.style.marginTop = Math.max(0, this.y) + 'px';
+                this.el.style.width = Math.max(10, this.size) + 'px';
+                this.el.style.height = Math.max(10, this.size) + 'px';
+                this.el.style.shapeMargin = (Math.max(10, this.size) * 0.1) + 'px';
+
+                requestAnimationFrame(this.update.bind(this));
+            }
+        }
+
+        // Initialize all floaters
+        const floaters = Array.from(document.querySelectorAll('.coca-floater')).map(el => new ReflowEngine(el));
+
+
+        /* --- FLYER QUOTES & LOGIC --- */
         const flyerQuotes = [
             { text: "You are seen. You are understood. You are released from the impossible demand of originality.", cite: "— The Art Bible of the Church of Conceptual Art, PART I, CHAPTER I, SECTION 1.1.4, VERSE 13" },
             { text: "The door is open. The chair is empty. The silence is waiting for you to break it.", cite: "— The Art Bible of the Church of Conceptual Art, PART II, CHAPTER II, SECTION 2.2.4, SUBSECTION IV" },
@@ -556,7 +636,6 @@
         flyerOverlay.addEventListener('click', (e) => { if (!flyerContent.contains(e.target)) dismissFlyer(); });
 
         /* --- LOGIC CORE --- */
-        const lobby = document.getElementById('lobby');
         const overlay = document.getElementById('bible-overlay');
         const triggerBtn = document.getElementById('btn-doctrine-trigger');
         const closeBtn = document.getElementById('close-bible');
@@ -564,7 +643,16 @@
 
         triggerBtn.addEventListener('mouseover', () => { triggerBtn.innerText = ">> ENTER THE SANCTUARY <<"; });
         triggerBtn.addEventListener('mouseout', () => { triggerBtn.innerText = "READ THE DOCTRINE"; });
-        triggerBtn.addEventListener('click', (e) => { e.preventDefault(); overlay.classList.add('active'); });
+        
+        triggerBtn.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            overlay.classList.add('active'); 
+            
+            // Re-trigger the momentum drop on the specific Bible floater
+            const bibleFloater = floaters.find(f => f.el.classList.contains('right'));
+            if(bibleFloater) bibleFloater.triggerDrop();
+        });
+        
         closeBtn.addEventListener('click', () => { overlay.classList.remove('active'); });
 
         const confBtn = document.getElementById('btn-confession');
