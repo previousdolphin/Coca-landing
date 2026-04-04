@@ -14,24 +14,21 @@
             --header-color: #ffffff;
             --accent-color: #F40009; /* CoCA RED */
             --terminal-green: #00ff41;
-            --alert-color: #ffcc00;
-            --error-color: #ff3b3b;
             --border-style: 1px solid #333;
-            --logo-filter: invert(1); /* White logo on dark */
+            --logo-filter: invert(1);
             
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
-            --transition-speed: 0.3s;
         }
 
         /* LIGHT MODE (The Gallery/Concrete) */
         [data-theme="light"] {
-            --bg-color: #f4f4f0; /* Concrete White */
+            --bg-color: #f4f4f0; 
             --paper-color: #ffffff;
             --text-color: #333333;
             --header-color: #000000;
             --border-style: 1px solid #000;
-            --logo-filter: none; /* Black logo on light */
+            --logo-filter: none; 
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,7 +39,7 @@
             font-family: var(--font-main);
             min-height: 100vh;
             display: flex;
-            flex-direction: row;
+            flex-direction: row; 
             align-items: stretch;
             letter-spacing: 0.02em;
             position: relative;
@@ -57,7 +54,53 @@
             top: 0; left: 0; width: 100%; height: 100%;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
             pointer-events: none;
-            z-index: 999;
+            z-index: 999; 
+        }
+
+        /* --- PRETEXT DYNAMIC FLOATER ENGINE (CSS PORT) --- */
+        /* Animatng these properties forces the text to live-reflow around the mask */
+        
+        .coca-floater {
+            shape-outside: url("CoCA-Vector-redrawn-photoshop.svg");
+            background-color: var(--accent-color);
+            -webkit-mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
+            mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
+            -webkit-mask-size: contain; mask-size: contain;
+            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+            -webkit-mask-position: center; mask-position: center;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .coca-floater:hover { opacity: 1; }
+
+        /* Left-aligned variation (Flyer & Lobby) */
+        .coca-floater.left {
+            float: left;
+            margin-right: 20px;
+            animation: dynamicReflowSmall 12s ease-in-out infinite;
+        }
+
+        /* Right-aligned large variation (Bible Doctrine) */
+        .coca-floater.right {
+            float: right;
+            margin-left: 30px;
+            animation: dynamicReflowLarge 15s ease-in-out infinite;
+        }
+
+        /* The reflow math: Shift vertical alignment, expand/contract bounding box, and alter shape-margin */
+        @keyframes dynamicReflowSmall {
+            0% { margin-top: 0px; width: 110px; height: 110px; shape-margin: 10px; }
+            33% { margin-top: 40px; width: 130px; height: 130px; shape-margin: 20px; }
+            66% { margin-top: 15px; width: 95px; height: 95px; shape-margin: 5px; }
+            100% { margin-top: 0px; width: 110px; height: 110px; shape-margin: 10px; }
+        }
+
+        @keyframes dynamicReflowLarge {
+            0% { margin-top: 0px; width: 220px; height: 220px; shape-margin: 20px; }
+            33% { margin-top: 80px; width: 260px; height: 260px; shape-margin: 35px; }
+            66% { margin-top: 30px; width: 190px; height: 190px; shape-margin: 10px; }
+            100% { margin-top: 0px; width: 220px; height: 220px; shape-margin: 20px; }
         }
 
         /* --- THEME TOGGLE --- */
@@ -79,19 +122,12 @@
         }
 
         .theme-toggle::after {
-            content: '';
-            position: absolute;
-            bottom: -45px;
-            right: -45px;
-            width: 150px;
-            height: 150px;
-            z-index: -1;
+            content: ''; position: absolute; bottom: -45px; right: -45px;
+            width: 150px; height: 150px; z-index: -1;
         }
 
         .theme-toggle:hover { 
-            opacity: 1;
-            border-color: var(--header-color); 
-            color: var(--header-color); 
+            opacity: 1; border-color: var(--header-color); color: var(--header-color); 
         }
 
         /* --- SPREAD LAYOUT --- */
@@ -102,72 +138,43 @@
             background-position: left;
             position: relative;
             border-right: var(--border-style);
-            transition: border-color 0.5s ease;
         }
         
         .hero-spread::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-color: var(--bg-color);
-            opacity: 0.15;
-            transition: background-color 0.5s ease;
-            pointer-events: none;
+            content: ""; position: absolute; inset: 0;
+            background-color: var(--bg-color); opacity: 0.15;
+            transition: background-color 0.5s ease; pointer-events: none;
         }
 
         .lobby-wrapper {
             flex: 1 1 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow-y: auto;
+            display: flex; justify-content: center; align-items: center;
+            position: relative; overflow-y: auto;
         }
 
-        /* --- LOBBY (LINKTREE) --- */
+        /* --- LOBBY (MAIN PAGE) --- */
         .lobby-container {
-            width: 90%;
-            max-width: 420px;
-            padding: 3rem 1rem;
-            text-align: center;
-            opacity: 0;
-            animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            position: relative;
-            z-index: 1;
+            width: 90%; max-width: 480px; padding: 3rem 1rem;
+            opacity: 0; animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            position: relative; z-index: 1; text-align: left;
         }
 
-        /* Profile & Logo */
-        .profile-container { margin-bottom: 2rem; position: relative; display: inline-block; }
-        
-        .profile-pic {
-            width: 130px; height: 130px;
-            background-color: var(--accent-color);
-            -webkit-mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
-            mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
-            -webkit-mask-size: contain; mask-size: contain;
-            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-            -webkit-mask-position: center; mask-position: center;
-            filter: drop-shadow(0 0 15px rgba(244, 0, 9, 0.6));
-            transition: transform 0.5s ease, filter 0.5s ease;
-        }
-
-        .profile-container:hover .profile-pic {
-            transform: scale(1.05);
-            filter: drop-shadow(0 0 25px rgba(244, 0, 9, 1));
-        }
-
+        .handle { margin-bottom: 2rem; text-align: center; }
         .handle a {
             font-size: 0.85rem; text-transform: uppercase; color: var(--text-color);
             text-decoration: none; letter-spacing: 0.2em; transition: color 0.3s;
         }
         .handle a:hover { color: var(--header-color); }
 
-        .bio { font-size: 0.95rem; line-height: 1.6; margin-top: 1.5rem; margin-bottom: 2.5rem; font-weight: 300; color: var(--text-color); opacity: 0.8; }
-        .bio-highlight { color: var(--header-color); border-bottom: 1px solid var(--text-color); }
-        .arrow { display: block; margin-top: 1.5rem; font-size: 1.2rem; animation: pulsate 2s infinite; color: var(--text-color); opacity: 0.5; }
+        .bio { 
+            font-size: 0.95rem; line-height: 1.8; margin-bottom: 2.5rem; 
+            font-weight: 300; color: var(--text-color); opacity: 0.8; 
+            text-align: justify; /* Justified text makes the shape wrap pop out visually */
+        }
+        .arrow { display: block; margin-top: 1.5rem; text-align: center; font-size: 1.2rem; animation: pulsate 2s infinite; color: var(--text-color); opacity: 0.5; }
 
         /* Buttons */
-        .links-wrapper { display: flex; flex-direction: column; gap: 1rem; width: 100%; }
+        .links-wrapper { display: flex; flex-direction: column; gap: 1rem; width: 100%; text-align: center; }
 
         .link-btn {
             position: relative; display: block; text-decoration: none;
@@ -185,21 +192,15 @@
         .link-btn:hover { color: var(--bg-color); border-color: var(--header-color); }
         .link-btn:hover::before { width: 100%; }
 
-        /* Button States */
-        .link-btn.recording {
-            border-color: var(--terminal-green); color: var(--terminal-green); animation: borderPulse 2s infinite;
-        }
+        .link-btn.recording { border-color: var(--terminal-green); color: var(--terminal-green); animation: borderPulse 2s infinite; }
         .link-btn.recording:hover { background: transparent; color: var(--terminal-green); cursor: default; }
         .link-btn.recording::before { width: 0% !important; }
 
-        /* Special Styling for Doctrine Button */
         #btn-doctrine-trigger {
-            border-color: var(--accent-color); color: var(--accent-color);
-            box-shadow: 0 0 10px rgba(244, 0, 9, 0.1);
+            border-color: var(--accent-color); color: var(--accent-color); box-shadow: 0 0 10px rgba(244, 0, 9, 0.1);
         }
         #btn-doctrine-trigger:hover {
-            background: var(--accent-color); color: #fff;
-            box-shadow: 0 0 20px rgba(244, 0, 9, 0.4);
+            background: var(--accent-color); color: #fff; box-shadow: 0 0 20px rgba(244, 0, 9, 0.4);
         }
         #btn-doctrine-trigger::before { background-color: var(--accent-color); }
 
@@ -219,8 +220,7 @@
         .form-input, .form-textarea {
             width: 100%; background: transparent; border: 1px solid var(--text-color);
             color: var(--header-color); padding: 10px; font-family: var(--font-mono);
-            font-size: 0.9rem; outline: none; transition: border-color 0.3s;
-            border-radius: 0;
+            font-size: 0.9rem; outline: none; transition: border-color 0.3s; border-radius: 0;
         }
         .form-input:focus, .form-textarea:focus { border-color: var(--terminal-green); }
         .form-textarea { resize: vertical; min-height: 100px; }
@@ -240,21 +240,17 @@
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
         
-        [data-theme="light"] .bible-overlay {
-            background: rgba(244,244,240, 0.95);
-        }
-
+        [data-theme="light"] .bible-overlay { background: rgba(244,244,240, 0.95); }
         .bible-overlay.active { opacity: 1; pointer-events: all; transform: scale(1); }
 
         .bible-container {
             width: 95%; height: 95%; max-width: 1200px;
             background: var(--paper-color); border: var(--border-style);
-            box-shadow: 0 0 80px rgba(0,0,0,0.5);
-            display: grid; grid-template-columns: 260px 1fr;
-            grid-template-rows: auto 1fr; overflow: hidden; position: relative;
+            box-shadow: 0 0 80px rgba(0,0,0,0.5); display: grid; 
+            grid-template-columns: 260px 1fr; grid-template-rows: auto 1fr; 
+            overflow: hidden; position: relative;
         }
 
-        /* Marquee in Overlay */
         .bible-marquee {
             grid-column: 1 / -1; background: var(--bg-color); border-bottom: var(--border-style);
             color: var(--accent-color); padding: 8px 0; font-family: var(--font-mono);
@@ -262,56 +258,44 @@
         }
         .marquee-content { display: inline-block; animation: scroll 40s linear infinite; }
 
-        /* Close Button */
         .close-btn {
             position: absolute; top: 0; right: 0; width: 40px; height: 32px;
             background: var(--accent-color); color: #fff; border: none;
             font-family: var(--font-mono); font-weight: bold; cursor: pointer;
-            z-index: 2000; display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
+            z-index: 2000; display: flex; align-items: center; justify-content: center; transition: background 0.2s;
         }
         .close-btn:hover { background: var(--header-color); color: var(--bg-color); }
 
-        /* Overlay Sidebar */
         .bible-sidebar {
             background: var(--bg-color); border-right: var(--border-style);
             padding: 40px 30px; display: flex; flex-direction: column;
             justify-content: space-between; overflow-y: auto;
         }
         
-        .sidebar-logo {
-            width: 60px;
-            filter: var(--logo-filter);
-            opacity: 0.3;
-        }
+        .sidebar-logo { width: 60px; filter: var(--logo-filter); opacity: 0.3; }
 
         .bible-nav-link {
             display: block; color: var(--text-color); text-decoration: none;
             font-family: var(--font-mono); font-size: 11px; opacity: 0.7;
-            margin-bottom: 20px; padding-left: 10px;
-            border-left: 2px solid transparent; transition: 0.3s;
-            text-transform: uppercase; letter-spacing: 0.1em;
+            margin-bottom: 20px; padding-left: 10px; border-left: 2px solid transparent; 
+            transition: 0.3s; text-transform: uppercase; letter-spacing: 0.1em;
         }
         .bible-nav-link:hover { color: var(--header-color); border-left-color: var(--accent-color); padding-left: 15px; opacity: 1; }
 
         /* Overlay Content */
         .bible-content {
-            padding: 80px 100px; 
-            overflow-y: scroll; font-family: var(--font-mono); font-size: 14px;
-            color: var(--text-color);
+            padding: 80px 100px; overflow-y: scroll; font-family: var(--font-mono); 
+            font-size: 14px; color: var(--text-color);
             scrollbar-width: thin; scrollbar-color: var(--accent-color) var(--bg-color);
         }
         .bible-content::-webkit-scrollbar { width: 6px; }
         .bible-content::-webkit-scrollbar-track { background: var(--bg-color); }
         .bible-content::-webkit-scrollbar-thumb { background: var(--accent-color); }
 
-        /* --- TYPOGRAPHY UPGRADE --- */
         .bible-content h1 { 
-            font-family: var(--font-main); font-weight: 900; 
-            font-size: 4.5rem; 
-            color: var(--header-color); margin-bottom: 40px; 
-            line-height: 0.85; letter-spacing: -0.04em;
-            text-transform: uppercase;
+            font-family: var(--font-main); font-weight: 900; font-size: 4.5rem; 
+            color: var(--header-color); margin-bottom: 40px; line-height: 0.85; 
+            letter-spacing: -0.04em; text-transform: uppercase; clear: none;
         }
         .bible-content h2 { 
             font-family: var(--font-main); font-size: 1.5rem; color: var(--header-color); 
@@ -319,99 +303,42 @@
             padding-bottom: 15px; margin-bottom: 30px; letter-spacing: -0.02em;
         }
         .bible-content h3 { 
-            font-size: 1.1rem; color: var(--accent-color); 
-            margin-top: 50px; margin-bottom: 20px; 
-            font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase;
+            font-size: 1.1rem; color: var(--accent-color); margin-top: 50px; 
+            margin-bottom: 20px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase;
         }
         
-        /* Updated P tag to remove max-width so it can wrap around the floater naturally */
-        .bible-content p { 
-            margin-bottom: 30px; line-height: 1.8; text-align: justify; 
-        }
+        .bible-content p { margin-bottom: 30px; line-height: 1.8; text-align: justify; }
         
         .bible-subtitle {
             font-family: var(--font-mono); font-size: 1rem; color: var(--text-color);
-            border-left: 3px solid var(--accent-color); padding-left: 20px;
-            margin-bottom: 60px; max-width: 600px;
-        }
-
-        /* --- THE SHAPE-OUTSIDE FLOATER MAGIC --- */
-        .doctrine-floater {
-            float: right;
-            width: 250px;
-            height: 250px;
-            margin: 0 0 20px 40px;
-            
-            /* The text layout trick: Tells the browser to flow text around the contours of the SVG */
-            shape-outside: url('CoCA-Vector-redrawn-photoshop.svg');
-            shape-margin: 25px;
-            
-            /* Visual rendering of the logo using your mask technique */
-            background-color: var(--accent-color);
-            -webkit-mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
-            mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
-            -webkit-mask-size: contain; mask-size: contain;
-            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-            -webkit-mask-position: center; mask-position: center;
-            opacity: 0.15; /* Kept subtle so it acts like a watermark */
-            transition: opacity 0.4s ease;
-        }
-        
-        .doctrine-floater:hover {
-            opacity: 0.8;
+            border-left: 3px solid var(--accent-color); padding-left: 20px; margin-bottom: 60px;
         }
 
         /* --- FLYER OVERLAY --- */
         .flyer-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(5, 5, 5, 0.85); 
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 9999; 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px); z-index: 9999; 
             display: flex; justify-content: center; align-items: center;
-            animation: softFadeIn 1s ease; 
-            cursor: pointer;
+            animation: softFadeIn 1s ease; cursor: pointer;
         }
 
-        [data-theme="light"] .flyer-overlay {
-            background: rgba(244, 244, 240, 0.85);
-        }
+        [data-theme="light"] .flyer-overlay { background: rgba(244, 244, 240, 0.85); }
 
         .flyer-content {
-            background: var(--paper-color);
-            border: var(--border-style);
-            padding: 4rem 3rem;
-            text-align: center;
-            max-width: 650px;
-            width: 90%;
-            cursor: default;
+            background: var(--paper-color); border: var(--border-style);
+            padding: 4rem 3rem; max-width: 650px; width: 90%; cursor: default;
             box-shadow: 0 30px 60px rgba(0,0,0,0.6);
             animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards; 
         }
 
-        .flyer-header {
-            display: flex; align-items: center; justify-content: center; margin-bottom: 2rem;
-        }
-
-        .flyer-main-logo {
-            width: 120px; height: 120px;
-            background-color: var(--accent-color);
-            -webkit-mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
-            mask-image: url("CoCA-Vector-redrawn-photoshop.svg");
-            -webkit-mask-size: contain; mask-size: contain;
-            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-            -webkit-mask-position: center; mask-position: center;
-            filter: drop-shadow(0 0 20px rgba(244, 0, 9, 0.4));
-        }
-
         .flyer-quote-container {
-            margin-bottom: 3rem; display: flex; flex-direction: column; gap: 1.5rem;
+            margin-bottom: 3rem; text-align: justify;
         }
 
         .flyer-title {
             font-family: var(--font-main); font-size: 1.6rem; color: var(--header-color);
-            line-height: 1.4; letter-spacing: -0.01em; font-style: italic;
+            line-height: 1.4; letter-spacing: -0.01em; font-style: italic; margin-bottom: 1.5rem;
         }
 
         .flyer-citation {
@@ -423,7 +350,7 @@
             background: var(--header-color); color: var(--bg-color); border: none;
             padding: 1.2rem 2.5rem; font-family: var(--font-main); font-size: 1.1rem;
             font-weight: bold; cursor: pointer; border-radius: 6px; 
-            display: inline-flex; align-items: center; gap: 12px;
+            display: inline-flex; align-items: center; gap: 12px; margin-top: 1rem;
             transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
         }
 
@@ -434,21 +361,15 @@
             box-shadow: 0 0 20px rgba(244, 0, 9, 0.3);
         }
 
-        .flyer-overlay.fade-out {
-            opacity: 0; pointer-events: none; transition: opacity 0.6s ease;
-        }
+        .flyer-overlay.fade-out { opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
 
         /* Mobile Adjustments */
         @media (max-width: 800px) {
             body { flex-direction: column; }
-            .hero-spread {
-                flex: none; width: 100vw; height: 40vh; border-right: none; border-bottom: var(--border-style);
-            }
+            .hero-spread { flex: none; width: 100vw; height: 40vh; border-right: none; border-bottom: var(--border-style); }
             .lobby-wrapper { flex: none; height: auto; padding-top: 2rem; }
             
-            .theme-toggle { 
-                top: auto; bottom: 15px; right: 15px; background: var(--bg-color); border-radius: 4px; 
-            }
+            .theme-toggle { top: auto; bottom: 15px; right: 15px; background: var(--bg-color); border-radius: 4px; }
             .theme-toggle::after { width: 80px; height: 80px; bottom: -15px; right: -15px; }
             
             .bible-container { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
@@ -456,15 +377,16 @@
             .bible-content { padding: 40px 20px; }
             .bible-content h1 { font-size: 2.5rem; }
             .bible-content h2 { margin-top: 60px; }
-            .doctrine-floater { width: 150px; height: 150px; margin: 0 0 10px 15px; } /* Scaled down for mobile */
+            
+            /* Disable animation on small mobile to prevent overflow bugs */
+            .coca-floater { animation: none !important; width: 80px !important; height: 80px !important; margin: 0 15px 5px 0 !important; }
 
             .flyer-title { font-size: 1.3rem; }
             .flyer-citation { font-size: 0.65rem; }
             .flyer-content { padding: 3rem 2rem; }
-            .flyer-main-logo { width: 90px; height: 90px; }
         }
 
-        /* --- ANIMATIONS --- */
+        /* --- STATIC ANIMATIONS --- */
         @keyframes ritualFadeIn { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
         @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes pulsate { 0% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(5px); } 100% { opacity: 0.3; transform: translateY(0); } }
@@ -476,21 +398,21 @@
 </head>
 <body>
 
-    <!-- --- WELCOME FLYER / OVERLAY --- -->
     <div id="welcome-flyer" class="flyer-overlay">
         <div class="flyer-content">
-            <div class="flyer-header">
-                <div class="flyer-main-logo"></div>
-            </div>
             
             <div class="flyer-quote-container">
+                <div class="coca-floater left"></div>
+                
                 <h2 id="flyer-quote-text" class="flyer-title"></h2>
                 <p id="flyer-quote-cite" class="flyer-citation"></p>
             </div>
             
-            <button id="btn-enter-site" class="flyer-btn">
-                Acknowledge & Proceed <span class="flyer-arrow">[→]</span>
-            </button>
+            <div style="text-align: center;">
+                <button id="btn-enter-site" class="flyer-btn">
+                    Acknowledge & Proceed <span class="flyer-arrow">[→]</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -501,30 +423,20 @@
     <div class="lobby-wrapper">
         <div class="lobby-container" id="lobby">
             
-            <div class="profile-section">
-                <div class="profile-container">
-                    <div class="profile-pic"></div>
-                </div>
-                
-                <div class="handle">
-                    <a href='https://www.instagram.com/churchofconceptualart' target="_blank" id="glitch-target">@ChurchOfConceptualArt</a>
-                </div>
-                
-                <div class="bio">
-                    <p><strong>THE DOCTRINE OF SEMIOTIC REVERSAL</strong></p>
-                    <p style="margin-top: 1rem;">The Church of Conceptual Art (CoCA) recognizes that certain corporate symbols have saturated the human environment to such a degree that they no longer belong exclusively to commerce.</p>
-                    <span class="arrow">↓</span>
-                </div>
+            <div class="handle">
+                <a href='https://www.instagram.com/churchofconceptualart' target="_blank" id="glitch-target">@ChurchOfConceptualArt</a>
+            </div>
+            
+            <div class="bio">
+                <div class="coca-floater left"></div>
+                <p><strong>THE DOCTRINE OF SEMIOTIC REVERSAL</strong></p>
+                <p style="margin-top: 1rem;">The Church of Conceptual Art (CoCA) recognizes that certain corporate symbols have saturated the human environment to such a degree that they no longer belong exclusively to commerce. When a mark embeds itself into the collective unconscious, it becomes public domain on a spiritual level.</p>
+                <span class="arrow">↓</span>
             </div>
 
             <div class="links-wrapper">
-                <a href="#" class="link-btn" id="btn-doctrine-trigger">
-                    READ THE DOCTRINE
-                </a>
-
-                <a href="#" class="link-btn" id="btn-confession">
-                    Confession [Interest Intake]
-                </a>
+                <a href="#" class="link-btn" id="btn-doctrine-trigger">READ THE DOCTRINE</a>
+                <a href="#" class="link-btn" id="btn-confession">Confession [Interest Intake]</a>
             </div>
             
             <div class="confession-booth" id="form-container">
@@ -545,14 +457,13 @@
                 </form>
             </div>
 
-            <div style="margin-top: 3rem; font-size: 0.6rem; color: var(--text-color); opacity: 0.5; text-transform: uppercase; line-height: 1.6;">
+            <div style="margin-top: 3rem; font-size: 0.6rem; color: var(--text-color); opacity: 0.5; text-transform: uppercase; line-height: 1.6; text-align: center;">
                 © 2026 CoCA. Structural Immunity.<br>
                 The Church of Conceptual Art is a registered 501(c)(3) non-profit organization.
             </div>
         </div>
     </div>
 
-    <!-- THE BIBLE OVERLAY (MODAL) -->
     <div class="bible-overlay" id="bible-overlay">
         <div class="bible-container">
             
@@ -582,6 +493,9 @@
             </aside>
 
             <main class="bible-content">
+                
+                <div class="coca-floater right"></div>
+
                 <header>
                     <h1>The Doctrine Of<br>Semiotic Reversal</h1>
                     <div class="bible-subtitle">
@@ -589,27 +503,24 @@
                     </div>
                 </header>
 
-                <!-- NEW SHAPE-OUTSIDE FLOATER -->
-                <div class="doctrine-floater"></div>
-
                 <section id="transmutation">
                     <h3>I. The Transmutation of the Mark</h3>
-                    <p>We hold that the visual symbol commonly associated with the Coca-Cola Company has transcended its origins as a corporate identifier. It has become a ubiquitous element of the global visual landscape—a modern archetype.</p>
+                    <p>We hold that the visual symbol commonly associated with the Coca-Cola Company has transcended its origins as a corporate identifier. It has become a ubiquitous element of the global visual landscape—a modern archetype. When a corporation injects its iconography into every corner of the human experience, it inadvertently surrenders private ownership over its cultural meaning.</p>
                 </section>
 
                 <section id="liberation">
                     <h3>II. The Act of Liberation</h3>
-                    <p>In the secular world, a logo is a tool for extraction. In the Sanctuary of CoCA, the logo is stripped of its commercial intent and repurposed as an object of contemplation.</p>
+                    <p>In the secular world, a logo is a tool for extraction. In the Sanctuary of CoCA, the logo is stripped of its commercial intent and repurposed as an object of contemplation. We do not consume the product; we consume the aura of the product. By detaching the signifier from the signified, we neutralize its capitalistic gravity.</p>
                 </section>
 
                 <section id="reclamation">
                     <h3>III. Spiritual Reclamation</h3>
-                    <p>Our adoption of this symbol is an act of spiritual reclamation. We are taking the ultimate symbol of mass consumption and turning it into a hyper-specific badge of conceptual awareness.</p>
+                    <p>Our adoption of this symbol is an act of spiritual reclamation. We are taking the ultimate symbol of mass consumption and turning it into a hyper-specific badge of conceptual awareness. It is a daily reminder that reality is malleable, and meaning belongs to those who dare to assign it.</p>
                 </section>
 
                 <section id="performance">
                     <h3>IV. The Living Performance</h3>
-                    <p>By wearing the Mark, we are not advertising a beverage; we are broadcasting a philosophical stance. Living the CoCA way is to adorn the symbols of our times.</p>
+                    <p>By wearing the Mark, we are not advertising a beverage; we are broadcasting a philosophical stance. Living the CoCA way is to adorn the symbols of our times. We recognize the joke, we inhabit the irony, and through pure, unfiltered sincerity, we push through to the other side.</p>
                     <br><br><br>
                 </section>
             </main>
@@ -638,18 +549,11 @@
 
         function dismissFlyer() {
             flyerOverlay.classList.add('fade-out');
-            setTimeout(() => {
-                flyerOverlay.style.display = 'none';
-            }, 600);
+            setTimeout(() => { flyerOverlay.style.display = 'none'; }, 600);
         }
 
         btnEnterSite.addEventListener('click', dismissFlyer);
-
-        flyerOverlay.addEventListener('click', (e) => {
-            if (!flyerContent.contains(e.target)) {
-                dismissFlyer();
-            }
-        });
+        flyerOverlay.addEventListener('click', (e) => { if (!flyerContent.contains(e.target)) dismissFlyer(); });
 
         /* --- LOGIC CORE --- */
         const lobby = document.getElementById('lobby');
@@ -658,21 +562,10 @@
         const closeBtn = document.getElementById('close-bible');
         const themeBtn = document.getElementById('theme-btn');
 
-        triggerBtn.addEventListener('mouseover', () => {
-            triggerBtn.innerText = ">> ENTER THE SANCTUARY <<";
-        });
-        triggerBtn.addEventListener('mouseout', () => {
-            triggerBtn.innerText = "READ THE DOCTRINE";
-        });
-        
-        triggerBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            overlay.classList.add('active');
-        });
-
-        closeBtn.addEventListener('click', () => {
-            overlay.classList.remove('active');
-        });
+        triggerBtn.addEventListener('mouseover', () => { triggerBtn.innerText = ">> ENTER THE SANCTUARY <<"; });
+        triggerBtn.addEventListener('mouseout', () => { triggerBtn.innerText = "READ THE DOCTRINE"; });
+        triggerBtn.addEventListener('click', (e) => { e.preventDefault(); overlay.classList.add('active'); });
+        closeBtn.addEventListener('click', () => { overlay.classList.remove('active'); });
 
         const confBtn = document.getElementById('btn-confession');
         const formContainer = document.getElementById('form-container');
@@ -680,24 +573,19 @@
         confBtn.addEventListener('click', (e) => {
             e.preventDefault();
             if(confBtn.classList.contains('recording')) return;
-
             confBtn.classList.add('recording');
             confBtn.innerText = "● MICROPHONE ACTIVE. WE ARE LISTENING.";
             formContainer.classList.add('active');
-            setTimeout(() => {
-                formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
+            setTimeout(() => { formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
         });
 
         let lightMode = false;
         themeBtn.addEventListener('click', () => {
             lightMode = !lightMode;
             if(lightMode) {
-                document.body.setAttribute('data-theme', 'light');
-                themeBtn.innerText = "[ ☾ DARK ]";
+                document.body.setAttribute('data-theme', 'light'); themeBtn.innerText = "[ ☾ DARK ]";
             } else {
-                document.body.removeAttribute('data-theme');
-                themeBtn.innerText = "[ ☀ LIGHT ]";
+                document.body.removeAttribute('data-theme'); themeBtn.innerText = "[ ☀ LIGHT ]";
             }
         });
 
@@ -712,8 +600,7 @@
                     return glitchChars[Math.floor(Math.random() * glitchChars.length)];
                 }).join("");
                 if(iterations >= originalText.length) {
-                    clearInterval(interval);
-                    glitchElement.innerText = originalText;
+                    clearInterval(interval); glitchElement.innerText = originalText;
                 }
                 iterations += 1 / 3;
             }, 30);
