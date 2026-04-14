@@ -60,11 +60,37 @@
             z-index: 999; /* Moved to overlay everything naturally */
         }
 
-        /* --- THEME TOGGLE --- */
-        .theme-toggle {
+        /* --- BOTTOM CONTROLS (THEME & GLOBE) --- */
+        .bottom-controls {
             position: fixed;
             bottom: 45px;
             right: 45px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 2000;
+        }
+
+        .globe-link {
+            text-decoration: none;
+            font-size: 18px;
+            opacity: 0.5;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            /* Forces the emoji to be white in dark mode */
+            filter: grayscale(100%) brightness(200%); 
+        }
+
+        [data-theme="light"] .globe-link {
+            /* Forces the emoji to be black in light mode */
+            filter: grayscale(100%) brightness(0%);
+        }
+
+        .globe-link:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .theme-toggle {
             background: transparent;
             border: 1px solid var(--text-color);
             color: var(--text-color);
@@ -72,25 +98,13 @@
             font-size: 12px;
             padding: 5px 10px;
             cursor: pointer;
-            z-index: 2000;
             text-transform: uppercase;
-            opacity: 0; /* Hidden by default */
+            opacity: 0.5; /* Ghosted but visible */
             transition: opacity 0.3s, border-color 0.3s, color 0.3s;
         }
 
-        /* Creates a larger invisible "hit area" in the corner to trigger the hover */
-        .theme-toggle::after {
-            content: '';
-            position: absolute;
-            bottom: -45px;
-            right: -45px;
-            width: 150px;
-            height: 150px;
-            z-index: -1;
-        }
-
         .theme-toggle:hover { 
-            opacity: 1; /* Shows on hover */
+            opacity: 1; 
             border-color: var(--header-color); 
             color: var(--header-color); 
         }
@@ -464,18 +478,13 @@
             }
             .lobby-wrapper { flex: none; height: auto; padding-top: 2rem; }
             
-            .theme-toggle { 
-                top: auto;
+            .bottom-controls { 
                 bottom: 15px; 
                 right: 15px; 
+            }
+            .theme-toggle {
                 background: var(--bg-color);
                 border-radius: 4px; 
-            }
-            .theme-toggle::after {
-                width: 80px;
-                height: 80px;
-                bottom: -15px;
-                right: -15px;
             }
             
             .bible-container { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
@@ -504,7 +513,6 @@
 </head>
 <body>
 
-    <!-- --- WELCOME FLYER / OVERLAY --- -->
     <div id="welcome-flyer" class="flyer-overlay">
         <div class="flyer-content">
             <div class="flyer-header">
@@ -522,12 +530,13 @@
         </div>
     </div>
 
-    <button class="theme-toggle" id="theme-btn">[ ☀ LIGHT ]</button>
+    <div class="bottom-controls">
+        <a href="http://cocaworldwide.org" target="_blank" class="globe-link" title="CoCA Worldwide">🌐</a>
+        <button class="theme-toggle" id="theme-btn">[ ☀ LIGHT ]</button>
+    </div>
 
-    <!-- NEW SPREAD IMAGE CONTAINER -->
     <div class="hero-spread"></div>
 
-    <!-- WRAPPER FOR LOBBY CENTERING -->
     <div class="lobby-wrapper">
         <div class="lobby-container" id="lobby">
             
@@ -582,7 +591,6 @@
         </div>
     </div>
 
-    <!-- Overlay remains unchanged structurally -->
     <div class="bible-overlay" id="bible-overlay">
         <div class="bible-container">
             
@@ -759,5 +767,3 @@
     </script>
 </body>
 </html>
-
-
