@@ -6,20 +6,21 @@
     <title>CoCA × Diet Coke Oracle</title>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:wght@400;600;700;900&family=JetBrains+Mono:wght@100;400;700&display=swap" rel="stylesheet">
     
     <style>
         /* --- GLOBAL VARIABLES --- */
         :root {
             --bg-color: #050505;
+            --surface-color: #0d0d0d;
             --text-color: #e2e2e2;
             --text-muted: #888888;
             --coca-red: #F40009;
-            --terminal-green: #00ff41;
+            --border-color: #222222;
             
             --font-main: 'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-serif: 'Playfair Display', serif;
-            --font-mono: 'Courier New', Courier, monospace;
+            --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
         }
 
         * {
@@ -32,13 +33,9 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: var(--font-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             overflow-x: hidden;
             position: relative;
+            scroll-behavior: smooth;
         }
 
         /* Noise Filter Background from CoCA */
@@ -51,34 +48,66 @@
             z-index: 999;
         }
 
-        /* --- LAYOUT --- */
-        .splash-container {
+        /* --- LAYOUT & TYPOGRAPHY --- */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
             position: relative;
             z-index: 10;
+        }
+
+        h2 {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 400;
+            color: var(--text-color);
+        }
+
+        h3 {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            color: var(--coca-red);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        p strong {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        /* --- HERO SECTION (Original) --- */
+        .hero {
+            min-height: 90vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 2rem;
-            max-width: 800px;
-            width: 100%;
             animation: ritualFadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            padding-top: 2rem;
         }
 
-        /* --- HERO LOGOS --- */
         .hero-logos {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 3.5rem; /* Gap between the 3 main elements */
+            gap: 3.5rem;
             margin-bottom: 3rem;
             flex-wrap: wrap;
         }
 
-        /* CoCA SVG Masking with Scaling Wrapper */
         .coca-logo-wrapper {
-            /* This defines the footprint in the layout. */
             width: 240px; 
             height: 100px;
             display: flex;
@@ -110,7 +139,6 @@
             font-weight: 100;
         }
 
-        /* Diet Coke Oracle Logo */
         .dc-logo-wrapper {
             display: inline-block;
             position: relative;
@@ -140,7 +168,6 @@
             letter-spacing: normal;
         }
 
-        /* --- CONTENT --- */
         .content-wrapper {
             max-width: 600px;
             margin: 0 auto;
@@ -156,74 +183,218 @@
             font-weight: bold;
         }
 
-        .description {
-            font-size: 1.1rem;
-            line-height: 1.7;
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
             color: var(--text-muted);
-            margin-bottom: 3rem;
-            font-weight: 400;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            animation: pulseOpacity 2s infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .scroll-line {
+            width: 1px;
+            height: 40px;
+            background: linear-gradient(to bottom, var(--text-muted), transparent);
         }
 
-        .description strong {
-            color: var(--text-color);
-            font-weight: 600;
+        /* --- THE ANCIENT ENGINE (Dynamic Display) --- */
+        .section-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            padding: 8rem 0;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
         }
 
-        /* --- CTA BUTTON --- */
+        /* Interactive Hexagram Infographic */
+        .hexagram-visualizer {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .hexagram-visualizer:hover {
+            border-color: var(--coca-red);
+        }
+
+        .hexagram-visualizer::before {
+            content: "[ CLICK TO RECAST ]";
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.2em;
+        }
+
+        .hex-stack {
+            display: flex;
+            flex-direction: column-reverse; /* Bottom up generation */
+            gap: 12px;
+            margin: 2rem 0;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .hex-line {
+            height: 16px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .hex-line.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hex-line::after {
+            position: absolute;
+            right: -40px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Yang (Solid) */
+        .hex-line.yang .segment {
+            width: 100%;
+            height: 100%;
+            background-color: var(--text-color);
+            box-shadow: 0 0 10px rgba(226, 226, 226, 0.2);
+        }
+        .hex-line.yang::after { content: "1"; }
+
+        /* Yin (Broken) */
+        .hex-line.yin .segment {
+            width: 45%;
+            height: 100%;
+            background-color: var(--coca-red);
+            box-shadow: 0 0 10px rgba(244, 0, 9, 0.2);
+        }
+        .hex-line.yin::after { content: "0"; }
+
+        .binary-readout {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            letter-spacing: 0.5em;
+            color: var(--text-muted);
+            height: 1.5rem;
+        }
+
+        /* --- THE REFINERY & MODES --- */
+        .refinery-section {
+            padding: 6rem 0;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .refinery-intro {
+            max-width: 700px;
+            margin: 0 auto 4rem auto;
+        }
+
+        .modes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            text-align: left;
+        }
+
+        .mode-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 2.5rem;
+            position: relative;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--text-muted);
+        }
+
+        .mode-number {
+            font-family: var(--font-mono);
+            font-size: 3rem;
+            color: var(--bg-color);
+            -webkit-text-stroke: 1px var(--border-color);
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .mode-card:hover .mode-number {
+            color: var(--coca-red);
+            -webkit-text-stroke: 0;
+        }
+
+        /* --- CONCLUSION & CTA --- */
+        .conclusion {
+            padding: 8rem 0;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
         .cta-btn {
             position: relative;
             display: inline-block;
             text-decoration: none;
-            color: var(--text-color);
-            border: 1px solid var(--text-color);
+            color: var(--bg-color);
+            background-color: var(--text-color);
             padding: 1.2rem 2.5rem;
             text-transform: uppercase;
+            font-family: var(--font-mono);
             font-size: 0.9rem;
             font-weight: 700;
             letter-spacing: 0.15em;
             transition: all 0.3s ease;
             overflow: hidden;
-            background: transparent;
             cursor: pointer;
-            user-select: none;
-        }
-
-        .cta-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0%;
-            height: 100%;
-            background-color: var(--coca-red);
-            transition: width 0.3s ease;
-            z-index: -1;
+            margin-top: 2rem;
+            border: 1px solid var(--text-color);
         }
 
         .cta-btn:hover {
-            color: #fff;
-            border-color: var(--coca-red);
+            color: var(--text-color);
+            background-color: transparent;
             box-shadow: 0 0 20px rgba(244, 0, 9, 0.4);
-            transform: scale(1.02);
-        }
-
-        .cta-btn:hover::before {
-            width: 100%;
-        }
-
-        .btn-arrow {
-            font-family: var(--font-mono);
-            margin-left: 8px;
-            font-weight: normal;
+            border-color: var(--coca-red);
         }
 
         /* --- FOOTER --- */
         .footer {
-            position: fixed;
-            bottom: 30px;
-            width: 100%;
             text-align: center;
-            z-index: 10;
+            padding: 3rem 0;
+            border-top: 1px solid var(--border-color);
         }
 
         .unsubscribe-credit {
@@ -239,7 +410,6 @@
             text-decoration: none;
             border-bottom: 1px dotted var(--text-muted);
             transition: color 0.3s, border-color 0.3s;
-            font-weight: bold;
         }
 
         .unsubscribe-credit a:hover {
@@ -247,119 +417,56 @@
             border-bottom-color: var(--coca-red);
         }
 
+        /* --- SCROLL ANIMATIONS --- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         /* --- RESPONSIVE LOGIC --- */
-
-        /* 1. Mobile Portrait */
-        @media (max-width: 768px) and (orientation: portrait) {
-            .hero-logos {
-                flex-direction: column;
-                gap: 1.5rem; /* Clean gap now that footprint is managed */
-                margin-bottom: 2.5rem;
-            }
-
-            .coca-logo-wrapper {
-                width: 250px; /* Aligns well with the Coke logo block width */
-                height: 80px;
-            }
-
-            .coca-logo-svg {
-                transform: scale(3.6); /* Slightly higher scale on mobile for dominance */
-            }
-
-            .cross-mark {
-                font-size: 1.2rem;
-                margin: 0;
-            }
-
-            .dc-logo-top {
-                font-size: 5.5rem;
-            }
-
-            .dc-logo-diet {
-                font-size: 2.2rem;
-                top: -20px;
-                right: -10px;
-            }
-
-            .description {
-                font-size: 1rem;
-                padding: 0 1rem;
-            }
-
-            .footer {
-                position: relative;
-                bottom: 0;
-                margin-top: 4rem;
-            }
-        }
-
-        /* 2. Mobile Landscape / Small Heights */
-        @media (max-height: 500px) and (orientation: landscape) {
-            .splash-container {
-                padding: 1rem;
-                justify-content: flex-start;
+        @media (max-width: 900px) {
+            .section-split, .modes-grid {
+                grid-template-columns: 1fr;
+                gap: 3rem;
             }
             .hero-logos {
-                flex-direction: row;
                 gap: 1.5rem;
-                margin-bottom: 1.5rem;
-                margin-top: 2rem;
+                flex-direction: column;
             }
-            
             .coca-logo-wrapper {
-                width: 150px;
-                height: 60px;
+                width: 250px; height: 80px;
             }
-            
-            .coca-logo-svg {
-                transform: scale(2.8);
-            }
-
-            .cross-mark {
-                font-size: 1.2rem;
-            }
-            .dc-logo-top {
-                font-size: 4rem;
-            }
-            .dc-logo-diet {
-                font-size: 1.6rem;
-                top: -15px;
-            }
-            .subtitle {
-                margin-bottom: 1rem;
-            }
-            .description {
-                font-size: 0.95rem;
-                margin-bottom: 1.5rem;
-            }
-            .footer {
-                position: relative;
-                bottom: 0;
-                margin-top: 2rem;
-                padding-bottom: 1rem;
-            }
+            .coca-logo-svg { transform: scale(3.6); }
+            .dc-logo-top { font-size: 5.5rem; }
+            .dc-logo-diet { font-size: 2.2rem; top: -20px; right: -10px; }
+            h2 { font-size: 2rem; }
         }
 
-        /* --- ANIMATIONS --- */
         @keyframes ritualFadeIn {
             0% { opacity: 0; transform: translateY(20px); }
             100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseOpacity {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
         }
     </style>
 </head>
 <body>
 
-    <main class="splash-container">
-        
+    <!-- HERO SECTION -->
+    <main class="container hero">
         <div class="hero-logos">
-            <!-- CoCA SVG Logo Wrapper -->
             <div class="coca-logo-wrapper">
                 <div class="coca-logo-svg"></div>
             </div>
-            
             <div class="cross-mark">×</div>
-            
-            <!-- Diet Coke Logo -->
             <div class="dc-logo-wrapper">
                 <span class="dc-logo-top">Coke</span>
                 <span class="dc-logo-diet">Diet</span>
@@ -368,24 +475,167 @@
 
         <div class="content-wrapper">
             <div class="subtitle">Structural Clarity Protocol</div>
-            
             <p class="description">
-                A dedicated chat interface built to <strong>brutally sharpen your questions</strong>. 
-                Interact via voice or text with the Oracle to strip away emotional noise and find clinical answers through the ancient structural logic of the I Ching.
+                A dedicated interface built to <strong>brutally sharpen your questions</strong>. 
+                Interact to strip away emotional noise and find clinical answers through the ancient structural logic of the I Ching.
             </p>
-
-            <a href="https://www.unsubscribe.llc/dietcoke" class="cta-btn">
-                Consult The Oracle <span class="btn-arrow">[→]</span>
-            </a>
         </div>
 
+        <div class="scroll-indicator">
+            <span>Scroll to parse</span>
+            <div class="scroll-line"></div>
+        </div>
     </main>
 
+    <!-- ANCIENT ENGINE SECTION -->
+    <section class="container section-split reveal">
+        <div class="text-block">
+            <h3>The Ancient Engine</h3>
+            <h2>What is the I Ching?</h2>
+            <p>The I Ching, or Book of Changes, is a 3,000-year-old Chinese text and one of the oldest operational manuals for decision-making in human history. Historically, it was not used as a crystal ball to predict the future, but rather as a <strong>strategic matrix to understand the present</strong>.</p>
+            <p>It is built on a binary system of broken (Yin) and solid (Yang) lines. These lines stack into sets of three (trigrams) and combine into <strong>64 unique Hexagrams</strong> representing specific states of tension, transition, or balance.</p>
+            <p>Emperors and tacticians generated hexagrams not to be told what to do, but to understand the architecture of the moment so they could act with precision.</p>
+        </div>
+        
+        <!-- Interactive Hexagram Infographic -->
+        <div class="hexagram-visualizer" id="hexagramTrigger" onclick="castHexagram()">
+            <div class="hex-stack" id="hexStack">
+                <!-- Lines generated by JS -->
+            </div>
+            <div class="binary-readout" id="binaryReadout">------</div>
+            <p style="margin-top: 1.5rem; font-family: var(--font-mono); font-size: 0.8rem; text-align: center; color: var(--text-muted); margin-bottom: 0;">
+                0 = YIN (Friction/Receptive)<br>
+                1 = YANG (Action/Creative)
+            </p>
+        </div>
+    </section>
+
+    <!-- MODERN REFINERY SECTION -->
+    <section class="container refinery-section reveal">
+        <div class="refinery-intro">
+            <h3>The Modern Refinery</h3>
+            <h2>Diet Coke by Unsubscribe LLC</h2>
+            <p>The Diet Coke Oracle System takes the foundational logic of the I Ching and weaponizes it for the modern mind. Drawing inspiration from the Church of Conceptual Art, it rejects the mystical, New Age associations that often cloud modern interpretations. <strong>Instead, it treats the I Ching as pure code.</strong></p>
+            <p>Most human inquiries are clouded by emotional noise, outcome bias, and vague complaints. Diet Coke forces the user to confront their ideas clinically. It is less of an app and more of a <strong>hostile editor</strong> driven by a large language model.</p>
+        </div>
+
+        <!-- The 4 Modes Grid -->
+        <div class="modes-grid">
+            <div class="mode-card reveal">
+                <div class="mode-number">01</div>
+                <h3>Mode 1: The Refinery</h3>
+                <p>The AI evaluates the user's input for "oracle-grade precision." If a user asks a vague or emotionally loaded question, the system rejects it. It demands the problem be reframed into a precise, structural logic-gate. <strong>The pushback itself is the primary utility.</strong></p>
+            </div>
+            
+            <div class="mode-card reveal">
+                <div class="mode-number">02</div>
+                <h3>Mode 2: The Casting</h3>
+                <p>Once structural clarity is achieved, the user casts the lines by answering a series of strict binary questions regarding the tension of their situation (e.g., Assert vs. Submit, Expand vs. Contract). This generates the architectural hexagram.</p>
+            </div>
+            
+            <div class="mode-card reveal">
+                <div class="mode-number">03</div>
+                <h3>Mode 3: Interpretation</h3>
+                <p>The system bypasses vague mysticism, mapping the ancient Richard Wilhelm translation of the I Ching directly onto the clinical parameters established during the Refinery phase.</p>
+            </div>
+            
+            <div class="mode-card reveal">
+                <div class="mode-number">04</div>
+                <h3>Mode 4: The Discussion</h3>
+                <p>The user engages in a brief, clinical discussion with the oracle about the result. The focus remains purely on structural alignment and operational mechanics rather than seeking advice or therapy.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONCLUSION -->
+    <section class="container conclusion reveal">
+        <h3>A Fortune Cookie on Steroids</h3>
+        <h2>Cognitive Architecture</h2>
+        <p>Ultimately, Diet Coke operates as a daily cognitive exercise. It acts as a mirror that forces users to articulate their exact point of friction. Even if a user never makes it past the initial pushback of Phase 1, the tool succeeds.</p>
+        <p>By demanding that users strip away their feelings and describe their situations using terms like <strong>"leverage," "friction,"</strong> or <strong>"architecture,"</strong> it forces a change in perspective. The quality of your answers is entirely dependent on the structural integrity of your questions.</p>
+        
+        <a href="https://www.unsubscribe.llc/dietcoke" class="cta-btn">
+            Initialize Protocol [→]
+        </a>
+    </section>
+
+    <!-- FOOTER -->
     <footer class="footer">
         <div class="unsubscribe-credit">
             System architecture by <a href="https://www.unsubscribe.llc/about-us" target="_blank">unsubscribe</a>
         </div>
     </footer>
 
+    <!-- INTERACTIVITY SCRIPT -->
+    <script>
+        // Scroll Reveal Logic
+        function revealOnScroll() {
+            var reveals = document.querySelectorAll('.reveal');
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 100;
+                
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add('active');
+                }
+            }
+        }
+        window.addEventListener('scroll', revealOnScroll);
+        revealOnScroll(); // Trigger on load
+
+        // Hexagram Infographic Logic
+        const stack = document.getElementById('hexStack');
+        const readout = document.getElementById('binaryReadout');
+        let isCasting = false;
+
+        function createLine(type) {
+            const div = document.createElement('div');
+            div.className = `hex-line ${type}`;
+            if(type === 'yin') {
+                div.innerHTML = '<div class="segment"></div><div class="segment"></div>';
+            } else {
+                div.innerHTML = '<div class="segment"></div>';
+            }
+            return div;
+        }
+
+        async function castHexagram() {
+            if (isCasting) return;
+            isCasting = true;
+            stack.innerHTML = '';
+            readout.innerText = '';
+            
+            let binaryString = '';
+            
+            for (let i = 0; i < 6; i++) {
+                // Randomly pick Yin (0) or Yang (1)
+                const isYang = Math.random() > 0.5;
+                const type = isYang ? 'yang' : 'yin';
+                const line = createLine(type);
+                
+                stack.appendChild(line);
+                binaryString = (isYang ? '1' : '0') + binaryString;
+                
+                // Animate sequence
+                await new Promise(r => setTimeout(r, 150));
+                line.classList.add('active');
+                readout.innerText = binaryString.padEnd(6, '-');
+            }
+            
+            isCasting = false;
+        }
+
+        // Auto-cast once when the infographic scrolls into view
+        let hasAutoCasted = false;
+        window.addEventListener('scroll', () => {
+            if(hasAutoCasted) return;
+            const hexPos = document.getElementById('hexagramTrigger').getBoundingClientRect().top;
+            if(hexPos < window.innerHeight - 200) {
+                castHexagram();
+                hasAutoCasted = true;
+            }
+        });
+    </script>
 </body>
 </html>
