@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radical Genealogy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { margin: 0; }
+    * { box-sizing: border-box; }
+    .rg { 
+      --bg: #ffffff; --ink: #111111; --dim: #8c8c8c; --line: #e4e4e2; --line2: #d4d4d2; --red: #ff2d16;
+      min-height: 100vh; background: var(--bg); color: var(--ink);
+      font-family: 'Archivo', -apple-system, sans-serif; padding: clamp(20px, 5vw, 72px);
+      -webkit-font-smoothing: antialiased; 
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+
+    .head-row { display: flex; justify-content: space-between; align-items: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .08em;
+      color: var(--dim); text-transform: uppercase; }
+    .status { display: inline-flex; align-items: center; gap: 7px; }
+    .live { width: 7px; height: 7px; border-radius: 50%; background: var(--red);
+      animation: blink 2.4s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .title { font-weight: 900; font-size: clamp(40px, 8vw, 88px); line-height: .92; letter-spacing: -.03em;
+      margin: .2em 0 .55em; text-transform: uppercase; }
+    .statement { font-size: clamp(14px, 1.5vw, 17px); line-height: 1.72; max-width: 70ch; color: #3a3a3a; margin: 0; }
+    .statement em { font-style: normal; color: var(--ink); font-weight: 500; border-bottom: 2px solid var(--red); padding-bottom: 1px; }
+    .statement strong { font-weight: 700; color: var(--ink); }
+
+    .ledger { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line2);
+      margin: clamp(28px, 4vw, 44px) 0 clamp(28px, 4vw, 40px); }
+    .led { padding: 16px 18px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .led:last-child { border-right: 0; }
+    .led b { font-family: 'JetBrains Mono', monospace; font-size: clamp(22px, 3vw, 32px); font-weight: 500; line-height: 1; }
+    .led span { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; }
+
+    .apstrip { display: flex; justify-content: center; gap: clamp(16px, 3vw, 32px); margin-bottom: 12px; }
+    .apcell { position: relative; width: clamp(96px, 15vw, 150px); aspect-ratio: 1; border: 1px solid var(--ink);
+      background-size: cover; background-position: center; cursor: pointer; padding: 0;
+      opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .2s ease, box-shadow .2s ease; }
+    .apcell.in { opacity: 1; transform: none; }
+    .apcell:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,.16); }
+    .aptag { position: absolute; left: 0; bottom: 0; background: var(--ink); color: var(--bg);
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; padding: 3px 7px; }
+    .ap-caption { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      letter-spacing: .07em; color: var(--dim); text-transform: uppercase; margin-bottom: clamp(22px, 3vw, 34px); }
+
+    .gridwrap { position: relative; }
+    .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 1px; background: var(--line);
+      border: 1px solid var(--line2); }
+    .cell { position: relative; aspect-ratio: 1; border: 0; padding: 0; cursor: pointer; overflow: hidden;
+      background: #fafafa; background-size: cover; background-position: center;
+      opacity: 0; transition: opacity .5s ease, transform .18s ease, box-shadow .18s, outline-color .18s;
+      outline: 0 solid transparent; }
+    .cell.in { opacity: 1; }
+    .cell.study { filter: saturate(.6) brightness(1.02) contrast(.96); }
+    .cell.finished { filter: saturate(1) brightness(1); }
+    .cell.prestudy { background: #fafafa;
+      background-image: linear-gradient(135deg, transparent 46%, var(--line2) 46% 54%, transparent 54%);
+      display: flex; align-items: center; justify-content: center; }
+    .cell:hover { z-index: 5; transform: scale(1.16); outline: 1px solid var(--ink);
+      box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+    .cell.study:hover, .cell.finished:hover { filter: saturate(1) brightness(1.04); }
+    .cell.pulse { animation: pulse 1s ease; }
+    @keyframes pulse { 0%{outline: 2px solid var(--red); outline-offset: 0} 100%{outline: 2px solid transparent; outline-offset: 8px} }
+    .cellnum { position: absolute; left: 0; bottom: 0; padding: 2px 4px; font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; color: transparent; transition: .18s; }
+    .cell:hover .cellnum { color: var(--ink); background: rgba(255,255,255,.82); }
+    .cell.prestudy .cellnum { color: var(--dim); }
+    .cell.prestudy:hover .cellnum { color: var(--ink); }
+    .dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--red);
+      box-shadow: 0 0 0 1.5px var(--bg); z-index: 6; }
+
+    .loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg);
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .2em; color: var(--dim);
+      text-transform: uppercase; z-index: 10; }
+    .loading.hidden { display: none; }
+    .loading::after { content: '…'; }
+
+    .foot { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line2);
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; color: var(--dim); text-transform: uppercase; }
+    .foot span { display: inline-flex; align-items: center; gap: 7px; }
+    .key { width: 11px; height: 11px; display: inline-block; }
+    .dot-key { border-radius: 50%; background: var(--red); width: 8px; height: 8px; }
+    .pre-key { background: #fafafa; background-image: linear-gradient(135deg,transparent 42%,var(--line2) 42% 58%,transparent 58%); border: 1px solid var(--line); }
+    .study-key { background: #c2c5b4; }
+    .fin-key { background: #8a8d5e; }
+
+    .overlay { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; padding: 20px;
+      background: rgba(20,20,20,.5); backdrop-filter: blur(4px); animation: fade .2s ease; }
+    .overlay.active { display: grid; }
+    @keyframes fade { from{opacity:0} to{opacity:1} }
+    .modal { background: var(--bg); border: 1px solid var(--line2); max-width: 780px; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr; position: relative; animation: rise .25s ease;
+      box-shadow: 0 40px 100px rgba(0,0,0,.25); cursor: default; }
+    @keyframes rise { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
+    .x { position: absolute; top: 0; right: 0; z-index: 9; background: var(--ink); color: var(--bg); border: 0;
+      padding: 8px 12px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; }
+    .detail { position: relative; background-size: cover; background-position: center; background-color: #fafafa; min-height: 380px; }
+    .detail.study { filter: saturate(.62) brightness(1.02); }
+    .detail.prestudy { display: flex; align-items: center; justify-content: center;
+      background-image: linear-gradient(135deg, transparent 47%, var(--line2) 47% 53%, transparent 53%); }
+    .detail-dot { width: 13px; height: 13px; top: 13px; right: 13px; }
+    .detail-prenum { font-family: 'JetBrains Mono', monospace; font-size: 60px; font-weight: 500; color: var(--dim); }
+    .meta { padding: clamp(20px, 3vw, 30px); display: flex; flex-direction: column; }
+    .meta-head { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 18px; }
+    .meta-num { display: block; font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 500; line-height: 1; }
+    .meta-state { display: block; margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      letter-spacing: .12em; color: var(--dim); }
+    .ap-note-body { font-size: 14px; line-height: 1.6; color: #3a3a3a; margin-top: auto; }
+    .reservebox { margin-top: auto; }
+    .price { margin-bottom: 18px; }
+    .price-big { font-family: 'JetBrains Mono', monospace; font-size: 40px; font-weight: 500; line-height: 1;
+      display: flex; align-items: baseline; gap: 10px; }
+    .price-big span { font-size: 11px; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; }
+    .price-line { margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink); }
+    .price-note { margin-top: 6px; font-size: 12px; color: var(--dim); line-height: 1.5; }
+    .reserve { width: 100%; background: var(--ink); color: var(--bg); border: 0; padding: 15px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; letter-spacing: .12em; transition: background .15s; }
+    .reserve:hover { background: var(--red); }
+    .reserve:disabled { opacity: .28; cursor: not-allowed; }
+    .reserve:disabled:hover { background: var(--ink); }
+    .ghost { background: transparent; color: var(--ink); border: 1px solid var(--line2); padding: 15px 18px; cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .12em; }
+    .ghost:hover { border-color: var(--ink); }
+    .confirm { margin-top: auto; }
+    .cov-title { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em; color: var(--red); margin: 0 0 10px; }
+    .cov-text { font-size: 13px; line-height: 1.62; color: #3a3a3a; margin: 0 0 16px; }
+    .agree { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; cursor: pointer; margin-bottom: 18px; color: #3a3a3a; }
+    .agree input { margin-top: 2px; accent-color: var(--red); width: 15px; height: 15px; }
+    .confirm-row { display: flex; gap: 10px; }
+    .confirm-row .reserve { flex: 1; }
+    .reserved-note { margin-top: auto; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--dim); }
+    .dot.small { position: static; width: 8px; height: 8px; }
+
+    @media (max-width: 640px){
+      .modal { grid-template-columns: 1fr; max-width: 400px; }
+      .detail { min-height: 300px; }
+      .ledger { grid-template-columns: repeat(3, 1fr); }
+      .led:nth-child(3){ border-right: 0; }
+      .led:nth-child(n+4){ border-top: 1px solid var(--line); }
+      .cellnum { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="rg">
+  <div class="wrap">
+    <header class="head">
+      <div class="head-row">
+        <span class="sig">RAD-GEN.001</span>
+        <span class="status"><i class="live"></i> edition in progress</span>
+      </div>
+      <h1 class="title">Radical Genealogy</h1>
+      <p class="statement">
+        RAD-GEN.001, Radical Genealogy, is an edition of 100 paintings. Each begins as a study of a
+        single painter’s formal language, <em>Camille Pissarro’s</em>, and is executed in oil on canvas
+        by hand. The grid below holds all 100. What you see now are the studies, faint, unpainted,
+        waiting. As each canvas is completed, its study is replaced here by the finished work. You are
+        watching the edition come into being. Any piece without a red dot is available. Reserve one for
+        $<span id="reserve-price">700</span> to hold it, the balance of $<span id="full-price">7,000</span> due before the finished painting
+        is delivered. Each work carries the CoCA covenant: half of any future resale returns to the
+        artists, in perpetuity. <strong>The lineage is the medium.</strong>
+      </p>
+    </header>
+
+    <div class="ledger" id="ledger"></div>
+
+    <div class="apstrip" id="apstrip"></div>
+    <div class="ap-caption">Artist’s proofs — part of the edition’s record, not for sale</div>
+
+    <div class="gridwrap" id="gridwrap">
+      <div class="grid" id="grid"></div>
+      <div class="loading" id="loading">preparing the field</div>
+    </div>
+
+    <footer class="foot">
+      <span><i class="key dot-key"></i> reserved / sold</span>
+      <span><i class="key pre-key"></i> pre-study</span>
+      <span><i class="key study-key"></i> study</span>
+      <span><i class="key fin-key"></i> finished</span>
+    </footer>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="closeModal()">
+    <div class="modal" id="modal-content" onclick="event.stopPropagation()">
+      </div>
+  </div>
+</div>
+
+<script>
+  // Configuration
+  const TOTAL = 100;
+  const RESERVE = 700;
+  const FULL = 7000;
+  const STUDY_THROUGH = 20;
+
+  const PISSARRO = [
+    ["#aeb8bc", "#c3b58a", "#8a8d5e"], ["#b8c2c6", "#cfba8a", "#76855a"],
+    ["#c9d0d2", "#d6c08c", "#8c8f5e"], ["#a6b4bb", "#bcbd80", "#6c7f58"],
+    ["#d2d7d7", "#dac896", "#838c63"], ["#aebfc8", "#c8bd86", "#74824f"],
+    ["#c0ccd0", "#d3bc82", "#86895a"], ["#9eaeb8", "#b6ab7a", "#627355"],
+  ];
+
+  function rng(seed) {
+    let t = seed + 0x6d2b79f5;
+    return () => {
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function composition(i, finished) {
+    const r = rng(i * 977 + 13);
+    const pal = PISSARRO[i % PISSARRO.length];
+    const sky = pal[0], mid = pal[1], fore = pal[2];
+    const horizon = 38 + r() * 24;
+    let marks = "";
+    const n = 4 + Math.floor(r() * 5);
+    for (let k = 0; k < n; k++) {
+      const cx = r() * 100, cy = horizon + r() * (100 - horizon);
+      const rad = 4 + r() * 9;
+      const op = finished ? 0.42 + r() * 0.4 : 0.16 + r() * 0.18;
+      marks += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rad.toFixed(1)}" fill="${fore}" opacity="${op.toFixed(2)}"/>`;
+    }
+    const strokes = 2 + Math.floor(r() * 3);
+    for (let k = 0; k < strokes; k++) {
+      const x = 8 + r() * 84, top = horizon - r() * 14;
+      const col = finished ? "#3a3320" : fore;
+      const op = finished ? 0.7 : 0.22;
+      marks += `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${(0.8 + r() * 1.4).toFixed(1)}" height="${(10 + r() * 22).toFixed(1)}" fill="${col}" opacity="${op}"/>`;
+    }
+    const blur = finished ? "" : `filter="url(#b${i})"`;
+    const wash = finished ? "" : `<rect width="100" height="100" fill="#ffffff" opacity="0.5"/>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="g${i}${finished ? 'f' : 's'}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="${sky}"/>
+          <stop offset="${(horizon / 100).toFixed(2)}" stop-color="${mid}"/>
+          <stop offset="1" stop-color="${fore}"/>
+        </linearGradient>
+        <filter id="b${i}"><feGaussianBlur stdDeviation="1.3"/></filter>
+      </defs>
+      <rect width="100" height="100" fill="url(#g${i}${finished ? 'f' : 's'})"/>
+      <g ${blur}>${marks}</g>
+      ${wash}
+    </svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
+  function apComposition(k) { return composition(900 + k, true); }
+  const num = (i) => String(i + 1).padStart(3, "0");
+
+  // State
+  const state = {
+    finished: new Set(),
+    reserved: new Set(),
+    active: null,
+    confirming: false,
+    covenantOK: false,
+    ready: false,
+    justReserved: null
+  };
+
+  // Data Arrays
+  const studies = [];
+  const finals = [];
+  const aps = [apComposition(0), apComposition(1)];
+
+  function baseState(i) {
+    return state.finished.has(i) ? "finished" : i < STUDY_THROUGH ? "study" : "prestudy";
+  }
+
+  // Initialization
+  function init() {
+    document.getElementById('reserve-price').innerText = RESERVE;
+    document.getElementById('full-price').innerText = FULL.toLocaleString();
+
+    const r = rng(42);
+    for (let i = 0; i < TOTAL; i++) {
+      if (r() < 0.16) state.reserved.add(i);
+      studies.push(composition(i, false));
+      finals.push(composition(i, true));
+    }
+
+    renderLedger();
+    renderAPs();
+    renderGridStatic();
+
+    // Preload Images
+    let count = 0, alive = true;
+    const all = [...studies, ...finals, ...aps];
+    all.forEach((src) => {
+      const im = new Image();
+      const done = () => {
+        count++;
+        if (count >= all.length && alive) setReady();
+      };
+      im.onload = done; im.onerror = done; im.src = src;
+    });
+
+    const timeout = setTimeout(() => {
+      if (alive) setReady();
+    }, 1400);
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModal();
+    });
+  }
+
+  function setReady() {
+    if (state.ready) return;
+    state.ready = true;
+    document.getElementById('loading').classList.add('hidden');
+    updateGridVisuals();
+    updateAPsVisuals();
+  }
+
+  // Rendering
+  function renderLedger() {
+    const finishedCount = state.finished.size;
+    const studyCount = Math.max(0, STUDY_THROUGH - state.finished.size);
+    const renderedCount = finishedCount + studyCount;
+    const reservedCount = state.reserved.size;
+
+    document.getElementById('ledger').innerHTML = `
+      <div class="led"><b>${finishedCount}</b><span>painted</span></div>
+      <div class="led"><b>${studyCount}</b><span>in study</span></div>
+      <div class="led"><b>${TOTAL - renderedCount}</b><span>pre-study</span></div>
+      <div class="led"><b>${reservedCount}</b><span>reserved</span></div>
+      <div class="led"><b>${TOTAL - reservedCount}</b><span>available</span></div>
+    `;
+  }
+
+  function renderAPs() {
+    const strip = document.getElementById('apstrip');
+    strip.innerHTML = aps.map((src, k) => `
+      <button class="apcell" id="ap-btn-${k}" onclick="openModal('ap${k}')"
+        style="background-image: url('${src}')" aria-label="Artist's proof ${k === 0 ? 'I' : 'II'}">
+        <span class="aptag">AP ${k === 0 ? 'I' : 'II'}</span>
+      </button>
+    `).join('');
+  }
+
+  function updateAPsVisuals() {
+    [0, 1].forEach(k => {
+      const btn = document.getElementById(`ap-btn-${k}`);
+      if (state.ready) btn.classList.add('in');
+    });
+  }
+
+  function renderGridStatic() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = Array.from({ length: TOTAL }, (_, i) => {
+      const st = baseState(i);
+      const hasImage = st !== "prestudy";
+      const bg = hasImage ? `url("${st === 'finished' ? finals[i] : studies[i]}")` : "none";
+      const delay = ((i % 10) + Math.floor(i / 10)) * 13;
+      
+      return `
+        <button id="cell-${i}" class="cell ${st}" 
+          style="background-image: ${bg}; transition-delay: ${delay}ms;"
+          onclick="openModal(${i})" aria-label="Work ${num(i)}">
+          <div id="dot-container-${i}"></div>
+          <span class="cellnum">${num(i)}</span>
+        </button>
+      `;
+    }).join('');
+    
+    updateGridVisuals();
+  }
+
+  function updateGridVisuals() {
+    for (let i = 0; i < TOTAL; i++) {
+      const cell = document.getElementById(`cell-${i}`);
+      const isRes = state.reserved.has(i);
+      const st = baseState(i);
+
+      if (state.ready) cell.classList.add('in');
+      if (state.justReserved === i) cell.classList.add('pulse');
+      else cell.classList.remove('pulse');
+
+      document.getElementById(`dot-container-${i}`).innerHTML = isRes ? '<span class="dot"></span>' : '';
+      cell.setAttribute('aria-label', `Work ${num(i)} — ${st}${isRes ? ", reserved" : ", available"}`);
+    }
+  }
+
+  // Modal Functions
+  window.openModal = function(index) {
+    state.active = index;
+    state.confirming = false;
+    state.covenantOK = false;
+    renderModal();
+    document.getElementById('overlay').classList.add('active');
+  };
+
+  window.closeModal = function() {
+    state.active = null;
+    state.confirming = false;
+    state.covenantOK = false;
+    document.getElementById('overlay').classList.remove('active');
+  };
+
+  window.setConfirming = function(val) {
+    state.confirming = val;
+    renderModal();
+  };
+
+  window.toggleCovenant = function(checked) {
+    state.covenantOK = checked;
+    document.getElementById('confirm-btn').disabled = !checked;
+  };
+
+  window.doReserve = function() {
+    if (!state.covenantOK || state.active === null) return;
+    const i = state.active;
+    state.reserved.add(i);
+    state.justReserved = i;
+    
+    closeModal();
+    renderLedger();
+    updateGridVisuals();
+
+    setTimeout(() => {
+      state.justReserved = null;
+      updateGridVisuals();
+    }, 1100);
+  };
+
+  function renderModal() {
+    const isAP = typeof state.active === "string" && state.active.startsWith("ap");
+    const container = document.getElementById('modal-content');
+    let html = `<button class="x" onclick="closeModal()" aria-label="Close">CLOSE ✕</button>`;
+
+    if (isAP) {
+      const apIndex = Number(state.active.slice(2));
+      html += `
+        <div class="detail finished" style="background-image: url('${aps[apIndex]}')"></div>
+        <div class="meta">
+          <div class="meta-head">
+            <span class="meta-num">AP ${apIndex === 0 ? "I" : "II"}</span>
+            <span class="meta-state">ARTIST’S PROOF — FINISHED, OIL ON CANVAS</span>
+          </div>
+          <div class="ap-note-body">
+            One of two artist’s proofs accompanying the edition of 100. Part of the edition’s
+            record, not its inventory. Not for sale.
+          </div>
+        </div>
+      `;
+    } else {
+      const a = state.active;
+      if (a == null) return;
+      const aState = baseState(a);
+      const aRes = state.reserved.has(a);
+      
+      const bg = aState === "prestudy" ? "none" : `url("${aState === "finished" ? finals[a] : studies[a]}")`;
+      
+      let stateLabel = "";
+      if (aState === "finished") stateLabel = "FINISHED — OIL ON CANVAS";
+      if (aState === "study") stateLabel = "STUDY — AWAITING EXECUTION";
+      if (aState === "prestudy") stateLabel = "PRE-STUDY — NOT YET RENDERED";
+
+      html += `
+        <div class="detail ${aState}" style="background-image: ${bg}">
+          ${aRes ? '<span class="dot detail-dot"></span>' : ''}
+          ${aState === "prestudy" ? `<span class="detail-prenum">${num(a)}</span>` : ''}
+        </div>
+        <div class="meta">
+          <div class="meta-head">
+            <span class="meta-num">${num(a)} / 100</span>
+            <span class="meta-state">${stateLabel}</span>
+          </div>
+      `;
+
+      if (aRes) {
+        html += `
+          <div class="reserved-note"><span class="dot small"></span> Reserved. This work is off the market.</div>
+        `;
+      } else if (!state.confirming) {
+        html += `
+          <div class="reservebox">
+            <div class="price">
+              <div class="price-big">$${RESERVE}<span>deposit</span></div>
+              <div class="price-line">$${RESERVE} deposit + $${(FULL - RESERVE).toLocaleString()} balance = $${FULL.toLocaleString()} total</div>
+              <div class="price-note">Balance due in full before delivery of the finished painting.</div>
+            </div>
+            <button class="reserve" onclick="setConfirming(true)">RESERVE № ${num(a)}</button>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="confirm">
+            <p class="cov-title">THE COCA COVENANT</p>
+            <p class="cov-text">
+              This work is governed by the CoCA resale covenant. Fifty percent of any future
+              resale remits to the artists, in perpetuity, running with the object. The covenant
+              is part of the work. By reserving, you accept it as a condition of acquiring the piece.
+            </p>
+            <label class="agree">
+              <input type="checkbox" onchange="toggleCovenant(this.checked)" ${state.covenantOK ? 'checked' : ''} />
+              <span>I accept the covenant and reserve № ${num(a)} for $${RESERVE}.</span>
+            </label>
+            <div class="confirm-row">
+              <button class="ghost" onclick="setConfirming(false)">BACK</button>
+              <button class="reserve" id="confirm-btn" ${!state.covenantOK ? 'disabled' : ''} onclick="doReserve()">CONFIRM</button>
+            </div>
+          </div>
+        `;
+      }
+      html += `</div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  // Boot the app
+  init();
+</script>
+
+</body>
+</html>
