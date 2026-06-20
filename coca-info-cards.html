@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CoCA — Catechism Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Marcellus+SC&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style id="sheet">
+  :root{
+    --bone:#EAE3D5;--bone-2:#E3DBC9;--ink:#17120D;--ash:#6E6557;
+    --oxblood:#E61C28;--hair:rgba(23,18,13,.20);
+    --slide-w:1080px;--slide-h:1350px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:#22201b;color:var(--ink);font-family:"EB Garamond",Georgia,serif;-webkit-font-smoothing:antialiased;min-height:100vh;}
+
+  /* chrome */
+  .bar{position:sticky;top:0;z-index:30;background:rgba(18,15,11,.94);
+    border-bottom:1px solid rgba(234,227,213,.14);backdrop-filter:saturate(120%) blur(4px);padding:10px 14px 8px;}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .row + .row{margin-top:8px;}
+  .brand{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;color:#cfc6b4;text-transform:uppercase;margin-right:auto;line-height:1.5;}
+  .brand b{color:#efe7d6;font-weight:500;}
+  .lab{font-family:"Marcellus SC",serif;color:#e7dfce;font-size:14px;letter-spacing:.06em;}
+  .count{font-family:"Marcellus SC",serif;color:#cfc6b4;font-size:13px;letter-spacing:.14em;min-width:70px;text-align:center;}
+  button.ctrl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:#1d1810;background:#cfc6b4;border:1px solid #cfc6b4;border-radius:2px;padding:7px 11px;cursor:pointer;transition:background .15s,color .15s,opacity .15s;}
+  button.ctrl.ghost{background:transparent;color:#cfc6b4;}
+  button.ctrl.acc{background:var(--oxblood);border-color:var(--oxblood);color:#f7efe0;}
+  button.ctrl:hover{background:#efe7d6;color:#15110b;}
+  button.ctrl.ghost:hover{background:rgba(207,198,180,.16);color:#efe7d6;}
+  button.ctrl.acc:hover{background:#a32016;color:#fff;}
+  button.ctrl:disabled{opacity:.4;cursor:default;}
+  button.ctrl:focus-visible,.chip:focus-visible,.dot:focus-visible,.mini:focus-visible{outline:2px solid #d9a;outline-offset:2px;}
+  .sep{width:1px;height:20px;background:rgba(234,227,213,.18);}
+
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:9px 14px 11px;background:rgba(18,15,11,.6);border-bottom:1px solid rgba(234,227,213,.10);scrollbar-width:thin;}
+  .chip{flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.04em;color:#bdb4a2;background:transparent;
+    border:1px solid rgba(189,180,162,.4);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+  .chip:hover{border-color:#cfc6b4;color:#efe7d6;}
+  .chip[aria-current="true"]{background:var(--oxblood);border-color:var(--oxblood);color:#f7efe0;}
+
+  /* stage */
+  .stage{max-width:980px;margin:0 auto;padding:16px 10px 10px;}
+  .viewport{position:relative;width:100%;overflow:hidden;border-radius:4px;box-shadow:0 26px 60px rgba(0,0,0,.45);}
+  .scaler{position:absolute;top:0;left:0;transform-origin:top left;}
+  .track{display:flex;will-change:transform;}
+  .slide{flex:0 0 var(--slide-w);width:var(--slide-w);height:var(--slide-h);background:var(--bone);position:relative;overflow:hidden;isolation:isolate;padding:74px 82px;display:flex;flex-direction:column;}
+  .slide::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(23,18,13,.06), inset 0 0 120px rgba(120,96,40,.05);z-index:2;}
+  .ghost{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;object-fit:cover;}
+  .eyebrow,.body,.colophon{position:relative;z-index:1;}
+  .fit{width:100%;}
+
+  .eyebrow{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding-bottom:20px;border-bottom:1.5px solid var(--hair);}
+  .eyebrow .mark{font-family:"Marcellus SC",serif;font-size:24px;letter-spacing:.16em;color:var(--ink);line-height:1.3;}
+  .eyebrow .num{font-family:"Marcellus SC",serif;font-size:31px;letter-spacing:.08em;color:var(--oxblood);white-space:nowrap;}
+  .colophon{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding-top:20px;border-top:1.5px solid var(--hair);}
+  .colophon .url{font-family:"IBM Plex Mono",monospace;font-size:25px;color:var(--ink);}
+  .colophon .tense{font-family:"Marcellus SC",serif;font-size:19px;letter-spacing:.14em;color:var(--ash);text-transform:uppercase;white-space:nowrap;}
+
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;font-size:var(--base,30px);}
+  .display{font-family:"Cormorant Garamond",serif;font-weight:600;color:var(--ink);font-size:4.35em;line-height:0.98;letter-spacing:-.01em;}
+  .display.sm{font-size:3.05em;line-height:1.03;}
+  .kicker{font-family:"Marcellus SC",serif;font-size:0.92em;letter-spacing:.2em;color:var(--ash);text-transform:uppercase;margin-bottom:0.85em;}
+  .cover .kicker{font-size:1.08em;}
+  .lede{font-family:"EB Garamond",serif;font-size:1.7em;line-height:1.2;color:var(--ink);margin-top:0.95em;}
+  .prose{font-family:"EB Garamond",serif;font-size:1.35em;line-height:1.3;color:var(--ink);margin-top:0.8em;}
+  .prose:first-child{margin-top:0;}
+  .gloss{font-family:"IBM Plex Mono",monospace;font-size:0.9em;line-height:1.5;color:var(--ash);}
+  .scripture{padding-left:0.62em;border-left:6px solid var(--oxblood);margin-bottom:0.13em;}
+  .scripture q{quotes:none;display:block;font-family:"Cormorant Garamond",serif;font-weight:600;font-size:2.55em;line-height:1.1;color:var(--ink);}
+  .scripture .src{display:block;margin-top:0.7em;font-family:"Marcellus SC",serif;font-size:0.62em;letter-spacing:.14em;text-transform:uppercase;color:var(--oxblood);}
+  .scripture + .prose{margin-top:1.1em;}
+  .emblem{display:block;}
+  .cover .emblem{width:12.6em;height:6.22em;margin:0 auto 0.85em;}
+  .door .urlbox{margin-top:1.0em;padding:0.7em 0.85em;border:1.5px solid var(--ink);}
+  .door .urlbox span{font-family:"IBM Plex Mono",monospace;font-size:1.0em;line-height:1.5;color:var(--ink);word-break:break-word;}
+  .door .urlbox .path{border-bottom:3px solid var(--oxblood);padding-bottom:3px;}
+  .door .emblem{width:8.2em;height:4.05em;margin:1.0em auto 0;}
+
+  .dots{display:flex;justify-content:center;align-items:center;gap:11px;padding:18px 0 8px;}
+  .dot{width:9px;height:9px;border-radius:50%;border:1px solid #b9b0a0;background:transparent;padding:0;cursor:pointer;transition:all .2s;}
+  .dot[aria-current="true"]{background:var(--oxblood);border-color:var(--oxblood);transform:scale(1.25);}
+  .hint{text-align:center;color:#9a9182;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:6px 0 10px;}
+
+  .slide.active .body > *{animation:rise .6s cubic-bezier(.2,.7,.2,1) both;}
+  .slide.active .body > *:nth-child(2){animation-delay:.05s;}
+  .slide.active .body > *:nth-child(3){animation-delay:.1s;}
+  .slide.active .body > *:nth-child(4){animation-delay:.15s;}
+  @keyframes rise{from{opacity:0;transform:translateY(13px);}to{opacity:1;transform:none;}}
+  body.editing .slide.active .body > *{animation:none !important;}
+  @media (prefers-reduced-motion: reduce){.track{transition:none !important;}.slide.active .body > *{animation:none !important;}}
+
+  /* editor */
+  #editor{max-width:980px;margin:0 auto;padding:4px 16px 70px;color:#e7dfce;}
+  #editor[hidden]{display:none;}
+  .ed-h{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(234,227,213,.16);padding:10px 0;margin-bottom:14px;}
+  .ed-h .t{font-family:"Marcellus SC",serif;letter-spacing:.1em;font-size:16px;color:#efe7d6;}
+  .ed-sec{border:1px solid rgba(234,227,213,.14);border-radius:6px;padding:14px;margin-bottom:14px;background:rgba(255,255,255,.02);}
+  .ed-sec > .cap{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#b6ad9b;margin-bottom:12px;}
+  .ed-sec > .cap b{color:#e7dfce;font-weight:500;}
+  .f{margin-bottom:12px;}
+  .f-label{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#aaa093;margin-bottom:5px;}
+  .f-input,.f-area,.f-select{width:100%;background:#14110c;border:1px solid rgba(234,227,213,.22);border-radius:4px;color:#f1ead9;font-family:"EB Garamond",serif;font-size:16px;padding:9px 11px;}
+  .f-area{line-height:1.4;resize:vertical;min-height:62px;}
+  .f-select{font-family:"IBM Plex Mono",monospace;font-size:13px;text-transform:uppercase;letter-spacing:.06em;}
+  .f-input:focus,.f-area:focus,.f-select:focus{outline:2px solid var(--oxblood);outline-offset:1px;border-color:var(--oxblood);}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .mini{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:#cfc6b4;border:1px solid rgba(207,198,180,.4);border-radius:3px;padding:7px 10px;cursor:pointer;transition:all .15s;}
+  .mini:hover{border-color:#cfc6b4;color:#efe7d6;}
+  .mini.danger{color:#df9b8e;border-color:rgba(180,60,40,.5);}
+  .mini.danger:hover{background:rgba(138,26,18,.25);color:#f3c;color:#f6d3cb;}
+  .mini.solid{background:#cfc6b4;color:#1d1810;border-color:#cfc6b4;}
+  .mini.solid:hover{background:#efe7d6;}
+  .para{display:flex;gap:8px;align-items:stretch;margin-bottom:8px;}
+  .para .f-area{flex:1;min-height:54px;}
+  .pbtns{display:flex;flex-direction:column;gap:4px;}
+  .pbtns .mini{padding:4px 8px;}
+  .urlhint{font-family:"IBM Plex Mono",monospace;font-size:12px;color:#9a9182;word-break:break-all;margin-top:-4px;margin-bottom:6px;}
+  .note{font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.6;color:#8f8678;margin-top:8px;}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(18,15,11,.96);color:#efe7d6;font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;padding:10px 16px;border-radius:3px;border:1px solid rgba(234,227,213,.18);opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+  <div id="app-root"></div>
+  <script type="application/json" id="coca-data">[]</script>
+  <script id="app">
+(function(){
+  const SLIDE_W=1080, SLIDE_H=1350, SITE='whatisthe.churchofconceptualart.org', LS_KEY='coca:catechisms:v1';
+
+  function rom(n){ if(n<1) return ''+n; const t=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let s=''; for(let k=0;k<t.length;k++){ while(n>=t[k][0]){s+=t[k][1];n-=t[k][0];} } return s; }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function slug(s){ return (s||'item').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'item'; }
+
+  /* ---- skeleton (reused for download) ---- */
+  const SK = ''
+   + '<div class="bar">'
+   +   '<div class="row">'
+   +     '<div class="brand">CoCA · Catechism Builder · <b>'+SITE+'</b> · 1080×1350</div>'
+   +     '<button class="ctrl ghost" id="prevCat" aria-label="Previous catechism">&lsaquo; Catechism</button>'
+   +     '<div class="lab" id="catLab"></div>'
+   +     '<button class="ctrl ghost" id="nextCat" aria-label="Next catechism">Catechism &rsaquo;</button>'
+   +   '</div>'
+   +   '<div class="row">'
+   +     '<button class="ctrl ghost" id="prevCard" aria-label="Previous card">&lsaquo;</button>'
+   +     '<div class="count" id="cardCount"></div>'
+   +     '<button class="ctrl ghost" id="nextCard" aria-label="Next card">&rsaquo;</button>'
+   +     '<div class="sep"></div>'
+   +     '<button class="ctrl acc" id="editBtn">Edit &#9998;</button>'
+   +     '<div class="sep"></div>'
+   +     '<button class="ctrl" id="dlCard">Card PNG</button>'
+   +     '<button class="ctrl ghost" id="dlCat">This .zip</button>'
+   +     '<button class="ctrl ghost" id="dlAll">All .zip</button>'
+   +   '</div>'
+   + '</div>'
+   + '<div class="chips" id="chips"></div>'
+   + '<div class="stage">'
+   +   '<div class="viewport" id="viewport"><div class="scaler" id="scaler"><div class="track" id="track"></div></div></div>'
+   +   '<div class="dots" id="dots" role="tablist" aria-label="Cards"></div>'
+   +   '<div class="hint">swipe cards · &lsaquo; Catechism &rsaquo; changes topic · tap Edit to change the words</div>'
+   + '</div>'
+   + '<section id="editor" hidden>'
+   +   '<div class="ed-h"><span class="t">Edit template</span><button class="mini" id="edClose">Done</button></div>'
+   +   '<div class="ed-sec"><div class="cap">Catechism — <b id="edCatPos"></b></div><div id="edCatBody"></div>'
+   +     '<div class="btns">'
+   +       '<button class="mini" id="catAdd">+ Catechism</button>'
+   +       '<button class="mini" id="catDup">Duplicate</button>'
+   +       '<button class="mini" id="catUp">&uarr; Up</button>'
+   +       '<button class="mini" id="catDown">&darr; Down</button>'
+   +       '<button class="mini danger" id="catDel">Delete</button>'
+   +     '</div></div>'
+   +   '<div class="ed-sec"><div class="cap">Card — <b id="edCardPos"></b></div><div id="edCardBody"></div>'
+   +     '<div class="btns">'
+   +       '<button class="mini" id="cardAdd">+ Card</button>'
+   +       '<button class="mini" id="cardLeft">&#9664; Move</button>'
+   +       '<button class="mini" id="cardRight">Move &#9654;</button>'
+   +       '<button class="mini danger" id="cardDel">Delete</button>'
+   +     '</div></div>'
+   +   '<div class="ed-sec"><div class="cap">Template &amp; site</div>'
+   +     '<div class="btns">'
+   +       '<button class="mini solid" id="dlSite">Download site (.html)</button>'
+   +       '<button class="mini" id="exJson">Export .json</button>'
+   +       '<button class="mini" id="imJson">Import .json</button>'
+   +       '<button class="mini danger" id="resetBtn">Reset</button>'
+   +     '</div>'
+   +     '<p class="note" id="storeNote"></p>'
+   +     '<input type="file" id="importFile" accept="application/json,.json" hidden>'
+   +   '</div>'
+   + '</section>'
+   + '<div class="toast" id="toast"></div>';
+
+  /* ---- default content: the ten catechisms ---- */
+  const DEFAULT_C = [
+    {num:"01",short:"Readymade",theme:"The Readymade",sub:"Through Duchamp\u2019s urinal, 1917.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",p:["In 1917 Marcel Duchamp submitted a porcelain urinal \u2014 signed \u201cR. Mutt\u201d \u2014 to a New York show that had promised to exhibit anything sent in. The committee hid it.","The object never changed. Only its title and its place did. <i>Fountain</i> became the founding proof that to choose and name a thing can be the whole of the art."]},
+      {t:"ex",k:"Through CoCA",q:"The same urinal is plumbing or sacrament, depending on the wall text.",p:["CoCA names the readymade its Ur-Sacrament. If the label \u2014 not the porcelain \u2014 makes the work, then the wall text is the liturgy, and whoever writes it is running a church."]},
+      {t:"door",k:"Read it on the site",title:"The Readymade",sub:"Lexicon \u00b7 \u00a71.3.4",path:"lexicon/readymade.html"}]},
+
+    {num:"02",short:"Wall Text",theme:"The Wall Text",sub:"Through the label that makes a thing sacred.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",p:["Why is Warhol\u2019s <i>Brillo Box</i> art when the identical grocery carton is not? The philosopher Arthur Danto answered: an unseen \u201cartworld\u201d of theory surrounds the one and not the other.","Frege had shown the shape of it \u2014 the morning star and the evening star are one planet under two senses. Same object; different description."]},
+      {t:"ex",k:"Through CoCA",q:"The description under which an act becomes sacrament.",p:["For CoCA the description is the rite. The wall text turns an object into an offering; strip it away and the thing is plumbing again. The institution exists to keep writing it."]},
+      {t:"door",k:"Read it on the site",title:"The Wall Text",sub:"Lexicon",path:"lexicon/wall-text.html"}]},
+
+    {num:"03",short:"Indulgence",theme:"The Indulgence",sub:"Through a Church that sold an idea, on paper.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",q:"As soon as the coin in the coffer rings, a soul from purgatory springs.",src:"Tetzel\u2019s jingle \u00b7 c. 1517",p:["In 1517 the friar Johann Tetzel sold indulgences \u2014 paper certificates promising release from purgatory \u2014 to fund St. Peter\u2019s in Rome. Once handwritten, Gutenberg\u2019s press let them print by the thousand. Luther\u2019s protest became the Reformation."]},
+      {t:"ex",k:"Through CoCA",p:["The certificate never touched the soul. It changed the soul\u2019s <i>standing</i> \u2014 moved it from one jurisdiction to another.","CoCA calls this the Mechanism: not the object, but a document that alters what the object is. Baptism is the analogy. The covenant is the instrument."]},
+      {t:"door",k:"Read it on the site",title:"The Mechanism",sub:"Doctrine \u00b7 institution, covenant, signature",path:"doctrine/mechanism.html"}]},
+
+    {num:"04",short:"Immaterial",theme:"The Immaterial",sub:"Through art you cannot see, sold for gold.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",p:["From 1959 Yves Klein sold \u201cZones of Immaterial Pictorial Sensibility\u201d \u2014 empty space \u2014 paid for in gold leaf. To complete the work, the buyer burned the receipt while Klein threw half the gold into the Seine, before witnesses.","Eight were sold. The receipt even forbade reselling the zone for more than double its price."]},
+      {t:"ex",k:"Through CoCA",q:"The covenant runs with the object. It cannot be undone.",p:["Klein\u2019s true artwork was the condition attached to nothing at all. CoCA builds on it: the artifact is only the carrier; the binding covenant \u2014 permanent, passing to every future owner \u2014 is the work."]},
+      {t:"door",k:"Read it on the site",title:"The Covenant",sub:"Lexicon \u00b7 the unseverable condition",path:"lexicon/covenant.html"}]},
+
+    {num:"05",short:"Instruction",theme:"The Instruction",sub:"Through art made of directions, not objects.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",q:"The idea becomes a machine that makes the art.",src:"Sol LeWitt \u00b7 1967",p:["LeWitt\u2019s wall drawings are not paintings but instructions \u2014 \u201cplace fifty points at random\u201d \u2014 executed by anyone and sold as a certificate. The hand is only a conduit; the concept is the work."]},
+      {t:"ex",k:"Through CoCA",p:["If the certificate is the art, the artist\u2019s real product is a covenant-bound instrument, not an object.","CoCA\u2019s artifacts work this way \u2014 and so does its liturgy. The doctrine is open; the gathering can be run by anyone who keeps the rite."]},
+      {t:"door",k:"Read it on the site",title:"The Artifacts",sub:"Doctrine \u00b7 covenant-bound instruments",path:"doctrine/artifacts.html"}]},
+
+    {num:"06",short:"Institution",theme:"The Institution",sub:"Through artists who built their own room.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",p:["In 1874 painters refused by the Salon built their own exhibition instead of begging entry \u2014 and were named the Impressionists.","In 1968 Marcel Broodthaers went further: he made himself director of a <i>fictional</i> museum, the D\u00e9partement des Aigles \u2014 vitrines of eagles, each labelled \u201cThis is not a work of art.\u201d"]},
+      {t:"ex",k:"Through CoCA",q:"The institution precedes the work.",p:["Both made the institution itself the medium. CoCA takes the last step: build the room, then declare it consecrated ground. The frame outlasts any object \u2014 so make the frame permanent and call it a church."]},
+      {t:"door",k:"Read it on the site",title:"Lineage",sub:"Doctrine \u00b7 the line from 1874 forward",path:"doctrine/lineage.html"}]},
+
+    {num:"07",short:"Aura",theme:"The Aura",sub:"Through what a copy can never reproduce.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",p:["In 1935 Walter Benjamin argued that mechanical reproduction strips an artwork of its \u201caura\u201d \u2014 the unique presence of the original, here and now.","The photograph, the print, the endless copy: each loosens the thing from the ritual place that once made it singular."]},
+      {t:"ex",k:"Through CoCA",q:"The aura is the unique pressure of the time we spent.",p:["CoCA inverts the loss. It calls the cure Etheraurarity: don\u2019t mourn the lost halo \u2014 make a new one out of attention, and share it lightly. Care, not scarcity, consecrates."]},
+      {t:"door",k:"Read it on the site",title:"Benjamin \u2192 Etheraurarity",sub:"Lexicon \u00b7 the genealogy",path:"lexicon/benjamin.html"}]},
+
+    {num:"08",short:"Author",theme:"The Author",sub:"Through the death of the signature \u2014 and its return.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",q:"The birth of the reader must be at the cost of the death of the Author.",src:"Roland Barthes \u00b7 1967",p:["Barthes deposed the author: a text\u2019s meaning is made by the reader, not dictated by the one who wrote it. To free the work, release the name."]},
+      {t:"ex",k:"Through CoCA",p:["CoCA signs in the third person \u2014 \u201cthe Provisional Collective\u201d \u2014 and leaves the wall text nameless.","Yet it keeps one signature: its own honesty. Its ethic is congruence, not goodness \u2014 it does not pretend the fiction is fact; it makes the fiction and signs its name."]},
+      {t:"door",k:"Read it on the site",title:"Ethics",sub:"Doctrine \u00b7 congruence, not goodness",path:"doctrine/ethics.html"}]},
+
+    {num:"09",short:"Simulacrum",theme:"The Simulacrum",sub:"Through the brand that is realer than the thing.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",p:["In 1981 Jean Baudrillard described the simulacrum: a copy with no original. The map comes before the territory; the logo grows more present than the product; the image swallows the real."]},
+      {t:"ex",k:"Through CoCA",q:"Every great thinker, reduced to a bullet point.",p:["CoCA names the condition Corporate Realism \u2014 the sacred replaced by branded culture \u2014 and refuses to lament it. It performs it honestly: the soda can treated as the host. Re-enchant correctly, and sign the name."]},
+      {t:"door",k:"Read it on the site",title:"Corporate Realism",sub:"Lexicon \u00b7 the diagnosis",path:"lexicon/corporate-realism.html"}]},
+
+    {num:"10",short:"Open Feed",theme:"The Open Feed",sub:"Through speech that slips past the filter.",cards:[
+      {t:"cover"},
+      {t:"ex",k:"The history",p:["When China\u2019s censors blocked a curse, netizens answered with its near-homophone: the \u201cgrass-mud horse\u201d (c\u01ceon\u00edm\u01ce), a fictional alpaca that battles the \u201criver crab\u201d \u2014 h\u00e9xi\u00e8, a pun on \u201charmony,\u201d the watchword for censorship.","The same instinct drives \u201cunalive\u201d and the watermelon emoji on today\u2019s feeds: language bending to survive the filter."]},
+      {t:"ex",k:"Through CoCA",q:"A machine for remembering the present tense.",p:["CoCA calls its record the Table of Witness \u2014 kept, it says, \u201cfor the ones not yet born,\u201d so someone in 2083 might whisper: <i>they left us coordinates</i>. The feed becomes a liturgy of what was said while it could still be said."]},
+      {t:"door",k:"Read it on the site",title:"The Table of Witness",sub:"Community \u00b7 the record that remembers",path:"table-of-witness.html"}]}
+  ];
+
+  /* ---- mount + state ---- */
+  document.getElementById('app-root').innerHTML = SK;
+  const $ = function(id){ return document.getElementById(id); };
+  const viewport=$('viewport'), scaler=$('scaler'), track=$('track'), chipsEl=$('chips'),
+        dotsEl=$('dots'), catLab=$('catLab'), cardCount=$('cardCount'), toastEl=$('toast'),
+        editor=$('editor'), editBtn=$('editBtn'),
+        edCatPos=$('edCatPos'), edCatBody=$('edCatBody'), edCardPos=$('edCardPos'), edCardBody=$('edCardBody'),
+        storeNote=$('storeNote'), importFile=$('importFile');
+
+  let storageOK=true;
+  function bakedOrDefault(){
+    try{ const el=$('coca-data'); if(el){ const a=JSON.parse((el.textContent||'').trim()||'[]'); if(Array.isArray(a)&&a.length) return JSON.parse(JSON.stringify(a)); } }catch(e){}
+    return JSON.parse(JSON.stringify(DEFAULT_C));
+  }
+  function load(){
+    try{ const s=localStorage.getItem(LS_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)&&a.length) return a; } }catch(e){ storageOK=false; }
+    return bakedOrDefault();
+  }
+  let C = load(), cat=0, card=0;
+  function save(){ if(!storageOK) return; try{ localStorage.setItem(LS_KEY, JSON.stringify(C)); }catch(e){ storageOK=false; } }
+  function renumber(){ for(let i=0;i<C.length;i++) C[i].num = pad(i+1); }
+
+  /* ---- the CoCA logo (from the homepage), cropped to its bounding box ---- */
+  const LOGO_P1='M527.958252,576.125183 C504.333221,582.080933 481.118591,588.082642 457.298981,590.982178 C436.247467,593.544861 415.427948,592.832764 395.406311,584.556946 C366.136932,572.458679 350.315125,549.993958 344.682343,519.489624 C341.738739,503.548553 343.381378,487.662262 344.953156,471.762421 C345.048981,470.793274 345.532227,469.812561 344.332001,468.321472 C337.904938,470.096741 330.955017,469.410858 326.232788,477.325134 C316.094269,494.317047 305.753448,511.327332 292.265717,526.014099 C277.232910,542.383301 261.285339,557.716248 241.287827,568.093506 C236.693176,570.477844 231.892227,572.428467 226.773239,573.303284 C208.225571,576.473145 193.647842,564.310425 192.631165,545.459534 C191.542709,525.277344 197.554092,506.870392 206.710876,489.489014 C224.975220,454.819794 249.410904,425.169342 281.071136,401.794159 C291.742523,393.915283 303.307434,387.724152 316.560242,385.277313 C320.866364,384.482300 325.191864,384.387848 329.463287,385.344177 C343.622314,388.514252 350.791656,398.714050 350.123688,414.608307 C349.662750,425.576782 346.226929,435.827484 342.545837,446.022064 C341.595917,448.652802 340.128174,451.142609 340.118347,454.060608 C345.943298,455.019135 348.724640,453.212585 350.397583,446.892456 C357.276306,420.905212 368.113770,396.576355 382.486053,373.995789 C419.011322,316.610321 465.751587,269.724884 526.316345,237.726852 C545.888245,227.386459 566.703186,220.528137 589.314880,220.728470 C612.110046,220.930450 626.373535,239.233521 620.317322,261.183929 C617.257141,272.275452 611.299194,281.894379 603.403015,290.266998 C600.859924,292.963531 597.772522,294.956238 594.388611,296.448303 C584.586182,300.770508 576.385803,295.004242 576.993347,284.242920 C577.743896,270.948914 588.342346,259.115936 601.437561,256.951447 C606.893188,256.049683 608.785339,252.881622 607.071655,247.518066 C605.406189,242.305664 601.203369,239.342087 594.674866,239.395844 C584.056702,239.483261 574.516418,243.519669 565.341003,248.337357 C540.221558,261.526794 519.601379,280.432007 500.265289,300.762299 C480.719421,321.313141 463.000854,343.406372 447.513641,367.201599 C426.030365,400.209534 408.320343,434.955383 400.044250,473.833099 C395.750092,494.005371 394.876648,514.131897 403.313507,533.623047 C412.256226,554.282776 428.863983,564.733948 450.363647,568.778503 C476.049591,573.610474 501.028748,568.607361 525.995789,563.636475 C562.211243,556.426147 597.590088,545.590393 633.845276,538.526917 C634.622498,538.375549 635.333313,537.883667 636.003174,537.582947 C636.305481,535.531616 634.802063,534.677429 633.747803,533.804382 C618.173462,520.907288 612.634399,503.582245 611.970215,484.205902 C611.837402,480.333221 610.593506,478.402710 606.876465,476.877045 C594.309021,471.718811 582.956482,464.460724 572.648499,455.577850 C567.009216,450.718231 566.985840,450.790100 561.728882,456.277313 C547.368530,471.266388 531.965515,484.993225 513.177795,494.252991 C501.065979,500.222534 488.380707,503.942871 474.589539,501.386658 C459.310913,498.554718 449.282593,488.744202 446.536682,473.401794 C444.516815,462.115967 445.320099,451.137390 451.481354,441.072998 C458.888214,428.973907 473.308289,423.756042 485.617340,428.630371 C493.848389,431.889862 498.234924,438.441681 498.073822,447.235718 C497.920074,455.629456 493.730103,461.325989 485.317078,464.403778 C480.631805,466.117767 475.819916,467.507507 471.207336,469.391663 C467.234772,471.014435 463.441376,473.541077 463.597961,478.335114 C463.765503,483.464478 467.225922,486.753265 471.879120,488.637177 C481.718445,492.620758 491.466003,491.431396 501.076233,487.814606 C516.678406,481.942780 529.266113,471.521027 541.405823,460.541473 C546.587036,455.855408 551.173340,450.516846 556.264099,445.723480 C559.100098,443.053223 559.267517,440.911774 557.057373,437.638733 C553.150024,431.852478 549.411377,425.912170 546.564087,419.487366 C541.272034,407.546112 544.175537,397.247986 555.020508,389.929901 C568.331726,380.947662 582.861145,379.458099 598.048828,383.602142 C607.104614,386.072998 604.767761,387.696014 611.632385,379.567871 C638.664795,347.559875 667.606873,317.415009 699.305664,289.999634 C711.910461,279.098053 724.906311,268.596863 740.657837,262.343658 C743.267761,261.307587 746.030396,260.545593 748.791809,260.025391 C754.039673,259.036774 756.351624,261.550720 754.339783,266.447388 C751.686462,272.905792 748.651306,279.226410 745.459595,285.441589 C715.918457,342.967560 688.943481,401.662170 664.987305,461.735107 C663.781433,464.758881 662.231201,467.706207 661.760071,471.688538 C669.691162,470.437714 675.930481,466.831238 681.780151,462.440125 C688.207336,457.615479 693.709961,451.776154 699.027832,445.810303 C701.640808,442.878815 703.595276,442.016388 706.738037,445.110199 C709.505371,447.834473 710.820496,449.692902 707.339172,453.112976 C698.178589,462.112213 689.282959,471.358826 677.720642,477.400696 C672.383850,480.189423 666.848389,482.443512 660.858582,483.360901 C657.765320,483.834656 656.113342,485.223816 656.322327,488.646790 C657.761780,512.226868 670.264709,533.833313 694.436768,541.396240 C708.532288,545.806396 722.705994,545.485107 736.819824,542.007935 C766.857178,534.607788 796.633179,526.071960 826.991760,520.077637 C849.811279,515.571838 872.630493,509.612823 895.899963,509.238434 C936.125671,508.591278 972.638000,520.603821 1004.133606,546.340210 C1008.193970,549.658081 1012.241882,552.983276 1015.897156,557.164307 C1013.549622,558.159973 1012.546204,556.696899 1011.347656,556.025818 C987.855957,542.872253 962.794006,540.643738 936.878540,545.834717 C928.930725,547.426697 922.384583,552.515564 916.112732,557.484741 C912.657593,560.222229 910.356323,560.020325 907.300781,556.867126 C886.405884,535.304199 860.052124,531.115417 831.782959,533.910583 C805.762207,536.483398 781.270508,545.467529 756.348877,552.619446 C739.374451,557.490601 722.225708,561.530823 704.531982,562.781677 C695.968567,563.386963 687.338562,562.910095 679.347656,560.122681 C670.075500,556.888367 660.797485,556.366760 651.359070,557.420166 C640.409241,558.642395 629.416504,558.118530 618.446350,559.037048 C596.486877,560.875610 575.004028,565.170959 553.583435,569.982056 C545.148560,571.876587 536.764282,573.996521 527.958252,576.125183 M718.416382,297.980682 C722.293640,292.076721 726.170898,286.172760 730.048157,280.268768 C724.403198,282.998505 719.371582,286.215698 714.654236,289.841644 C677.906982,318.086884 648.886536,353.813080 619.045471,388.745667 C616.671814,391.524292 617.501465,393.394562 620.076172,395.319489 C626.660522,400.242279 632.176758,406.230377 637.195190,412.712189 C638.582031,414.503418 639.207397,416.955780 642.152100,418.256927 C666.081970,377.515472 691.865234,337.931427 718.416382,297.980682 M311.235931,476.768585 C312.453308,474.637238 314.182220,472.734192 314.352600,469.444397 C301.554993,464.528778 288.963867,458.871521 281.664703,446.508942 C278.911407,447.067291 278.083649,448.784149 277.061157,450.264954 C272.994629,456.154236 268.841614,461.987305 264.911591,467.966705 C255.082535,482.921234 246.502991,498.501282 242.791351,516.230103 C241.463974,522.570312 241.331024,529.266479 247.162064,533.623047 C252.680847,537.746338 258.271881,535.020813 263.477905,532.044495 C267.251984,529.886719 270.649994,527.215454 273.894897,524.327576 C289.009033,510.876526 300.094055,494.260773 311.235931,476.768585 M581.589233,433.068848 C579.883362,435.107330 578.272217,437.235901 576.444580,439.158539 C574.672668,441.022491 574.843384,442.422333 576.675049,444.173859 C586.626099,453.689392 597.713867,461.436829 610.487366,466.740173 C613.990784,468.194733 615.892212,467.357117 617.588806,463.994965 C622.456177,454.349640 627.629578,444.859070 632.631836,435.281158 C633.349243,433.907440 634.776794,432.621704 633.594299,430.441315 C627.347229,429.734406 620.950623,428.814209 614.521057,428.342224 C608.889771,427.928864 603.803772,426.945679 600.188782,421.936157 C598.926270,420.186615 597.462952,418.108185 594.521790,417.786804 C590.414001,422.652740 586.240234,427.596863 581.589233,433.068848 M315.794525,455.619629 C321.787720,457.606384 322.791168,457.266663 325.461700,451.607574 C327.515778,447.254913 329.436615,442.831177 331.217468,438.359711 C334.338501,430.523163 335.713837,422.381866 334.646393,413.960785 C333.580414,405.551300 327.115540,401.638428 319.188171,404.442596 C310.549652,407.498322 303.853241,412.991730 299.143433,420.796783 C293.313507,430.458069 294.183716,440.088104 301.551575,447.243256 C305.386597,450.967529 309.738861,454.012360 315.794525,455.619629 M575.647461,423.153961 C579.287354,418.720947 582.927246,414.287933 586.885986,409.466614 C580.475586,405.352173 574.092712,403.816498 567.450134,403.409973 C561.620667,403.053223 558.771667,405.661743 558.387939,411.501007 C557.855408,419.605927 562.851685,425.292084 566.824219,431.657745 C570.819092,429.533691 572.615967,426.204956 575.647461,423.153961 z';
+  const LOGO_P2='M273.324036,330.359131 C251.641266,345.294617 232.914825,362.983002 215.601105,382.237701 C181.021378,420.694031 152.139069,462.825134 133.507050,511.367371 C124.756187,534.166077 118.218132,557.592163 120.307610,582.430786 C122.656395,610.351868 137.071030,633.815735 169.285156,640.916870 C186.972351,644.815735 204.665070,643.817505 222.366776,641.329468 C250.248535,637.410522 277.387146,630.066101 304.664703,623.351990 C332.920410,616.397156 361.195709,609.415222 390.014282,605.205566 C412.575684,601.909851 435.228546,599.811829 458.152679,601.556946 C496.637909,604.486511 529.402161,620.647522 559.368347,643.806274 C569.396484,651.556213 579.382202,659.325256 587.771484,668.906372 C588.793335,670.073425 590.489075,670.947205 590.204468,673.014526 C588.200134,673.922180 587.105957,672.260193 585.821228,671.436707 C560.035095,654.907043 531.681763,646.936829 501.212585,646.373474 C480.390106,645.988464 462.700043,652.938049 449.596558,669.794678 C449.210846,670.290894 448.601257,670.613037 448.253265,670.890808 C446.550903,670.973022 446.008118,669.861084 445.394745,668.895813 C431.788300,647.483643 411.095093,637.617676 387.086884,633.359314 C364.158142,629.292480 341.340057,631.569519 318.545105,634.939819 C288.533295,639.377075 259.347534,647.514404 229.891006,654.448853 C205.268448,660.245361 180.599106,666.131958 155.066757,665.225891 C125.294044,664.169312 99.595032,654.083862 81.891167,628.844421 C67.845459,608.820129 64.533676,585.960815 66.257294,562.116699 C70.874329,498.245514 100.566292,445.714417 141.139023,398.362213 C167.187576,367.961121 196.850128,341.519989 231.092499,320.480865 C249.374817,309.247894 268.712463,300.504730 289.747681,295.814850 C298.918243,293.770264 308.243866,293.104675 317.551697,293.977325 C337.197754,295.819244 349.463715,314.948547 343.448792,334.652924 C340.058044,345.760742 334.195404,355.649292 325.835297,363.905396 C324.040344,365.678009 322.025116,367.107635 319.826355,368.336853 C314.953064,371.061279 309.926270,372.827454 304.778687,369.377747 C299.849976,366.074646 299.457764,360.819672 299.817657,355.521332 C300.586884,344.196930 310.683441,332.817413 321.818634,330.594635 C325.894287,329.781097 330.352814,329.661438 330.028168,323.505096 C329.737457,317.993896 326.856659,314.266571 321.032684,313.224823 C311.737091,311.562164 303.300049,314.805542 294.997223,318.289764 C287.452576,321.455780 280.474762,325.708282 273.324036,330.359131 z';
+  /* ---- flatten the logo to a raster once, so html2canvas can't mis-scale the SVG ---- */
+  const RW=2048, RH=1011, GHOST='#E2DAC8';
+  let LOGO_URL=null, GHOST_IMG=null;
+  const ghostCache={};
+  function logoSVG(fill){
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="56 206 968 478" width="'+RW+'" height="'+RH+'">'
+      +'<path fill="'+fill+'" d="'+LOGO_P1+'"/><path fill="'+fill+'" d="'+LOGO_P2+'"/></svg>';
+  }
+  function loadImg(svgStr){ return new Promise(function(res,rej){ var i=new Image(); i.onload=function(){res(i);}; i.onerror=rej; i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgStr); }); }
+  async function buildRasters(){
+    try{
+      var red=await loadImg(logoSVG('#E61C28'));
+      var c=document.createElement('canvas'); c.width=RW; c.height=RH; c.getContext('2d').drawImage(red,0,0,RW,RH);
+      LOGO_URL=c.toDataURL('image/png');
+      GHOST_IMG=await loadImg(logoSVG(GHOST));
+    }catch(e){ console.error('logo raster unavailable, using vector fallback',e); }
+  }
+  const RASTERS=buildRasters();
+  function emblem(){
+    if(LOGO_URL) return '<img class="emblem" src="'+LOGO_URL+'" alt="" draggable="false">';
+    return '<svg class="emblem" viewBox="56 206 968 478" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path fill="#E61C28" d="'+LOGO_P1+'"/><path fill="#E61C28" d="'+LOGO_P2+'"/></svg>';
+  }
+  function seeded(seed){ let s=(seed%2147483647); if(s<=0) s+=2147483646; return function(){ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
+  function ghost(catObj, idx){
+    const seed=(parseInt(catObj.num,10)||1)*97 + idx*29 + 11;
+    const r=seeded(seed);
+    const w=118+r()*74, h=w*1.25, x=36+r()*(1004-w), y=188+r()*360;   // ~17-28x ("2000%") crop window
+    if(GHOST_IMG){
+      if(!ghostCache[seed]){
+        var sx=(x-56)*RW/968, sy=(y-206)*RH/478, sw=w*RW/968, sh=h*RH/478;
+        sx=Math.max(0,Math.min(RW-2,sx)); sy=Math.max(0,Math.min(RH-2,sy));
+        sw=Math.max(1,Math.min(sw,RW-sx)); sh=Math.max(1,Math.min(sh,RH-sy));
+        var cv=document.createElement('canvas'); cv.width=540; cv.height=675;
+        cv.getContext('2d').drawImage(GHOST_IMG, sx,sy,sw,sh, 0,0, 540,675);
+        ghostCache[seed]=cv.toDataURL('image/png');
+      }
+      return '<img class="ghost" src="'+ghostCache[seed]+'" alt="" draggable="false">';
+    }
+    return '<svg class="ghost" viewBox="'+x.toFixed(1)+' '+y.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+'" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path fill="'+GHOST+'" d="'+LOGO_P1+'"/><path fill="'+GHOST+'" d="'+LOGO_P2+'"/></svg>';
+  }
+  function cardEl(catObj, idx){
+    const c = catObj.cards[idx], step = rom(idx+1);
+    const el = document.createElement('section');
+    el.className = 'slide'+(c.t==='cover'?' cover':'')+(c.t==='door'?' door':'');
+    let eyeL,eyeR,body,coloL,coloR='Established in the present tense';
+    if(c.t==='cover'){
+      eyeL='The Church of Conceptual Art'; eyeR='CATECHISM No. '+catObj.num;
+      body = emblem()+'<p class="kicker">What is CoCA?</p><h1 class="display">'+(catObj.theme||'')+'</h1><p class="lede">'+(catObj.sub||'')+'</p>';
+      coloL=SITE;
+    } else if(c.t==='door'){
+      eyeL='No. '+catObj.num+' \u00b7 '+(catObj.theme||''); eyeR=step;
+      body='<p class="kicker">'+(c.k||'Read it on the site')+'</p><h2 class="display sm">'+(c.title||'')+'</h2>'
+        +(c.sub?'<p class="gloss" style="margin-top:12px">'+c.sub+'</p>':'')
+        +'<div class="urlbox"><span>'+SITE+'/<span class="path">'+(c.path||'')+'</span></span></div>'+emblem();
+      coloL='A catechism in four cards';
+    } else {
+      eyeL='No. '+catObj.num+' \u00b7 '+(catObj.theme||''); eyeR=step;
+      let h = c.k?'<p class="kicker">'+c.k+'</p>':'';
+      if(c.q) h+='<div class="scripture"><q>'+c.q+'</q>'+(c.src?'<span class="src">'+c.src+'</span>':'')+'</div>';
+      if(Array.isArray(c.p)) c.p.forEach(function(par){ h+='<p class="prose">'+par+'</p>'; });
+      body=h; coloL=SITE;
+    }
+    el.innerHTML=ghost(catObj,idx)
+      +'<div class="eyebrow"><span class="mark">'+eyeL+'</span><span class="num">'+eyeR+'</span></div>'
+      +'<div class="body"><div class="fit">'+body+'</div></div>'
+      +'<div class="colophon"><span class="url">'+coloL+'</span><span class="tense">'+coloR+'</span></div>';
+    return el;
+  }
+
+  /* ---- view + nav ---- */
+  let chips=[];
+  function rebuildChips(){
+    chipsEl.innerHTML='';
+    C.forEach(function(c,i){
+      const b=document.createElement('button');
+      b.className='chip'; b.textContent=rom(i+1)+' \u00b7 '+(c.short||'\u2014');
+      b.addEventListener('click',function(){ goCat(i); });
+      chipsEl.appendChild(b);
+    });
+    chips=Array.prototype.slice.call(chipsEl.children);
+  }
+  const FIT_BASE=30, FIT_MIN=15;
+  function fitSlide(slide){
+    const body=slide.querySelector('.body'), fit=slide.querySelector('.fit'); if(!body||!fit) return;
+    body.style.fontSize=FIT_BASE+'px';
+    let b=FIT_BASE, guard=0;
+    while(fit.offsetHeight > body.clientHeight+1 && b>FIT_MIN && guard<28){ b-=1.5; body.style.fontSize=b+'px'; guard++; }
+  }
+  function fitAll(){ Array.prototype.slice.call(track.children).forEach(fitSlide); }
+  function buildTrack(){
+    track.innerHTML='';
+    const n=C[cat].cards.length;
+    for(let i=0;i<n;i++) track.appendChild(cardEl(C[cat],i));
+    track.style.width=(SLIDE_W*n)+'px';
+    dotsEl.innerHTML='';
+    for(let i=0;i<n;i++){
+      const d=document.createElement('button');
+      d.className='dot'; d.setAttribute('role','tab'); d.setAttribute('aria-label','Card '+rom(i+1));
+      (function(k){ d.addEventListener('click',function(){ goCard(k); }); })(i);
+      dotsEl.appendChild(d);
+    }
+    fitAll();
+  }
+  function updateUI(){
+    catLab.textContent='No. '+C[cat].num+' \u00b7 '+C[cat].theme;
+    cardCount.textContent=rom(card+1)+' / '+rom(C[cat].cards.length);
+    chips.forEach(function(c,i){ c.setAttribute('aria-current', i===cat?'true':'false'); });
+    Array.prototype.slice.call(track.children).forEach(function(s,k){ s.classList.toggle('active',k===card); });
+    Array.prototype.slice.call(dotsEl.children).forEach(function(d,k){ d.setAttribute('aria-current',k===card?'true':'false'); });
+  }
+  function position(animate){
+    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    track.style.transition=(animate&&!reduce)?'transform .48s cubic-bezier(.2,.7,.2,1)':'none';
+    track.style.transform='translateX('+(-card*SLIDE_W)+'px)';
+    updateUI();
+  }
+  function layout(){
+    const w=viewport.clientWidth, s=w/SLIDE_W;
+    scaler.style.transform='scale('+s+')';
+    viewport.style.height=(SLIDE_H*s)+'px';
+    fitAll();
+    position(false);
+  }
+  function goCard(i,animate){
+    card=Math.max(0,Math.min(C[cat].cards.length-1,i));
+    position(animate===undefined?true:animate);
+    renderEditor();
+  }
+  function goCat(i){
+    cat=(i+C.length)%C.length; card=0;
+    buildTrack(); layout(); renderEditor();
+    const ch=chips[cat]; if(ch&&ch.scrollIntoView) ch.scrollIntoView({inline:'center',block:'nearest'});
+  }
+  function commit(){
+    cat=Math.max(0,Math.min(C.length-1,cat));
+    card=Math.max(0,Math.min(C[cat].cards.length-1,card));
+    renumber(); rebuildChips(); buildTrack(); layout(); renderEditor(); save();
+    const ch=chips[cat]; if(ch&&ch.scrollIntoView) ch.scrollIntoView({inline:'center',block:'nearest'});
+  }
+
+  let softT=null;
+  function soft(){
+    if(chips[cat]) chips[cat].textContent=rom(cat+1)+' \u00b7 '+(C[cat].short||'\u2014');
+    clearTimeout(softT);
+    softT=setTimeout(function(){ buildTrack(); position(false); save(); }, 150);
+  }
+
+  $('prevCat').addEventListener('click',function(){ goCat(cat-1); });
+  $('nextCat').addEventListener('click',function(){ goCat(cat+1); });
+  $('prevCard').addEventListener('click',function(){ goCard(card-1); });
+  $('nextCard').addEventListener('click',function(){ goCard(card+1); });
+  window.addEventListener('keydown',function(e){
+    if(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if(e.key==='ArrowLeft') goCard(card-1);
+    else if(e.key==='ArrowRight') goCard(card+1);
+    else if(e.key==='ArrowUp'){ e.preventDefault(); goCat(cat-1); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); goCat(cat+1); }
+  });
+  /* swipe */
+  let down=false,x0=0,moved=0;
+  viewport.addEventListener('pointerdown',function(e){ down=true;x0=e.clientX;moved=0;track.style.transition='none'; });
+  window.addEventListener('pointermove',function(e){
+    if(!down) return; moved=e.clientX-x0; const s=viewport.clientWidth/SLIDE_W;
+    track.style.transform='translateX('+(-card*SLIDE_W+moved/s)+'px)';
+  });
+  window.addEventListener('pointerup',function(){
+    if(!down) return; down=false;
+    if(Math.abs(moved)>viewport.clientWidth*0.16) goCard(moved<0?card+1:card-1);
+    else goCard(card);
+  });
+
+  function toast(m){ toastEl.textContent=m; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){ toastEl.classList.remove('show'); },2800); }
+
+  /* ---- export ---- */
+  async function snap(ci,cdi){
+    try{ await RASTERS; }catch(e){}
+    const el=cardEl(C[ci],cdi);
+    el.style.position='fixed'; el.style.left='-12000px'; el.style.top='0'; el.style.margin='0';
+    document.body.appendChild(el);
+    try{ await document.fonts.ready; }catch(e){}
+    await new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(r); }); });
+    fitSlide(el);
+    el.querySelectorAll('svg').forEach(function(svg){ var r=svg.getBoundingClientRect(); if(r.width&&r.height){ svg.setAttribute('width',Math.round(r.width)); svg.setAttribute('height',Math.round(r.height)); } });
+    const canvas=await html2canvas(el,{scale:2,backgroundColor:'#EAE3D5',width:SLIDE_W,height:SLIDE_H,windowWidth:SLIDE_W,windowHeight:SLIDE_H,useCORS:true,logging:false});
+    el.remove(); return canvas;
+  }
+  function toBlob(c){ return new Promise(function(res){ c.toBlob(res,'image/png'); }); }
+  function dl(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },1500); }
+
+  $('dlCard').addEventListener('click',async function(){
+    const b0=this,t=b0.textContent; b0.disabled=true; b0.textContent='Rendering\u2026';
+    try{ const c=await snap(cat,card); const b=await toBlob(c); dl(b,'coca-'+pad(cat+1)+'-'+slug(C[cat].short)+'-card'+(card+1)+'.png'); toast('Saved card '+rom(card+1)+' of \u201c'+C[cat].theme+'\u201d'); }
+    catch(e){ toast('Export failed \u2014 screenshot the card instead'); console.error(e); }
+    finally{ b0.disabled=false; b0.textContent=t; }
+  });
+  $('dlCat').addEventListener('click',async function(){
+    const b0=this,t=b0.textContent; b0.disabled=true; $('dlCard').disabled=true;
+    try{
+      const zip=new JSZip(), n=C[cat].cards.length, base=pad(cat+1)+'-'+slug(C[cat].short);
+      for(let i=0;i<n;i++){ b0.textContent='Rendering '+(i+1)+'/'+n+'\u2026'; const c=await snap(cat,i); const b=await toBlob(c); zip.file(base+'/card-'+(i+1)+'.png',b); }
+      b0.textContent='Zipping\u2026'; const blob=await zip.generateAsync({type:'blob'}); dl(blob,'coca-'+base+'.zip'); toast('Saved \u201c'+C[cat].theme+'\u201d \u2014 '+n+' cards');
+    }catch(e){ toast('Export failed \u2014 screenshot instead'); console.error(e); }
+    finally{ b0.disabled=false; $('dlCard').disabled=false; b0.textContent=t; }
+  });
+  $('dlAll').addEventListener('click',async function(){
+    const b0=this,t=b0.textContent; b0.disabled=true; $('dlCat').disabled=true; $('dlCard').disabled=true;
+    try{
+      const zip=new JSZip(); let done=0,total=0; C.forEach(function(c){ total+=c.cards.length; });
+      for(let ci=0;ci<C.length;ci++){ const n=C[ci].cards.length, base=pad(ci+1)+'-'+slug(C[ci].short);
+        for(let i=0;i<n;i++){ done++; b0.textContent='Rendering '+done+'/'+total+'\u2026'; const c=await snap(ci,i); const b=await toBlob(c); zip.file(base+'/card-'+(i+1)+'.png',b); } }
+      b0.textContent='Zipping\u2026'; const blob=await zip.generateAsync({type:'blob'}); dl(blob,'coca-catechisms.zip'); toast('Saved every catechism ('+total+' cards)');
+    }catch(e){ toast('Export failed \u2014 try one catechism at a time'); console.error(e); }
+    finally{ b0.disabled=false; $('dlCat').disabled=false; $('dlCard').disabled=false; b0.textContent=t; }
+  });
+
+  /* ---- editor ---- */
+  function typeName(t){ return t==='cover'?'Cover':(t==='door'?'Link':'Explainer'); }
+  function fInput(label,val,on){
+    const w=document.createElement('div'); w.className='f';
+    const l=document.createElement('label'); l.className='f-label'; l.textContent=label; w.appendChild(l);
+    const i=document.createElement('input'); i.className='f-input'; i.type='text'; i.value=val==null?'':val;
+    i.addEventListener('input',function(){ on(i.value); }); w.appendChild(i); return w;
+  }
+  function fArea(label,val,on,rows){
+    const w=document.createElement('div'); w.className='f';
+    const l=document.createElement('label'); l.className='f-label'; l.textContent=label; w.appendChild(l);
+    const a=document.createElement('textarea'); a.className='f-area'; a.rows=rows||2; a.value=val==null?'':val;
+    a.addEventListener('input',function(){ on(a.value); }); w.appendChild(a); return w;
+  }
+  function typeSelect(c){
+    const w=document.createElement('div'); w.className='f';
+    const l=document.createElement('label'); l.className='f-label'; l.textContent='Card type'; w.appendChild(l);
+    const s=document.createElement('select'); s.className='f-select';
+    [['cover','Cover (question)'],['ex','Explainer (text)'],['door','Link card']].forEach(function(o){
+      const op=document.createElement('option'); op.value=o[0]; op.textContent=o[1]; if(c.t===o[0]) op.selected=true; s.appendChild(op);
+    });
+    s.addEventListener('change',function(){ setType(c,s.value); renderEditor(); soft(); }); w.appendChild(s); return w;
+  }
+  function setType(c,type){
+    c.t=type;
+    if(type==='cover'){ delete c.k;delete c.q;delete c.src;delete c.p;delete c.title;delete c.sub;delete c.path; }
+    else if(type==='ex'){ c.k='The history'; if(c.q==null)c.q=''; if(c.src==null)c.src=''; if(!Array.isArray(c.p))c.p=['']; delete c.title;delete c.sub;delete c.path; }
+    else { c.k='Read it on the site'; if(c.title==null)c.title=C[cat].theme||''; if(c.sub==null)c.sub=''; if(c.path==null)c.path='index.html'; delete c.q;delete c.src;delete c.p; }
+  }
+  function paraEditor(c){
+    const wrap=document.createElement('div'); wrap.className='f';
+    const l=document.createElement('label'); l.className='f-label'; l.textContent='Paragraphs (basic HTML like <i>\u2026</i> is allowed)'; wrap.appendChild(l);
+    (c.p||[]).forEach(function(p,pi){
+      const row=document.createElement('div'); row.className='para';
+      const a=document.createElement('textarea'); a.className='f-area'; a.rows=2; a.value=p;
+      a.addEventListener('input',function(){ c.p[pi]=a.value; soft(); });
+      const bt=document.createElement('div'); bt.className='pbtns';
+      const up=document.createElement('button'); up.className='mini'; up.textContent='\u2191'; up.title='Move up';
+      up.addEventListener('click',function(){ if(pi>0){ const t=c.p[pi-1]; c.p[pi-1]=c.p[pi]; c.p[pi]=t; renderEditor(); soft(); } });
+      const dn=document.createElement('button'); dn.className='mini'; dn.textContent='\u2193'; dn.title='Move down';
+      dn.addEventListener('click',function(){ if(pi<c.p.length-1){ const t=c.p[pi+1]; c.p[pi+1]=c.p[pi]; c.p[pi]=t; renderEditor(); soft(); } });
+      const rm=document.createElement('button'); rm.className='mini danger'; rm.textContent='\u2715'; rm.title='Remove';
+      rm.addEventListener('click',function(){ c.p.splice(pi,1); renderEditor(); soft(); });
+      bt.appendChild(up); bt.appendChild(dn); bt.appendChild(rm);
+      row.appendChild(a); row.appendChild(bt); wrap.appendChild(row);
+    });
+    const add=document.createElement('button'); add.className='mini'; add.textContent='+ paragraph';
+    add.addEventListener('click',function(){ if(!Array.isArray(c.p))c.p=[]; c.p.push(''); renderEditor(); soft(); });
+    wrap.appendChild(add); return wrap;
+  }
+  function renderEditor(){
+    if(!editor || editor.hidden) return;
+    const c=C[cat], cd=c.cards[card];
+    edCatPos.textContent='No. '+c.num+' of '+pad(C.length);
+    edCardPos.textContent=(card+1)+' of '+c.cards.length+' \u2014 '+typeName(cd.t);
+    edCatBody.innerHTML='';
+    edCatBody.appendChild(fInput('Theme (cover headline)', c.theme, function(v){ c.theme=v; soft(); }));
+    edCatBody.appendChild(fInput('Subtitle (cover line)', c.sub, function(v){ c.sub=v; soft(); }));
+    edCatBody.appendChild(fInput('Short label (chips / filenames)', c.short, function(v){ c.short=v; soft(); }));
+    edCardBody.innerHTML='';
+    edCardBody.appendChild(typeSelect(cd));
+    if(cd.t==='cover'){
+      const n=document.createElement('p'); n.className='note'; n.textContent='The cover card shows the Theme and Subtitle set above, with the seal.'; edCardBody.appendChild(n);
+    } else if(cd.t==='ex'){
+      edCardBody.appendChild(fInput('Kicker (small heading)', cd.k, function(v){ cd.k=v; soft(); }));
+      edCardBody.appendChild(fArea('Quote \u2014 optional (shown with the red rule)', cd.q, function(v){ cd.q=v; soft(); }, 2));
+      edCardBody.appendChild(fInput('Quote source \u2014 optional', cd.src, function(v){ cd.src=v; soft(); }));
+      edCardBody.appendChild(paraEditor(cd));
+    } else {
+      edCardBody.appendChild(fInput('Kicker', cd.k, function(v){ cd.k=v; soft(); }));
+      edCardBody.appendChild(fInput('Title', cd.title, function(v){ cd.title=v; soft(); }));
+      edCardBody.appendChild(fInput('Sub-label', cd.sub, function(v){ cd.sub=v; soft(); }));
+      const hint=document.createElement('p'); hint.className='urlhint';
+      function updHint(){ hint.textContent=SITE+'/'+(cd.path||''); }
+      edCardBody.appendChild(fInput('Path on the site', cd.path, function(v){ cd.path=v; updHint(); soft(); }));
+      edCardBody.appendChild(hint); updHint();
+    }
+    storeNote.textContent = storageOK
+      ? 'Edits save in this browser automatically. Use Export .json or Download site to keep a portable copy.'
+      : 'Storage is blocked in this preview, so edits live in memory only here. Use Export .json or Download site to keep them \u2014 both work everywhere.';
+  }
+
+  /* structural ops */
+  $('edClose').addEventListener('click',function(){ editBtn.click(); });
+  $('catAdd').addEventListener('click',function(){ C.splice(cat+1,0,{num:"00",short:"New",theme:"New Catechism",sub:"Through a new lens.",cards:[{t:"cover"},{t:"ex",k:"The history",q:"",src:"",p:["Write the historical explainer here."]},{t:"door",k:"Read it on the site",title:"The Link",sub:"Section",path:"index.html"}]}); cat++; card=0; commit(); toast('Catechism added'); });
+  $('catDup').addEventListener('click',function(){ C.splice(cat+1,0,JSON.parse(JSON.stringify(C[cat]))); cat++; card=0; commit(); toast('Catechism duplicated'); });
+  $('catUp').addEventListener('click',function(){ if(cat>0){ const t=C[cat-1]; C[cat-1]=C[cat]; C[cat]=t; cat--; commit(); } });
+  $('catDown').addEventListener('click',function(){ if(cat<C.length-1){ const t=C[cat+1]; C[cat+1]=C[cat]; C[cat]=t; cat++; commit(); } });
+  $('catDel').addEventListener('click',function(){ if(C.length>1){ if(confirm('Delete this whole catechism?')){ C.splice(cat,1); if(cat>=C.length)cat=C.length-1; card=0; commit(); toast('Catechism deleted'); } } else toast('Keep at least one catechism'); });
+  $('cardAdd').addEventListener('click',function(){ if(C[cat].cards.length>=20){ toast('20 cards is the carousel maximum'); return; } C[cat].cards.splice(card+1,0,{t:"ex",k:"The history",q:"",src:"",p:[""]}); card++; commit(); toast('Card added'); });
+  $('cardLeft').addEventListener('click',function(){ const cds=C[cat].cards; if(card>0){ const t=cds[card-1]; cds[card-1]=cds[card]; cds[card]=t; card--; commit(); } });
+  $('cardRight').addEventListener('click',function(){ const cds=C[cat].cards; if(card<cds.length-1){ const t=cds[card+1]; cds[card+1]=cds[card]; cds[card]=t; card++; commit(); } });
+  $('cardDel').addEventListener('click',function(){ const cds=C[cat].cards; if(cds.length>1){ cds.splice(card,1); if(card>=cds.length)card=cds.length-1; commit(); toast('Card deleted'); } else toast('Keep at least one card'); });
+
+  /* template IO */
+  function exportJSON(){ dl(new Blob([JSON.stringify(C,null,2)],{type:'application/json'}),'coca-catechisms.json'); toast('Template exported (.json)'); }
+  $('exJson').addEventListener('click',exportJSON);
+  $('imJson').addEventListener('click',function(){ importFile.click(); });
+  importFile.addEventListener('change',function(){
+    const f=importFile.files&&importFile.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=function(){ try{ const a=JSON.parse(r.result); if(!Array.isArray(a)||!a.length) throw 0; C=a; cat=0; card=0; commit(); toast('Template imported'); }catch(e){ toast('That file is not a valid template .json'); } importFile.value=''; };
+    r.readAsText(f);
+  });
+  $('resetBtn').addEventListener('click',function(){
+    if(!confirm('Reset to the original content? This clears your edits in this browser.')) return;
+    try{ localStorage.removeItem(LS_KEY); }catch(e){}
+    C=bakedOrDefault(); cat=0; card=0; commit(); toast('Reset to original');
+  });
+  function downloadSite(){
+    const css=$('sheet').textContent, app=$('app').textContent;
+    const data=JSON.stringify(C).replace(/</g,'\\u003c');
+    const SCRIPT='scr'+'ipt';
+    const head='<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+      +'<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+      +'<title>CoCA \u2014 The Catechisms</title>\n'
+      +'<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+      +'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+      +'<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Marcellus+SC&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">\n'
+      +'<'+SCRIPT+' src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></'+SCRIPT+'>\n'
+      +'<'+SCRIPT+' src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></'+SCRIPT+'>\n'
+      +'<style id="sheet">'+css+'</style>\n</head>\n<body>\n';
+    const body='<div id="app-root"></div>\n'
+      +'<'+SCRIPT+' type="application/json" id="coca-data">'+data+'</'+SCRIPT+'>\n'
+      +'<'+SCRIPT+' id="app">'+app+'</'+SCRIPT+'>\n</body>\n</html>';
+    dl(new Blob([head+body],{type:'text/html'}),'coca-catechisms-site.html');
+    toast('Downloaded a standalone, editable site');
+  }
+  $('dlSite').addEventListener('click',downloadSite);
+
+  /* edit toggle */
+  editBtn.addEventListener('click',function(){
+    const willOpen=editor.hidden;
+    editor.hidden=!willOpen;
+    document.body.classList.toggle('editing',willOpen);
+    editBtn.textContent= willOpen ? 'Close editor' : 'Edit \u270e';
+    if(willOpen){ renderEditor(); editor.scrollIntoView({behavior:'smooth',block:'start'}); }
+  });
+
+  /* init */
+  window.addEventListener('resize',layout);
+  rebuildChips(); buildTrack(); layout();
+  if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(layout); }
+  RASTERS.then(function(){ buildTrack(); layout(); renderEditor(); });
+})();
+  </script>
+</body>
+</html>
